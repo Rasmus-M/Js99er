@@ -1,0 +1,99 @@
+body {
+    margin-top: 10px;
+}
+
+h3, h6 {
+    text-align: center;
+    margin-top: 6px;
+    margin-bottom: 4px;
+}
+
+th {
+    text-align: center;
+    font-size: 11px;
+}
+
+.btn-file {
+    position: relative;
+    overflow: hidden;
+}
+
+.btn-file input[type=file] {
+    position: absolute;
+    top: 0;
+    right: 0;
+    min-width: 100%;
+    min-height: 100%;
+    font-size: 999px;
+    text-align: right;
+    filter: alpha(opacity=0);
+    opacity: 0;
+    outline: none;
+    background: white;
+    cursor: inherit;
+    display: block;
+}
+
+#tools, #diskTools {
+    padding-left: 8px;
+}
+
+#title {
+    height: 72px;
+}
+
+#log {
+    height: 380px;
+    white-space: pre;
+    overflow-x: scroll;
+    overflow-y: scroll;
+    word-wrap: normal;
+}
+
+#status {
+    height: 148px;
+    overflow: auto;
+    word-wrap: normal;
+}
+
+#diskManagerPanel, #optionsPanel {
+    height: 588px;
+}
+
+#diskFileTable {
+    overflow: scroll;
+}
+
+#fileTableRow {
+    overflow:auto;
+    margin-top: 12px;
+    margin-bottom: 12px;
+}
+
+@media (max-width: 607px) {
+	#canvas {
+		width: 304px;
+		height: 240px;
+        image-rendering: auto;
+	}
+	#tools, #title, #log, #status, #diskManager, #options {
+		width: 304px;
+	}
+    #fileTableRow {
+        height:348px;
+    }
+}
+
+@media (min-width: 608px) {
+	#canvas {
+		width: 608px;
+		height: 480px;
+        image-rendering: -moz-crisp-edges;
+	}
+    #tools, #title, #log, #status, #diskManager, #options {
+        width: 608px;
+    }
+    #fileTableRow {
+        height:448px;
+    }
+}
