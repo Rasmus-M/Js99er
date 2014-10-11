@@ -16,20 +16,25 @@ Memory.GRMRA   = 0x9802;  // GROM read address
 Memory.GRMWD   = 0x9C00;  // GROM write data
 Memory.GRMWA   = 0x9C02;  // GROM write address
 
-function Memory(vdp, tms9919, tms5220, enable32KRAM) {
+Memory.GROM_BASES = 16;
+
+function Memory(vdp, tms9919, tms5220, settings) {
     this.vdp = vdp;
     this.tms9919 = tms9919;
     this.tms5220 = tms5220;
 
     this.ram = new Uint8Array(0x10000);
     this.rom = new Uint8Array(SYSTEM.ROM);
-    this.grom = new Uint8Array(0x10000);
-    this.peripheralROM = new Uint8Array(0x2000);
+    this.groms = [];
+    for (var i = 0; i < Memory.GROM_BASES; i++) {
+        this.groms[i] = new Uint8Array(0x10000);
+    }
 
-    this.loadGROM(SYSTEM.GROM, 0);
+    this.loadGROM(SYSTEM.GROM, 0, 0);
     this.gromAddress = 0;
     this.gromAccess = 2;
-    this.gromPrefetch = 0;
+    this.gromPrefetch = new Uint8Array(Memory.GROM_BASES);
+    this.multiGROMBases = false;
 
     this.cartImage = null;
     this.cartInverted = false;
@@ -37,15 +42,20 @@ function Memory(vdp, tms9919, tms5220, enable32KRAM) {
     this.currentCartBank = 0;
     this.cartAddrOffset = 0x6000;
 
+    this.peripheralROMs = [];
     this.peripheralROMEnabled  = false;
-    this.loadPeripheralROM(DiskDrive.DSR_ROM);
+    this.peripheralROMNumber = 0;
+    this.loadPeripheralROM(DiskDrive.DSR_ROM, 1);
+    if (settings && settings.isGoogleDriveEnabled()) {
+        this.loadPeripheralROM(GoogleDrive.DSR_ROM, 2);
+    }
 
     this.buildMemoryMap();
 
-    this.enable32KRAM = enable32KRAM;
+    this.enable32KRAM = settings && settings.is32KRAMEnabled();
 
     this.log = Log.getLog();
-    this.reset();
+    this.reset(false);
 }
 
 Memory.prototype = {
@@ -111,13 +121,20 @@ Memory.prototype = {
     },
 
     reset: function(keepCart) {
-        for (var i = 0; i < this.ram.length; i++) {
+        var i;
+        for (i = 0; i < this.ram.length; i++) {
             this.ram[i] = 0;
         }
         if (!keepCart) {
-            for (i = 0x6000; i < 0x10000; i++) {
-                this.grom[i] = 0;
+            var grom = this.groms[0];
+            for (i = 0x6000; i < grom.length; i++) {
+                grom[i] = 0;
             }
+            for (i = 1; i < Memory.GROM_BASES; i++) {
+                this.groms[i] = new Uint8Array(0x10000);
+            }
+            this.gromPrefetch = new Uint8Array(Memory.GROM_BASES);
+            this.multiGROMBases = false;
             this.cartImage = null;
         }
     },
@@ -135,11 +152,15 @@ Memory.prototype = {
         }
     },
 
-    loadGROM: function(byteArray, bank) {
+    loadGROM: function(byteArray, bank, base) {
+        var grom = this.groms[base];
         var addr = bank * 0x2000;
         for (var i = 0; i < byteArray.length; i++) {
-            this.grom[addr + i] = byteArray[i];
+            grom[addr + i] = byteArray[i];
         }
+        if (base > 0) {
+            this.multiGROMBases = true;
+        };
     },
 
     setCartridgeImage: function(byteArray, inverted) {
@@ -150,14 +171,22 @@ Memory.prototype = {
         this.cartAddrOffset = -0x6000;
     },
 
-    loadPeripheralROM: function(byteArray) {
+    loadPeripheralROM: function(byteArray, number) {
+        this.peripheralROMs[number] = new Uint8Array(0x2000);
         for (var i = 0; i < byteArray.length; i++) {
-            this.peripheralROM[i] = byteArray[i];
+            this.peripheralROMs[number][i] = byteArray[i];
         }
     },
 
     togglePeripheralROM: function(romNo, enabled) {
-        this.peripheralROMEnabled = romNo == 1 && enabled;
+        // this.log.info("Toggle ROM " + romNo + " " + (enabled ? "on" : "off") + ".");
+        if (romNo > 0 && romNo < this.peripheralROMs.length) {
+            this.peripheralROMNumber = romNo;
+            this.peripheralROMEnabled = enabled;
+        }
+        else {
+            this.peripheralROMEnabled = false;
+        }
     },
 
     readROM: function(addr, cpu) {
@@ -182,8 +211,13 @@ Memory.prototype = {
 
     readPeripheralROM: function(addr, cpu) {
         cpu.addCycles(4);
-        // this.log.info("Read DSR ROM " + addr.toHexWord() + ": " + (this.dsrromEnabled ? this.dsrrom[addr - 0x4000] << 8 | this.dsrrom[addr + 1 - 0x4000] : 0).toHexWord());
-        return this.peripheralROMEnabled ? this.peripheralROM[addr - 0x4000] << 8 | this.peripheralROM[addr + 1 - 0x4000] : 0;
+        if (this.peripheralROMEnabled) {
+            var peripheralROM = this.peripheralROMs[this.peripheralROMNumber];
+            if (peripheralROM != null) {
+                return peripheralROM[addr - 0x4000] << 8 | peripheralROM[addr + 1 - 0x4000];
+            }
+        }
+        return 0;
     },
 
     writePeripheralROM: function(addr, w, cpu) {
@@ -262,16 +296,20 @@ Memory.prototype = {
 
     readGROM: function(addr, cpu) {
         cpu.addCycles(4);
-		// if (addr >= 0x9800 && addr < 0x9840) {
-            addr = addr & 0x9802;
-        // }
+        var base = !this.multiGROMBases || this.gromAddress - 1 < 0x6000 ? 0 : (addr & 0x003C) >> 2;
+        addr = addr & 0x9802;
         if (addr == Memory.GRMRD) {
             // Read data from GROM
             this.gromAccess = 2;
-            var w = this.gromPrefetch << 8;
-            // this.log.info((cpu.getPC().toHexWord()) + " GROM read bank " + ((this.gromAddress & 0xE000) >> 13) + " addr " + (((this.gromAddress - 1) & 0x1FFF).toHexWord()) + ": " + this.gromPrefetch.toHexByte());
-            // Prefetch
-            this.gromPrefetch = this.grom[this.gromAddress++];
+            var w = this.gromPrefetch[base] << 8;
+            // if (base > 0) {
+            //     this.log.info((cpu.getPC().toHexWord()) + " GROM read base " + base + " bank " + ((this.gromAddress & 0xE000) >> 13) + " addr " + (((this.gromAddress - 1) & 0x1FFF).toHexWord()) + ": " + this.gromPrefetch[base].toHexByte());
+            // }
+            // Prefetch for all bases
+            for (var i = 0; i < Memory.GROM_BASES; i++) {
+                this.gromPrefetch[i] = this.groms[i][this.gromAddress];
+            }
+            this.gromAddress++;
             return w;
         }
         else if (addr == Memory.GRMRA) {
@@ -287,9 +325,7 @@ Memory.prototype = {
 
     writeGROM: function(addr, w, cpu) {
         cpu.addCycles(4);
-        // if (addr >= 0x9C00 && addr < 0x9C40) {
-            addr = addr & 0x9C02;
-        // }
+        addr = addr & 0x9C02;
         if (addr == Memory.GRMWD) {
             // Write data to GROM - not implemented
         }
@@ -299,7 +335,10 @@ Memory.prototype = {
             this.gromAccess--;
             if (this.gromAccess == 0) {
                 this.gromAccess = 2;
-                this.gromPrefetch = this.grom[this.gromAddress];
+                // Prefetch for all bases
+                for (var i = 0; i < Memory.GROM_BASES; i++) {
+                    this.gromPrefetch[i] = this.groms[i][this.gromAddress];
+                }
                 // this.log.info("GROM address set to: " + this.gromAddress.toHexWord());
                 this.gromAddress++;
             }

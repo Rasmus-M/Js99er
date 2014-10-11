@@ -12,20 +12,21 @@ function TMS9919(enabled) {
     this.bufferSize = 1024;
     this.buffer = new Int8Array(this.bufferSize);
     this.log = Log.getLog();
-    this.audioContext = null;
-    if (window.AudioContext) {
-        this.audioContext = new AudioContext();
+    if (TMS9919.audioContext == null) {
+        if (window.AudioContext) {
+            TMS9919.audioContext = new AudioContext();
+        }
+        else if (window.webkitAudioContext) {
+            TMS9919.audioContext = new webkitAudioContext();
+        }
     }
-    else if (window.webkitAudioContext) {
-        this.audioContext = new webkitAudioContext();
-    }
-    if (this.audioContext != null) {
+    if (TMS9919.audioContext != null) {
         this.log.info("Web Audio API detected");
-        this.sampleRate = this.audioContext.sampleRate;
+        this.sampleRate = TMS9919.audioContext.sampleRate;
         this.log.info('AudioContext: sample rate is ' + this.sampleRate);
-        this.scriptProcessor = this.audioContext.createScriptProcessor(this.bufferSize, 2, 2);
+        this.scriptProcessor = TMS9919.audioContext.createScriptProcessor(this.bufferSize, 2, 2);
         this.scriptProcessor.owner = this;
-        this.scriptProcessor.connect(this.audioContext.destination);
+        this.scriptProcessor.connect(TMS9919.audioContext.destination);
         this.setSoundEnabled(enabled);
     }
     else {
@@ -33,10 +34,13 @@ function TMS9919(enabled) {
     }
 }
 
+TMS9919.audioContext = null;
+
 TMS9919.prototype = {
 
     reset: function() {
         this.mute();
+        this.psgdev.init(SN76489.CLOCK_3_58MHZ, SN76489.SAMPLE_FREQUENCY);
     },
 
     writeData: function(b) {
@@ -75,6 +79,18 @@ TMS9919.prototype = {
             this.mute();
             this.scriptProcessor.onaudioprocess = null;
         }
+    },
+
+    setGROMClock: function(gromClock) {
+        this.log.info("GROM clock set to " + gromClock.toHexByte());
+        var divider;
+        if (gromClock == 0xD6) {
+            divider = 1;
+        }
+        else {
+            divider = gromClock / 112;
+        }
+        this.psgdev.init(SN76489.CLOCK_3_58MHZ / divider, SN76489.SAMPLE_FREQUENCY);
     }
 };
 

@@ -17,10 +17,11 @@ TMS9900.DISASSM_START = -1;
 TMS9900.DISASSM_LENGTH = 8000;
 TMS9900.FRAME_CYCLES = 50000;
 
-function TMS9900(memory, cru, diskDrives) {
+function TMS9900(memory, cru, diskDrives, googleDrives) {
     this.memory = memory;
     this.cru = cru;
     this.diskDrives = diskDrives;
+    this.googleDrives = googleDrives;
 
     // Internal registers
     this.PC = 0;
@@ -67,6 +68,7 @@ function TMS9900(memory, cru, diskDrives) {
     this.bStatusLookup = this.buildBStatusLookupTable();
 
     // Misc
+    this.suspended = false;
     this.log = Log.getLog();
     this.disassm = false;
     this.disassmCount = 0;
@@ -92,6 +94,8 @@ TMS9900.prototype = {
         this.WP = this.readMemoryWord(0x0000);
         this.PC = this.readMemoryWord(0x0002);
         this.log.info("PC reset to " + this.PC.toHexWord())
+
+        this.suspended = false;
     },
 
     /*
@@ -247,7 +251,7 @@ TMS9900.prototype = {
 
     run: function(cyclesToRun) {
         var startCycles = this.cycles;
-        while (this.cycles - startCycles < cyclesToRun) {
+        while (this.cycles - startCycles < cyclesToRun && !this.suspended) {
             // Debugging
             if (this.PC == TMS9900.DISASSM_START) { // && !this.disassmDone
                 this.disassm = true;
@@ -257,8 +261,26 @@ TMS9900.prototype = {
                 this.logRegs();
             }
             // Hook into disk DSR
-            if (this.PC >= DiskDrive.DSR_HOOK_START && this.PC <= DiskDrive.DSR_HOOK_END) {
-                DiskDrive.execute(this.PC, this.diskDrives, this.memory);
+            if (this.PC >= 0x4000 && this.PC < 0x6000) {
+                switch (this.memory.peripheralROMNumber) {
+                    case 1:
+                        if (this.PC >= DiskDrive.DSR_HOOK_START && this.PC <= DiskDrive.DSR_HOOK_END) {
+                            DiskDrive.execute(this.PC, this.diskDrives, this.memory);
+                        }
+                        break;
+                    case 2:
+                        if (this.PC >= GoogleDrive.DSR_HOOK_START && this.PC <= GoogleDrive.DSR_HOOK_END) {
+                            if (GoogleDrive.execute(this.PC, this.googleDrives, this.memory, function(success) {
+                                this.log.debug("CPU resumed");
+                                this.setSuspended(false);
+                            }.bind(this))) {
+                                // Google drive is asynchronous - we cannot continue until after the callback
+                                this.log.debug("CPU suspended");
+                                this.setSuspended(true);
+                            }
+                        }
+                        break;
+                }
             }
             // Execute interrupt routine
             var interruptLevel = this.getInterruptLevel();
@@ -1777,6 +1799,14 @@ TMS9900.prototype = {
             s += "R" + i + (i < 10 ? " " : "") + "=" + (this.memory.getRAMWord(this.WP + 2 * i)).toHexWord() + (i % 4 == 3 ? "\n" : " ");
         }
         return s;
+    },
+
+    isSuspended: function() {
+        return this.suspended;
+    },
+
+    setSuspended: function(suspended) {
+        this.suspended = suspended;
     }
 };
 

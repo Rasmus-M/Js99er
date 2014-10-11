@@ -1,30 +1,13 @@
-/**
- * TOYOSHIMA-HOUSE Library for JavaScript
+/*
+ * js99'er - TI-99/4A emulator written in JavaScript
+ *
+ * Created 2014 by Rasmus Moustgaard <rasmus.moustgaard@gmail.com>
  */
 
-/**
- * Log prototype
- *
- * This prototype provide common log interfaces.
- * @author Takashi Toyoshima <toyoshim@gmail.com>
- *
- */
+function Log(id) {
 
-/**
- * Log prototype function. This prototype provide three kinds of Log
- * mechanisms. User can specify its type by id argument.
- * @param id Log type
- *     undefined: Use native console.log if it's available.
- *     null: Eliminate all logs.
- *     <string>: Output as pre element under DOM object which has <string> id.
- * @param reverse logging order
- *     true: Newer logs will be added to tail.
- *     false: Newer logs will be added to head.
- */
-function Log (id, reverse, buffered) {
-    this.lastLevel = "";
-    this.reverse = reverse;
-	
+    this.debugEnabled = false;
+
 	this.buffer = "";
 	this.bufferCount = 0;
 	this.bufferSize = 20;
@@ -50,7 +33,7 @@ function Log (id, reverse, buffered) {
             }
             return;
         }
-		else if (buffered) {
+		else {
 			this.print = function(object) {
 				if (object != null) {
 					this.buffer += object + "\n";
@@ -66,31 +49,6 @@ function Log (id, reverse, buffered) {
 			};
 			var that = this;
 			setInterval(function() { that.flushBuffer() }, 1000);
-		}
-		else {
-			this.print = function (object) {
-				var element;
-				if (object instanceof Object) {
-					element = document.createElement('pre');
-					var text = object.toString();
-					var textNode = document.createTextNode(text);
-					element.appendChild(textNode);
-					var title = "";
-					for (var item in object) {
-						title += item + ":" + object[item] + "; \n";
-					}
-					element.setAttribute('title', title);
-				} else {
-					element = document.createTextNode(object + "\n");
-				}
-				if (this.reverse && this.framePre.firstChild) {
-					this.framePre.insertBefore(element, this.framePre.firstChild);
-				}
-				else {
-					this.framePre.appendChild(element);
-					this.framePre.scrollTop = this.framePre.scrollHeight;
-				}
-			};
 		}
     }
 	
@@ -116,21 +74,9 @@ Log.setLog = function (newLog) {
  */
 Log.getLog = function () {
     if (Log.log == null) {
-        Log.log = new Log("log", false, true);
+        Log.log = new Log("log");
     }
     return Log.log;
-};
-
-/**
- * Log fatal message.
- * @param message fatal message
- */
-Log.prototype.fatal = function (message) {
-//    if (this.LastLevel != "FATAL") {
-//        this.LastLevel = "FATAL";
-//        this.print("*FATAL*");
-//    }
-    this.print(message);
 };
 
 /**
@@ -138,11 +84,7 @@ Log.prototype.fatal = function (message) {
  * @param message error message
  */
 Log.prototype.error = function (message) {
-//    if (this.LastLevel != "ERROR") {
-//        this.LastLevel = "ERROR";
-//        this.print("*ERROR*");
-//    }
-    this.print(message);
+    alert(message);
 };
 
 /**
@@ -150,11 +92,7 @@ Log.prototype.error = function (message) {
  * @param message warning message
  */
 Log.prototype.warn = function (message) {
-//    if (this.LastLevel != "WARN") {
-//        this.LastLevel = "WARN";
-//        this.print("*WARN*");
-//    }
-    this.print(message);
+    this.print("*** Warning *** " + message);
 };
 
 /**
@@ -162,9 +100,16 @@ Log.prototype.warn = function (message) {
  * @param message information message
  */
 Log.prototype.info = function (message) {
-//    if (this.LastLevel != "INFO") {
-//        this.LastLevel = "INFO";
-//        this.print("*INFO*");
-//    }
     this.print(message);
 };
+
+/**
+ * Log debug message.
+ * @param message fatal message
+ */
+Log.prototype.debug = function (message) {
+    if (this.debugEnabled) {
+        this.print("Debug: " + message);
+    }
+};
+

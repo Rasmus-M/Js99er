@@ -17,8 +17,21 @@
 
     $(document).ready(function() {
 
-        // Init
+        // Check if a new cache is available on page load.
+        if (window.applicationCache) {
+            window.applicationCache.addEventListener('updateready', function (e) {
+                if (window.applicationCache.status == window.applicationCache.UPDATEREADY) {
+                    // Browser downloaded a new app cache.
+                    if (confirm("A new version of Js99'er is available. Load it?")) {
+                        window.location.reload();
+                    }
+                } else {
+                    // Manifest didn't changed. Nothing new to server.
+                }
+            }, false);
+        }
 
+        // Init
         settings = new Settings(true);
         diskImages = {
             FLOPPY1: new DiskImage("FLOPPY1"),
@@ -37,7 +50,7 @@
         // Build UI
         $("#canvas").on("click", function(evt) {
             var rect = this.getBoundingClientRect();
-            var scale = this.clientHeight == 240 ? 1 : 2;
+            var scale = this.clientHeight / 240;
             var tiX = Math.floor((evt.clientX - rect.left) / scale);
             var tiY = Math.floor((evt.clientY - rect.top) / scale);
             var charCode = ti994a.vdp.getCharAt(tiX, tiY);
@@ -75,6 +88,11 @@
             if (!ti994a.isRunning()) {
                 $("#btnStart").click();
             }
+        });
+
+        $("#btnScreenshot").on("click", function() {
+            var dataURL = document.getElementById("canvas").toDataURL();
+            this.href = dataURL;
         });
 
         $("#btnLeft").on("mousedown", function() { ti994a.keyboard.simulateKeyDown(37); }).on("mouseup", function() { ti994a.keyboard.simulateKeyUp(37); });
@@ -115,7 +133,10 @@
                     log.error(message);
                 }
             )
-         });
+        });
+		$("#fileInputModule").on("click", function() {
+			$(this).val("");
+		});
 
         $("#fileInputDisk").on("change", function() {
             for (var i = 0; i < this.files.length; i++) {
@@ -149,6 +170,9 @@
             }
             updateDiskImageList();
         });
+		$("#fileInputDisk").on("click", function() {
+			$(this).val("");
+		});
 
         $("#insertDSK0").on("click", function() { insertDisk(0); });
         $("#insertDSK1").on("click", function() { insertDisk(1); });
@@ -164,6 +188,13 @@
         enableSound.on('switchChange.bootstrapSwitch', function(event, state) {
             settings.setSoundEnabled(state);
             ti994a.tms9919.setSoundEnabled(state);
+        });
+
+        var enableSpeech = $("#enableSpeech");
+        enableSpeech.bootstrapSwitch("state", settings.isSpeechEnabled());
+        enableSpeech.on('switchChange.bootstrapSwitch', function(event, state) {
+            settings.setSpeechEnabled(state);
+            ti994a.tms5220.setSpeechEnabled(state);
         });
 
         var enable32KRAM = $("#enable32KRAM");
@@ -185,11 +216,27 @@
             }
         });
 
+        var enablePCKeyboard = $("#enablePCKeyboard");
+        enablePCKeyboard.bootstrapSwitch("state", settings.isPCKeyboardEnabled());
+        enablePCKeyboard.on('switchChange.bootstrapSwitch', function(event, state) {
+            settings.setPCKeyboardEnabled(state);
+            ti994a.keyboard.setPCKeyboardEnabled(state);
+        });
+
+        var enableGoogleDrive = $("#enableGoogleDrive");
+        enableGoogleDrive.bootstrapSwitch("state", settings.isGoogleDriveEnabled());
+        enableGoogleDrive.on('switchChange.bootstrapSwitch', function(event, state) {
+            settings.setGoogleDriveEnabled(state);
+            var running =  ti994a.isRunning();
+            ti994a.stop();
+            ti994a = new TI994A(document, document.getElementById("canvas"), diskImages, settings);
+            if (running) {
+                ti994a.start();
+            }
+        });
+
+        $("#diskImageList").on("change", function() { updateDiskFileTable(this.value); });
         updateDiskImageList();
-
-        // Status update
-        window.setInterval(updateStatus, 100);
-
 
         software.loadProgram("software/editor-assembler.json", null, function(cart) {
             if (cart != null) {
@@ -197,6 +244,9 @@
             }
             // Start TI
             $("#btnStart").click();
+
+            // Status update
+            window.setInterval(updateStatus, 100);
         });
     });
 
@@ -256,7 +306,7 @@
             else {
                 diskImage = diskDrive.getDiskImage();
                 if (diskImage != null) {
-                    diskImage.loadTIFile(filename, fileBuffer);
+                    diskImage.loadTIFile(filename, fileBuffer, false);
                 }
             }
         };
@@ -395,7 +445,6 @@
         if (defaultDiskImageName != null) {
             diskImageList.val(defaultDiskImageName);
         }
-        diskImageList.on("change", function() { updateDiskFileTable(this.value); });
         diskImageList.on("change");
     }
 
@@ -430,6 +479,9 @@
                     diskFileTable.append(row);
                 }
             }
+        }
+        else {
+            alert("Disk not found");
         }
     }
 

@@ -183,7 +183,7 @@ DiskDrive.setFiles = function(nFiles, memory) {
         // Get parameter from BASIC (code from Classic99)
         var x = memory.getRAMWord(0x832c);		    // Get next basic token
         x += 7;						                // Skip "FILES"
-        var vdpRAM = memory.vdp.getRAM();       // Get the VDP RAM
+        var vdpRAM = memory.vdp.getRAM();           // Get the VDP RAM
         var y = (vdpRAM[x] << 8) | vdpRAM[x + 1];	// Get two bytes (size of string)
         if (y == 0xc801) {                          // c8 means unquoted string, 1 is the length
             x += 2;						            // Increment pointer
@@ -473,7 +473,7 @@ DiskDrive.prototype = {
                         this.log.info("Op-code " + opCode + ": SAVE");
                         file = this.diskImage.getFile(fileName);
                         if (file == null) {
-                            file = new DiskFile(fileName, TI_FILE.FILE_TYPE_PROGRAM, -1, -1, -1);
+                            file = new DiskFile(fileName, TI_FILE.FILE_TYPE_PROGRAM, 0, 0, 0);
                             this.diskImage.putFile(file);
                         }
                         var saveBuffer = [];
@@ -692,7 +692,10 @@ DiskDrive.prototype = {
     loadDSKFile: function(dskFileName, fileBuffer) {
         var volumeName = "";
         for (var i = 0; i < 10; i++) {
-            volumeName += String.fromCharCode(fileBuffer[i]);
+            var ch = fileBuffer[i];
+            if (ch >= 32 && ch < 128) {
+                volumeName += String.fromCharCode(ch);
+            }
         }
         volumeName = volumeName.trim();
         this.log.info("Volume name: " + volumeName);
@@ -705,7 +708,10 @@ DiskDrive.prototype = {
                 var fileDescriptorRecord = fileDescriptorSectorNo * 256;
                 var fileName = "";
                 for (i = 0; i < 10; i++) {
-                    fileName += String.fromCharCode(fileBuffer[fileDescriptorRecord + i]);
+                    ch = fileBuffer[fileDescriptorRecord + i];
+                    if (ch >= 32 && ch < 128) {
+                        fileName += String.fromCharCode(ch);
+                    }
                 }
                 fileName = fileName.trim();
                 this.log.info("File name: " + fileName);
@@ -737,7 +743,7 @@ DiskDrive.prototype = {
                     diskFile = new DiskFile(fileName, fileType, recordType, recordLength, datatype);
                 }
                 else {
-                    diskFile = new DiskFile(fileName, fileType, -1, -1, -1);
+                    diskFile = new DiskFile(fileName, fileType, 0, 0, 0);
                 }
                 diskFile.open(TI_FILE.OPERATION_MODE_OUTPUT, TI_FILE.ACCESS_TYPE_SEQUENTIAL);
                 var program = [];
@@ -853,7 +859,7 @@ DiskImage.prototype = {
         delete this.files[fileName];
     },
 
-    loadTIFile: function(fileName, fileBuffer) {
+    loadTIFile: function(fileName, fileBuffer, ignoreTIFileName) {
         if (fileBuffer != null && fileBuffer.length > 0x80) {
             var sectors;
             var flags;
@@ -865,13 +871,14 @@ DiskImage.prototype = {
             var fileType;
             var fileLength;
             var sectorOffset;
+            var pcFormat = false;
             var id = "";
             for (var i = 1; i < 8; i++) {
                 id += String.fromCharCode(fileBuffer[i]);
             }
             if (fileBuffer[0] == 0x07 && id == "TIFILES") {
                 var tiFileName = "";
-                if (fileBuffer[0x10] != 0xCA) {
+                if (!ignoreTIFileName && fileBuffer[0x10] != 0xCA) {
                     for (i = 0x10; i < 0x1A; i++) {
                         if (fileBuffer[i] >= 32 && fileBuffer[i] < 128) {
                             tiFileName += String.fromCharCode(fileBuffer[i]);
@@ -884,7 +891,7 @@ DiskImage.prototype = {
                 }
                 else {
                     for (i = 0; i < fileName.length; i++) {
-                        if (fileName.charAt(i).match(/[0-9A-Za-z_\-]/) && fileName.length < 10) {
+                        if (fileName.charAt(i).match(/[0-9A-Za-z_\-]/) && tiFileName.length < 10) {
                             tiFileName += fileName.charAt(i);
                         }
                     }
@@ -921,8 +928,22 @@ DiskImage.prototype = {
                 sectorOffset = 0x80;
             }
             else {
-                this.log.warn(fileName + " is not in TIFILES or V9T9 format.");
-                return;
+                this.log.warn(fileName + " is not in TIFILES or V9T9 format. Assuming D/F 80.");
+                tiFileName = "";
+                for (i = 0; i < fileName.length; i++) {
+                    if (fileName.charAt(i).match(/[0-9A-Za-z_\-]/) && fileName.length < 10) {
+                        tiFileName += fileName.charAt(i);
+                    }
+                }
+                recordType = TI_FILE.RECORD_TYPE_FIXED;
+                datatype = TI_FILE.DATATYPE_DISPLAY;
+                fileType = TI_FILE.FILE_TYPE_DATA;
+                recsPerSector = 3;
+                sectors = Math.floor(fileBuffer.length / 256);
+                recordLength = 80;
+                fileLength = fileBuffer.length;
+                sectorOffset = 0;
+                pcFormat = true;
             }
             this.log.info("Loading '" + fileName + "' to " + this.name + " ...");
             this.log.info(
@@ -942,36 +963,66 @@ DiskImage.prototype = {
                     file.open(TI_FILE.OPERATION_MODE_OUTPUT, TI_FILE.ACCESS_TYPE_SEQUENTIAL);
                     var sector, rec, data;
                     if (recordType == TI_FILE.RECORD_TYPE_FIXED) {
-                        for (sector = 0; sector < sectors; sector++) {
-                            for (rec = 0; rec < recsPerSector; rec++) {
-                                if (sector * 256 + rec * recordLength < fileLength) {
-                                    data = [];
-                                    for (i = 0; i < recordLength; i++) {
-                                        data[i] = fileBuffer[sectorOffset + sector * 256 + rec * recordLength + i];
+                        if (!pcFormat) {
+                            for (sector = 0; sector < sectors; sector++) {
+                                for (rec = 0; rec < recsPerSector; rec++) {
+                                    if (sector * 256 + rec * recordLength < fileLength) {
+                                        data = [];
+                                        for (i = 0; i < recordLength; i++) {
+                                            data[i] = fileBuffer[sectorOffset + sector * 256 + rec * recordLength + i];
+                                        }
+                                        file.putRecord(new FixedRecord(data, recordLength));
                                     }
-                                    file.putRecord(new FixedRecord(data, recordLength));
                                 }
+                            }
+                        }
+                        else {
+                            data = [];
+                            i = 0;
+                            while (i < fileBuffer.length) {
+                                data.push(fileBuffer[i++]);
+                                if (data.length == recordLength) {
+                                    file.putRecord(new FixedRecord(data, recordLength));
+                                    data = [];
+                                    if (fileBuffer[i] == 0xd || fileBuffer[i + 1] == 0xa) {
+                                        i += 2;
+                                    }
+                                }
+                            }
+                            if (data.length > 0) {
+                                file.putRecord(new FixedRecord(data, recordLength));
                             }
                         }
                     }
                     else {
+                        this.log.info("Sectors=" + sectors);
                         for (sector = 0; sector < sectors; sector++) {
                             i = sectorOffset + sector * 256;
+                            var sectorBytesLeft = 256;
                             recordLength = fileBuffer[i++];
-                            while (recordLength != 0xFF) {
+                            sectorBytesLeft--;
+                            while (recordLength != 0xFF && sectorBytesLeft > 0) {
                                 data = [];
-                                for (var j = 0; j < recordLength; j++) {
+                                for (var j = 0; j < recordLength && sectorBytesLeft > 0; j++) {
                                     data[j] = fileBuffer[i++];
+                                    sectorBytesLeft--;
                                 }
                                 file.putRecord(new VariableRecord(data));
-                                recordLength = fileBuffer[i++];
+                                if (sectorBytesLeft > 0) {
+                                    recordLength = fileBuffer[i++];
+                                    sectorBytesLeft--;
+                                }
+                                else {
+                                    recordLength = 0xFF;
+                                }
                             }
                         }
+                        this.log.info(file.getRecordCount() + " records read.");
                     }
                     file.close();
                 }
                 else {
-                    file = new DiskFile(tiFileName, fileType, -1, -1, -1);
+                    file = new DiskFile(tiFileName, fileType, 0, 0, 0);
                     var program = [];
                     for (i = 0; i < fileLength; i++) {
                         program[i] = fileBuffer[sectorOffset + i];
@@ -979,14 +1030,111 @@ DiskImage.prototype = {
                     file.setProgram(program);
                 }
                 this.putFile(file);
+                // this.log.info("File name: " + file.getName());
                 // this.log.info("\n" + file.toString());
+                return file;
             }
             else {
-                this.log.error(fileName + " is too short.")
+                this.log.error(fileName + " is too short.");
+                return null;
             }
-            return;
         }
-        this.log.warn(fileName + " is not in TIFILES format.")
+        this.log.warn(fileName + " is not in TIFILES format.");
+        return null;
+    },
+
+    saveTIFile: function(fileName) {
+        var file = this.getFile(fileName);
+        if (file != null) {
+            var data = [];
+            var n = 0;
+            // ID
+            n = this.writeByte(data, n, 0x07);
+            n = this.writeString(data, n, "TIFILES");
+            // Total number of sectors
+            n = this.writeWord(data, n, file.getSectorCount());
+            // Flags
+            n = this.writeByte(data, n, (file.getRecordType() << 7) | (file.getDatatype() << 1) | file.getFileType());
+            // #Rec/sect
+            n = this.writeByte(data, n, file.getFileType() == TI_FILE.FILE_TYPE_DATA && file.getRecordLength() > 0 ? Math.floor(256 / file.getRecordLength()) : 0);
+            // EOF offset
+            n = this.writeByte(data, n, file.getEOFOffset());
+            // Record length
+            n = this.writeByte(data, n, file.getRecordLength());
+            // #Level 3 records
+            n = this.writeLEWord(data, n, file.getFileType() == TI_FILE.FILE_TYPE_DATA ? (file.getRecordType() == TI_FILE.RECORD_TYPE_FIXED ? file.getRecordCount() : file.getSectorCount()) : 0);
+            // File name
+            n = this.writeString(data, n, fileName, 10);
+            // Padding
+            for (; n < 128; n++) {
+                data[n] = 0;
+            }
+            // Content
+            if (file.getFileType() == TI_FILE.FILE_TYPE_DATA) {
+                var records = file.getRecords();
+                var recordCount = file.getRecordCount();
+                var recData;
+                if (file.getRecordType() == TI_FILE.RECORD_TYPE_FIXED) {
+                    var recordPerSector = Math.floor(256 / file.getRecordLength());
+                    var recCnt = 0;
+                    for (i = 0; i < recordCount; i++) {
+                        recData = records[i].getData();
+                        for (var j = 0; j < recData.length; j++) {
+                            n = this.writeByte(data, n, recData[j]);
+                        }
+                        recCnt++;
+                        if (recCnt == recordPerSector) {
+                            while ((n & 0xFF) != 0) {
+                                n = this.writeByte(data, n, 0);
+                            }
+                            recCnt = 0;
+                        }
+                    }
+                }
+                else {
+                    var sectorBytesLeft = 256;
+                    for (i = 0; i < recordCount; i++) {
+                        recData = records[i].getData();
+                        if (sectorBytesLeft <= recData.length) {
+                            if (sectorBytesLeft > 0) {
+                                n = this.writeByte(data, n, 0xFF);
+                                sectorBytesLeft--;
+                                while (sectorBytesLeft > 0) {
+                                    n = this.writeByte(data, n, 0);
+                                    sectorBytesLeft--;
+                                }
+                            }
+                            sectorBytesLeft = 256;
+                        }
+                        n = this.writeByte(data, n, recData.length);
+                        sectorBytesLeft--;
+                        for (j = 0; j < recData.length; j++) {
+                            n = this.writeByte(data, n, recData[j]);
+                            sectorBytesLeft--;
+                        }
+                    }
+                    if (sectorBytesLeft > 0) {
+                        n = this.writeByte(data, n, 0xFF);
+                        sectorBytesLeft--;
+                        while (sectorBytesLeft > 0) {
+                            n = this.writeByte(data, n, 0);
+                            sectorBytesLeft--;
+                        }
+                    }
+                    this.log.info(recordCount + " records written.");
+                }
+            }
+            else {
+                var program = file.getProgram();
+                for (var i = 0; i < program.length; i++, n++) {
+                    data[n] = program[i];
+                }
+            }
+            return new Uint8Array(data);
+        }
+        else {
+            return null;
+        }
     },
 
     readSector: function(sectorNo) {
@@ -1081,8 +1229,10 @@ DiskImage.prototype = {
                             sectorBytesLeft = 256;
                         }
                         n = this.writeByte(dskImg, n, data.length);
+                        sectorBytesLeft--;
                         for (j = 0; j < data.length; j++) {
                             n = this.writeByte(dskImg, n, data[j]);
+                            sectorBytesLeft--;
                         }
                     }
                     n = this.writeByte(dskImg, n, 0xFF);
@@ -1132,6 +1282,12 @@ DiskImage.prototype = {
     writeWord: function(data, n, w) {
         data[n++] = (w & 0xFF00) >> 8;
         data[n++] = w & 0x00FF;
+        return n;
+    },
+
+    writeLEWord: function(data, n, w) {
+        data[n++] = w & 0x00FF;
+        data[n++] = (w & 0xFF00) >> 8;
         return n;
     },
 
@@ -1200,15 +1356,18 @@ DiskFile.prototype = {
                 sectors = Math.floor(this.records.length / recsPerSector) + (this.records.length % recsPerSector == 0 ? 0 : 1);
             }
             else {
-                var n = 0;
+                sectors = 1;
+                var sectorBytesLeft = 256;
                 for (var i = 0; i < this.records.length; i++) {
-                    n += this.records[i].getData().length + 1;
-                    if (n > 256) {
-                        n -= 256;
+                    var recordSize = this.records[i].getData().length + 1;
+                    if (sectorBytesLeft >= recordSize) {
+                        sectorBytesLeft -= recordSize;
+                    }
+                    else {
                         sectors++;
+                        sectorBytesLeft = 256 - recordSize;
                     }
                 }
-                sectors++;
             }
         }
         else {
@@ -1225,14 +1384,17 @@ DiskFile.prototype = {
                 eofOffset = (this.getRecordCount() % recsPerSector) * this.recordLength;
             }
             else {
-                var n = 0;
+                var sectorBytesLeft = 256;
                 for (var i = 0; i < this.records.length; i++) {
-                    n += this.records[i].getData().length + 1;
-                    if (n > 256) {
-                        n -= 256;
+                    var recordSize = this.records[i].getData().length + 1;
+                    if (sectorBytesLeft >= recordSize) {
+                        sectorBytesLeft -= recordSize;
+                    }
+                    else {
+                        sectorBytesLeft = 256 - recordSize;
                     }
                 }
-                eofOffset = n;
+                eofOffset = 256 - sectorBytesLeft;
             }
         }
         else {
@@ -1374,9 +1536,9 @@ DiskFile.prototype = {
         }
         else {
             this.program = state.program;
-            this.recordType = -1;
-            this.recordLength = -1;
-            this.datatype = -1;
+            this.recordType = 0;
+            this.recordLength = 0;
+            this.datatype = 0;
         }
     },
 
@@ -1388,7 +1550,7 @@ DiskFile.prototype = {
                 s += "Record " + i + ": ";
                 var data = this.records[i].getData();
                 for (var j = 0; j < data.length; j++) {
-                    if (this.datatype == TI_FILE.DATATYPE_DISPLAY) {
+                    if (false && this.datatype == TI_FILE.DATATYPE_DISPLAY) {
                         s += String.fromCharCode(data[j]);
                     }
                     else {

@@ -13,32 +13,30 @@ TI994A.FPS_MS = 4000;
 function TI994A(document, canvas, diskImages, settings) {
 
     // Assemble the console
-    this.keyboard = new Keyboard();
+    this.keyboard = new Keyboard(settings && settings.isPCKeyboardEnabled());
     this.cru = new CRU(this.keyboard);
-    this.vdp = settings && settings.isF18AEnabled() ? new F18A(canvas, this.cru) : new TMS9918A(canvas, this.cru);
+    this.tms9919 = new TMS9919(settings && settings.isSoundEnabled());
+    this.vdp = settings && settings.isF18AEnabled() ? new F18A(canvas, this.cru, this.tms9919) : new TMS9918A(canvas, this.cru);
     var vdpRAM = this.vdp.getRAM();
     this.diskDrives = [
         new DiskDrive("DSK1", vdpRAM, diskImages ? diskImages.FLOPPY1 : null),
         new DiskDrive("DSK2", vdpRAM, diskImages ? diskImages.FLOPPY2 : null),
         new DiskDrive("DSK3", vdpRAM, diskImages ? diskImages.FLOPPY3 : null)
     ];
-    this.tms9919 = new TMS9919(settings && settings.isSoundEnabled());
-    this.tms5220 = new TMS5220();
-    this.memory = new Memory(this.vdp, this.tms9919, this.tms5220, settings && settings.is32KRAMEnabled());
-    this.tms9900 = new TMS9900(this.memory, this.cru, this.diskDrives);
+    if (settings && settings.isGoogleDriveEnabled()) {
+        this.googleDrives = [
+            new GoogleDrive("GDR1", vdpRAM, "Js99erDrives/GDR1"),
+            new GoogleDrive("GDR2", vdpRAM, "Js99erDrives/GDR2"),
+            new GoogleDrive("GDR3", vdpRAM, "Js99erDrives/GDR3")
+        ];
+    }
+    else {
+        this.googleDrives = [];
+    }
+    this.tms5220 = new TMS5220(settings.isSpeechEnabled());
+    this.memory = new Memory(this.vdp, this.tms9919, this.tms5220, settings);
+    this.tms9900 = new TMS9900(this.memory, this.cru, this.diskDrives, this.googleDrives);
     this.cru.setMemory(this.memory);
-
-    // Attach keyboard listeners
-    var self = this;
-    document.onkeydown = function(evt) {
-        self.keyboard.keyEvent(evt, true);
-    };
-    document.onkeyup = function(evt) {
-        self.keyboard.keyEvent(evt, false);
-    };
-    // document.onkeypress = function(evt) {
-    //     self.keyboard.keyPressEvent(evt);
-    // };
 
     this.cpuSpeed = 1;
     this.frameCount = 0;
@@ -95,15 +93,21 @@ TI994A.prototype = {
                 },
                 TI994A.FPS_MS
             );
-            this.vdp.start();
         }
         this.running = true;
     },
 
     frame: function() {
-        this.tms9900.run(TMS9900.FRAME_CYCLES * this.cpuSpeed);
-        var self = this;
-        requestAnimationFrame(function() {self.vdp.drawFrame();}, null);
+        if (!this.tms9900.isSuspended()) {
+            if (this.vdp.gpu && !this.vdp.gpu.isIdle()) {
+                this.vdp.gpu.run(F18AGPU.FRAME_CYCLES);
+            }
+            else {
+                this.tms9900.run(TMS9900.FRAME_CYCLES * this.cpuSpeed);
+            }
+            var self = this;
+            requestAnimationFrame(function() {self.vdp.drawFrame();}, null);
+        }
         this.frameCount++;
         this.fpsFrameCount++;
     },
@@ -113,7 +117,6 @@ TI994A.prototype = {
         clearInterval(this.frameInterval);
         clearInterval(this.fpsInterval);
         this.tms9919.mute();
-        this.vdp.stop();
         this.running = false;
     },
 
@@ -164,7 +167,12 @@ TI994A.prototype = {
             this.memory.setCartridgeImage(sw.rom, sw.type == Software.TYPE_INVERTED_CART);
         }
         if (sw.grom != null) {
-            this.memory.loadGROM(sw.grom, 3);
+            this.memory.loadGROM(sw.grom, 3, 0);
+        }
+        if (sw.groms != null) {
+            for (var g = 0; g < sw.groms.length; g++) {
+                this.memory.loadGROM(sw.groms[g], 3, g);
+            }
         }
         this.memory.toggleCartridgeRAM(0x6000, 0x1000, sw.ramAt6000);
         this.memory.toggleCartridgeRAM(0x7000, 0x1000, sw.ramAt7000);

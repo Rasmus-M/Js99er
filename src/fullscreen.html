@@ -1,0 +1,164 @@
+<!DOCTYPE HTML>
+
+<!--
+* js99'er - TI-99/4A emulator written in JavaScript
+*
+* Created 2014 by Rasmus Moustgaard <rasmus.moustgaard@gmail.com>
+-->
+
+<html manifest="js99er.appcache">
+<head>
+    <!-- Utilities -->
+    <script src="util.js"></script>
+    <script src="log.js"></script>
+    <script src="lib/jquery-1.11.0.min.js"></script>
+    <script src="lib/bootstrap.min.js"></script>
+    <script src="lib/bootstrap-select.min.js"></script>
+    <script src="lib/bootstrap-switch.min.js"></script>
+    <script src="lib/bootstrap-multilevel-dropdown.js"></script>
+    <script src="lib/google-client.js"></script>
+    <script src="lib/zip/zip.js"></script>
+    <script>zip.workerScriptsPath = "lib/zip/";</script>
+    <!-- Software -->
+    <script src="software/system.js"></script>
+    <script src="software.js"></script>
+    <!-- Sound -->
+    <script src="javagear/sn76489.js"></script>
+    <!-- TI-99/4a components -->
+    <script src="disk.js"></script>
+    <script src="googledrive.js"></script>
+    <script src="tms9900.js"></script>
+    <script src="tms9918a.js"></script>
+    <script src="f18a.js"></script>
+    <script src="f18agpu.js"></script>
+    <script src="tms9919.js"></script>
+    <script src="tms5220.js"></script>
+    <script src="memory.js"></script>
+    <script src="cru.js"></script>
+    <script src="keyboard.js"></script>
+    <script src="ti994a.js"></script>
+    <!-- Main -->
+    <script src="js99er.js"></script>
+    <script src="database.js"></script>
+    <script src="settings.js"></script>
+    <!-- CSS -->
+    <link rel="stylesheet" type="text/css" href="css/bootstrap.min.css">
+    <link rel="stylesheet" type="text/css" href="css/bootstrap-theme.min.css">
+    <link rel="stylesheet" type="text/css" href="css/bootstrap-select.min.css">
+    <link rel="stylesheet" type="text/css" href="css/bootstrap-switch.min.css">
+    <link rel="stylesheet" type="text/css" href="css/bootstrap-multilevel-dropdown.css">
+    <link rel="stylesheet" type="text/css" href="css/js99er.css">
+</head>
+<body>
+<div class="container">
+    <ul class="nav nav-pills">
+        <li class="active"><a href="#home" data-toggle="tab">Home</a></li>
+        <li><a href="#diskManager" data-toggle="tab">Disk Manager</a></li>
+        <li><a href="#options" data-toggle="tab">Options</a></li>
+    </ul>
+    <div class="tab-content">
+        <div class="tab-pane fade in active" id="home">
+            <canvas id="canvas" width="304" height="240"></canvas>
+            <div id="tools" class="navbar navbar-default">
+                <div class="btn-group">
+                    <button id="btnStart" class="btn btn-primary navbar-btn"><span class="glyphicon glyphicon-play"></span> Start</button>
+                    <button id="btnFast" class="btn btn-default navbar-btn"><span class="glyphicon glyphicon-fast-forward"></span> Fast</button>
+                    <button id="btnStep" class="btn btn-default navbar-btn"><span class="glyphicon glyphicon-step-forward"></span> Step</button>
+                    <button id="btnStop" class="btn btn-warning navbar-btn"><span class="glyphicon glyphicon-pause"></span> Pause</button>
+                    <button id="btnReset" class="btn btn-danger navbar-btn"><span class="glyphicon glyphicon-refresh"></span> Reset</button>
+                </div>
+                <div class="btn-group">
+                    <a id="btnScreenshot" class="btn btn-default navbar-btn" title="Screen shot" download="screenshot.png"><span class="glyphicon glyphicon-camera"></span></a>
+                </div>
+                <div class="btn-group">
+                    <button id="btnLeft" class="btn btn-default navbar-btn"><span class="glyphicon glyphicon-circle-arrow-left"></span></button>
+                    <button id="btnUp" class="btn btn-default navbar-btn"><span class="glyphicon glyphicon-circle-arrow-up"></span></button>
+                    <button id="btnDown" class="btn btn-default navbar-btn"><span class="glyphicon glyphicon-circle-arrow-down"></span></button>
+                    <button id="btnRight" class="btn btn-default navbar-btn"><span class="glyphicon glyphicon-circle-arrow-right"></span></button>
+                    <button id="btnFire" class="btn btn-primary navbar-btn"><span class="glyphicon glyphicon-screenshot"></span></button>
+                </div>
+                <div class="btn-group dropup">
+                    <div class="dropdown">
+                        <button class="btn btn-success dropdown-toggle" type="button" data-toggle="dropdown">
+                            <span class="glyphicon glyphicon-star"></span> Preloads
+                            <span class="caret"></span>
+                        </button>
+                        <ul id="preloads" class="dropdown-menu multilevel"></ul>
+                    </div>
+                </div>
+                <div class="btn-group"></div>
+                <div class="btn-group">
+                    <div class="btn btn-primary navbar-btn btn-file"><span class="glyphicon glyphicon-credit-card"></span> Open RPK module<input type="file" id="fileInputModule"></div>
+                </div>
+                <div class="btn-group">
+                    <div class="btn btn-primary navbar-btn btn-file"><span class="glyphicon glyphicon-floppy-disk"></span> Open DSK/FILES<input type="file" id="fileInputDisk" multiple="multiple"></div>
+                    <select id="diskDrive" class="selectpicker navbar-btn" data-width="100px">
+                        <option data-icon="glyphicon-floppy-open" value="0">DSK1</option>
+                        <option data-icon="glyphicon-floppy-open" value="1">DSK2</option>
+                        <option data-icon="glyphicon-floppy-open" value="2">DSK3</option>
+                    </select>
+                </div>
+            </div>
+        </div>
+        <div class="tab-pane fade" id="diskManager">
+            <div class="panel panel-default" id="diskManagerPanel">
+                <div class="panel-body">
+                    <div class="row">
+                        <div class="form-group">
+                            <div class="col-md-12">
+                                <select class="form-control" id="diskImageList"></select>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row" id="fileTableRow">
+                        <table class="table table-striped table-bordered">
+                            <thead><tr><th></th><th>Name</th><th>Type</th><th>Data Type</th><th>Rec Type</th><th>Rec Length</th><th>Size</th></tr></thead>
+                            <tbody id="diskFileTable"></tbody>
+                        </table>
+                    </div>
+                    <div class="row">
+                        <div id="diskTools" class="navbar navbar-default">
+                            <div class="btn-group">
+                                <button id="btnSave" class="btn btn-primary navbar-btn"><span class="glyphicon glyphicon-save"></span> Save</button>
+                                <button id="btnLoad" class="btn btn-default navbar-btn"><span class="glyphicon glyphicon-open"></span> Load</button>
+                            </div>
+                            <div class="btn-group dropup">
+                                <div class="dropdown">
+                                    <button class="btn btn-success dropdown-toggle" type="button" id="dropdownMenu2" data-toggle="dropdown">
+                                        <span class="glyphicon glyphicon-floppy-open"></span> Insert into drive
+                                        <span class="caret"></span>
+                                    </button>
+                                    <ul id="diskDriveImage" class="dropdown-menu">
+                                        <li><a href="#" id="insertDSK0">DSK1</a></li>
+                                        <li><a href="#" id="insertDSK1">DSK2</a></li>
+                                        <li><a href="#" id="insertDSK2">DSK3</a></li>
+                                    </ul>
+                                </div>
+                            </div>
+                            <div class="btn-group">
+                                <button id="btnDeleteDisk" class="btn btn-danger navbar-btn"><span class="glyphicon glyphicon-remove"></span> Disk</button>
+                                <button id="btnDeleteFiles" class="btn btn-danger navbar-btn"><span class="glyphicon glyphicon-remove"></span> Files</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="tab-pane fade" id="options">
+            <div class="panel panel-default" id="optionsPanel">
+                <div class="panel-body">
+                    <div class="form-group">
+                        <p><input type="checkbox" id="enableSound"> Sound enabled</p>
+                        <p><input type="checkbox" id="enableSpeech"> Speech hack enabled</p>
+                        <p><input type="checkbox" id="enable32KRAM"> 32K RAM expansion enabled</p>
+                        <p><input type="checkbox" id="enableF18A"> F18A enabled</p>
+                        <p><input type="checkbox" id="enablePCKeyboard"> PC keyboard enabled</p>
+                        <p><input type="checkbox" id="enableGoogleDrive"> Google drives (GDR1, GDR2, GDR3 devices) enabled</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+</body>
+</html>

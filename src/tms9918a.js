@@ -126,12 +126,6 @@ TMS9918A.prototype = {
         this.imagedata = this.canvasContext.getImageData(24, 24, 256, 192);
     },
 
-    start: function() {
-    },
-
-    stop: function() {
-    },
-
     drawFrame: function() {
         if (this.redrawRequired) {
             if (this.displayOn) {
@@ -245,9 +239,8 @@ TMS9918A.prototype = {
             imageDataAddr = 0;
             for (ch = 0; ch < 768; ch++) {
                 charNo = this.ram[this.nameTable + ch];
-                row = Math.floor(ch / 32);
                 var patternOffset = charNo * 8;
-                var patternByteOffset = (row % 4) * 2;
+                var patternByteOffset = ((ch >> 5) & 0x03) << 1;
                 var topByte = this.ram[this.charPatternTable + patternOffset + patternByteOffset];
                 color = (topByte & 0xF0) >> 4;
                 this.drawMulticolorPixel(imageDataAddr, this.palette[color == 0 ? this.bgColor : color]);
@@ -506,7 +499,7 @@ TMS9918A.prototype = {
     getRegsString: function() {
         var s = "";
         for (var i = 0; i < this.registers.length; i++) {
-            s += "VR" + i + "=" + this.registers[i].toHexByte() + " ";
+            s += "VR" + i + "=" + this.registers[i].toHexByte() + (i == 3 ? "\n     " : " ");
         }
         return s;
     },

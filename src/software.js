@@ -64,6 +64,11 @@ Software.programs = [
                 name: "TI Workshop",
                 type: Software.TYPE_INVERTED_CART,
                 url: "software/ti-workshop.json"
+            },
+            {
+                name: "Extended Basic 2.7 Suite",
+                type: Software.TYPE_INVERTED_CART,
+                url: "software/xb27suite.json"
             }
         ]
     },
@@ -105,6 +110,11 @@ Software.programs = [
                 url: "software/qbert.json"
             },
             {
+                name: "Demon Attack",
+                type: Software.TYPE_CART,
+                url: "software/demon-attack.json"
+            },
+            {
                 name: "512K Game cart",
                 type: Software.TYPE_CART,
                 url: "software/gamecart.json"
@@ -115,7 +125,7 @@ Software.programs = [
                 url: "software/gamecart2.json"
             },
             {
-                name: "Scrolling Trilogy",
+                name: "Road Hunter/TI Scramble/Titanium",
                 type: Software.TYPE_INVERTED_CART,
                 url: "software/scrolling-trilogy.json"
             },
@@ -123,6 +133,11 @@ Software.programs = [
                 name: "Flappy Bird",
                 type: Software.TYPE_INVERTED_CART,
                 url: "software/flappybird.json"
+            },
+            {
+                name: "Sabre Wulf",
+                type: Software.TYPE_INVERTED_CART,
+                url: "software/sabrewulf.json"
             },
             {
                 name: "Pitfall!",
@@ -145,6 +160,12 @@ Software.programs = [
                 url: "software/hscroll.json"
             },
             {
+                name: "Platform 2D scrolling demo",
+                type: Software.TYPE_MEMORY_DUMP,
+                startAddress: 0xA000,
+                url: "software/platform.json"
+            },
+            {
                 name: "Isometric scrolling demo",
                 type: Software.TYPE_MEMORY_DUMP,
                 startAddress: 0xA000,
@@ -155,6 +176,12 @@ Software.programs = [
                 type: Software.TYPE_MEMORY_DUMP,
                 startAddress: 0xA000,
                 url: "software/dungeon.json"
+            },
+            {
+                name: "Light-year demo",
+                type: Software.TYPE_MEMORY_DUMP,
+                startAddress: 0xA000,
+                url: "software/light-year.json"
             }
         ]
     },
@@ -202,10 +229,22 @@ Software.programs = [
                 url: "software/gpu-lines.json"
             },
             {
+                name: "GPU PIX lines demo",
+                type: Software.TYPE_MEMORY_DUMP,
+                startAddress: 0xA000,
+                url: "software/gpu-pixlines.json"
+            },
+            {
                 name: "GPU Mandelbrot (Tursi)",
                 type: Software.TYPE_MEMORY_DUMP,
                 startAddress: 0xA000,
                 url: "software/gpu-mandelbrot.json"
+            },
+            {
+                name: "Power Strike demo",
+                type: Software.TYPE_MEMORY_DUMP,
+                startAddress: 0xA000,
+                url: "software/powerstrike.json"
             }
         ]
     }
@@ -267,6 +306,12 @@ Software.prototype = {
                 }
                 if (data.grom != null) {
                     program.grom = self.hexArrayToBin(data.grom);
+                }
+                if (data.groms != null) {
+                    program.groms = [];
+                    for (var g = 0; g < data.groms.length; g++) {
+                        program.groms[g] = self.hexArrayToBin(data.groms[g]);
+                    }
                 }
                 if (data.memoryBlocks != null) {
                     program.memoryBlocks = [];

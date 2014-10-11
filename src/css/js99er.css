@@ -43,7 +43,7 @@ th {
 }
 
 #log {
-    height: 380px;
+    height: 384px;
     white-space: pre;
     overflow-x: scroll;
     overflow-y: scroll;
@@ -51,13 +51,13 @@ th {
 }
 
 #status {
-    height: 148px;
+    height: 176px;
     overflow: auto;
     word-wrap: normal;
 }
 
 #diskManagerPanel, #optionsPanel {
-    height: 588px;
+    height: 624px;
 }
 
 #diskFileTable {
@@ -70,30 +70,24 @@ th {
     margin-bottom: 12px;
 }
 
-@media (max-width: 607px) {
-	#canvas {
-		width: 304px;
-		height: 240px;
-        image-rendering: auto;
-	}
-	#tools, #title, #log, #status, #diskManager, #options {
-		width: 304px;
-	}
+#canvas {
+    width: 100%;
+}
+
+@media (max-width: 360px) {
     #fileTableRow {
-        height:348px;
+        height:400px;
     }
 }
 
-@media (min-width: 608px) {
-	#canvas {
-		width: 608px;
-		height: 480px;
-        image-rendering: -moz-crisp-edges;
-	}
-    #tools, #title, #log, #status, #diskManager, #options {
-        width: 608px;
-    }
+@media (min-width: 361px) and (max-width: 513px) {
     #fileTableRow {
-        height:448px;
+        height:432px;
+    }
+}
+
+@media (min-width: 514px) {
+    #fileTableRow {
+        height:498px;
     }
 }

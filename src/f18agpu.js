@@ -14,7 +14,7 @@
 
 F18AGPU.DISASSM_START = -1;
 F18AGPU.DISASSM_LENGTH = 240;
-F18AGPU.FRAME_CYCLES = 250000;
+F18AGPU.FRAME_CYCLES = 500000;
 
 function F18AGPU(f18a) {
     this.f18a = f18a;
@@ -509,6 +509,9 @@ F18AGPU.prototype = {
     writeMemoryWord: function(addr, w) {
         this.vdpRAM[addr] = (w & 0xFF00) >> 8;
         this.vdpRAM[addr + 1] = w & 0x00FF;
+        if (addr < 0x4000) {
+            this.f18a.redrawRequired = true;
+        }
     },
 
     writeMemoryByte: function(addr, b) {
@@ -517,6 +520,9 @@ F18AGPU.prototype = {
         }
         else {
             this.vdpRAM[addr] = b;
+            if (addr < 0x4000) {
+                this.f18a.redrawRequired = true;
+            }
         }
     },
 
@@ -1336,23 +1342,22 @@ F18AGPU.prototype = {
                 (x1 & 0x0007);  							            // YYY
         } else {
             // Calculate bitmap layer address
+            // this.log.info("Plot(" + ((x1 & 0xFF00) >> 8) + ", " + (x1 & 0x00FF) + ")");
             addr =
                 this.f18a.bitmapBaseAddr +
-                ((this.f18a.bitmapX + this.f18a.bitmapY * this.f18a.bitmapHeight) >> 2);
+                ((((x1 & 0xFF00) >> 8) + (x1 & 0x00FF) * this.f18a.bitmapWidth) >> 2);
         }
 
         // Only parse the other bits if M and A are zero
         if ((x2 & 0xc000) == 0) {
             var pixByte = this.readMemoryByte(addr);	    // Get the byte
-            var origByte = pixByte;			                // Save it
-            var bitShift = (x1 & 0x0300) << 1;
+            var bitShift = (x1 & 0x0300) >> 7;
             var mask = 0xC0 >> bitShift;
             var pix = (pixByte & mask) >> (6 - bitShift);
-            var comp = (pix == ((x2 & 0x0030) >> 4));	    // Compare the pixels
-            var write = (x2 & 0x0400) != 0;		            // Whether to write
-
+            var write = (x2 & 0x0400) == 0;		            // Whether to write
             // TODO: are C and E dependent on W being set? I am assuming yes.
             if (write && (x2 & 0x0200) != 0) {		        // C - compare active (only important if we are writing anyway?)
+                var comp = (pix == ((x2 & 0x0030) >> 4));	    // Compare the pixels
                 if ((x2 & 0x0100) != 0) {
                     // E is set, comparison must be true
                     if (!comp) {
@@ -1368,7 +1373,7 @@ F18AGPU.prototype = {
             if (write) {
                 var newPix = (x2 & 0x0003) << (6 - bitShift);	// New pixel
                 var invMask = (~mask) & 0xFF;
-                this.writeMemoryByte(addr, (origByte & invMask) | newPix);
+                this.writeMemoryByte(addr, (pixByte & invMask) | newPix);
             }
             if ((x2 & 0x0800) != 0) {
                 // Read is set, so save the original read pixel color in PP
