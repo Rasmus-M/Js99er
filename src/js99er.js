@@ -8,80 +8,110 @@
  
 (function(document, window, $) {
 
-    var ti994a;
-    var diskImages;
-    var software;
-    var database;
     var log;
     var settings;
+    var diskImages;
+    var ti994a;
+    var software;
+    var database;
+    var disassembler;
+    var memoryView = 0;
+    var memoryType = 0;
+    var debuggerAddress = null;
+    var debugTimerId = null;
+    var activeTab = null;
 
     $(document).ready(function() {
 
-        // Check if a new cache is available on page load.
+        // Check if a new app cache is available on page load
+
         if (window.applicationCache) {
             window.applicationCache.addEventListener('updateready', function (e) {
                 if (window.applicationCache.status == window.applicationCache.UPDATEREADY) {
                     // Browser downloaded a new app cache.
-                    if (confirm("A new version of Js99'er is available. Load it?")) {
+                    if (confirm("A new version of Js99'er is available. Download it?")) {
                         window.location.reload();
                     }
                 } else {
-                    // Manifest didn't changed. Nothing new to server.
+                    // Manifest didn't change. Nothing new on server.
                 }
             }, false);
         }
 
         // Init
+
+        log = Log.getLog();
         settings = new Settings(true);
         diskImages = {
             FLOPPY1: new DiskImage("FLOPPY1"),
             FLOPPY2: new DiskImage("FLOPPY2"),
             FLOPPY3: new DiskImage("FLOPPY3")
         };
-        ti994a = new TI994A(document, document.getElementById("canvas"), diskImages, settings);
+        ti994a = new TI994A(document.getElementById("canvas"), diskImages, settings, onBreakpoint);
         software = new Software();
-        log = Log.getLog();
         database = new Database();
         if (!database.isSupported()) {
             $("#btnSave").css("visibility", "hidden");
             $("#btnLoad").css("visibility", "hidden");
         }
+        disassembler = new Disassembler(ti994a.memory);
 
-        // Build UI
-        $("#canvas").on("click", function(evt) {
+        // Keep track of active tab
+        $('a[data-toggle="tab"]').on('shown.bs.tab', function (e) {
+            activeTab = e.target;
+        });
+
+        ///////////////
+        // Main pane //
+        ///////////////
+
+        $("#canvas").on("click touchstart", function(evt) {
             var rect = this.getBoundingClientRect();
             var scale = this.clientHeight / 240;
             var tiX = Math.floor((evt.clientX - rect.left) / scale);
             var tiY = Math.floor((evt.clientY - rect.top) / scale);
             var charCode = ti994a.vdp.getCharAt(tiX, tiY);
             if (charCode > 0) {
-                ti994a.keyboard.simulateKeyPress(charCode >= 128 ? charCode - 96 : charCode);
+                charCode = charCode >= 128 ? charCode - 96 : charCode;
+                log.info("Click at (" + tiX + "," + tiY + "). Simulated keypress: " + String.fromCharCode(charCode));
+                ti994a.keyboard.simulateKeyPress(charCode);
             }
         });
         $("#btnStart").on("click", function() {
             $("#btnStart").prop("disabled", true);
             $("#btnFast").prop("disabled", true);
+            $("#btnFrame").prop("disabled", true);
             $("#btnStep").prop("disabled", true);
             $("#btnStop").prop("disabled", false);
             ti994a.start(false);
+            debugTimerId = window.setInterval(updateDebugger, 100);
         });
         $("#btnFast").on("click", function() {
             $("#btnStart").prop("disabled", true);
             $("#btnFast").prop("disabled", true);
+            $("#btnFrame").prop("disabled", true);
             $("#btnStep").prop("disabled", true);
             $("#btnStop").prop("disabled", false);
             ti994a.start(true);
+            debugTimerId = window.setInterval(updateDebugger, 100);
+        });
+        $("#btnFrame").on("click", function() {
+            ti994a.resumeFrame();
+            updateDebugger(false);
         });
         $("#btnStep").on("click", function() {
-            ti994a.frame();
+            ti994a.step();
+            updateDebugger(false);
         });
         $("#btnStop").on("click", function() {
             $("#btnStart").prop("disabled", false);
-            $("#btnStep").prop("disabled", false);
             $("#btnFast").prop("disabled", false);
+            $("#btnFrame").prop("disabled", false);
+            $("#btnStep").prop("disabled", false);
             $("#btnStop").prop("disabled", true);
             ti994a.stop();
-            updateStatus();
+            window.clearInterval(debugTimerId);
+            updateDebugger(false);
         });
         $("#btnReset").on("click", function() {
             ti994a.reset(true);
@@ -91,29 +121,19 @@
         });
 
         $("#btnScreenshot").on("click", function() {
-            var dataURL = document.getElementById("canvas").toDataURL();
-            this.href = dataURL;
+            this.href = document.getElementById("canvas").toDataURL();
         });
 
-        $("#btnLeft").on("mousedown", function() { ti994a.keyboard.simulateKeyDown(37); }).on("mouseup", function() { ti994a.keyboard.simulateKeyUp(37); });
-        $("#btnUp").on("mousedown", function() { ti994a.keyboard.simulateKeyDown(38); }).on("mouseup", function() { ti994a.keyboard.simulateKeyUp(38); });
-        $("#btnDown").on("mousedown", function() { ti994a.keyboard.simulateKeyDown(40); }).on("mouseup", function() { ti994a.keyboard.simulateKeyUp(40); });
-        $("#btnRight").on("mousedown", function() { ti994a.keyboard.simulateKeyDown(39); }).on("mouseup", function() { ti994a.keyboard.simulateKeyUp(39); });
-        $("#btnFire").on("mousedown", function() { ti994a.keyboard.simulateKeyDown(9); }).on("mouseup", function() { ti994a.keyboard.simulateKeyUp(9); });
+        $("#btnLeft").on("mousedown touchstart", function() { ti994a.keyboard.simulateKeyDown(37); }).on("mouseup touchend", function() { ti994a.keyboard.simulateKeyUp(37); });
+        $("#btnUp").on("mousedown touchstart", function() { ti994a.keyboard.simulateKeyDown(38); }).on("mouseup touchend", function() { ti994a.keyboard.simulateKeyUp(38); });
+        $("#btnDown").on("mousedown touchstart", function() { ti994a.keyboard.simulateKeyDown(40); }).on("mouseup touchend", function() { ti994a.keyboard.simulateKeyUp(40); });
+        $("#btnRight").on("mousedown touchstart", function() { ti994a.keyboard.simulateKeyDown(39); }).on("mouseup touchend", function() { ti994a.keyboard.simulateKeyUp(39); });
+        $("#btnFire").on("mousedown touchstart", function() { ti994a.keyboard.simulateKeyDown(9); }).on("mouseup touchend", function() { ti994a.keyboard.simulateKeyUp(9); });
 
-
-        $("#btnSave").on("click", function() {
-            if (confirm("Do you want to save the disk state to persistent storage?")) {
-                saveState();
-            }
-        });
-        $("#btnLoad").on("click", function() {
-            if (confirm("Do you want to restore the disk state from persistent storage?")) {
-                loadState();
-            }
-        });
 
         buildPreloads($("#preloads"), software.getPrograms());
+        $(".selectpicker").selectpicker();
+        $("ul.dropdown-menu [data-toggle=dropdown]").multilevelDropdown();
 
         $("#fileInputModule").on("change", function() {
             var file = this.files[0];
@@ -133,46 +153,34 @@
                     log.error(message);
                 }
             )
-        });
-		$("#fileInputModule").on("click", function() {
+        }).on("click", function() {
 			$(this).val("");
 		});
 
         $("#fileInputDisk").on("change", function() {
-            for (var i = 0; i < this.files.length; i++) {
-                var file = this.files[i];
-                if (file != null) {
-                    var extension = file.name.split('.').pop();
-                    if (extension != null && extension.toLowerCase() == "zip") {
-                        zip.createReader(new zip.BlobReader(file), function(zipReader) {
-                            zipReader.getEntries(function(entries) {
-                                entries.forEach(function(entry) {
-                                    if (!entry.directory) {
-                                        loadFile(entry);
-                                    }
-                                });
-
-                                function loadFile(entry) {
-                                    var blobWriter = new zip.BlobWriter();
-                                    entry.getData(blobWriter, function(blob) {
-                                        loadTIFile(entry.filename, blob);
-                                    });
-                                }
-                            });
-                        }, function(message) {
-                            log.error(message);
-                        });
-                    }
-                    else {
-                        loadTIFile(file.name, file);
-                    }
-                }
-            }
-            updateDiskImageList();
-        });
-		$("#fileInputDisk").on("click", function() {
+            loadDiskFiles(this.files);
+        }).on("click", function() {
 			$(this).val("");
 		});
+
+        ///////////////////////
+        // Disk Manager pane //
+        ///////////////////////
+
+        $("#diskImageList").on("change", function() { updateDiskFileTable(this.value); });
+        updateDiskImageList();
+
+
+        $("#btnSave").on("click", function() {
+            if (confirm("Do you want to save the disk state to persistent storage?")) {
+                saveState();
+            }
+        });
+        $("#btnLoad").on("click", function() {
+            if (confirm("Do you want to restore the disk state from persistent storage?")) {
+                loadState();
+            }
+        });
 
         $("#insertDSK0").on("click", function() { insertDisk(0); });
         $("#insertDSK1").on("click", function() { insertDisk(1); });
@@ -180,8 +188,124 @@
         $("#btnDeleteDisk").on("click", deleteDisk);
         $("#btnDeleteFiles").on("click", deleteFiles);
 
-        $(".selectpicker").selectpicker();
-        $("ul.dropdown-menu [data-toggle=dropdown]").multilevelDropdown();
+        ///////////////////
+        // Keyboard pane //
+        ///////////////////
+
+        $("#key0").on("click", function() { virtualKeyPress(48); });
+        $("#key1").on("click", function() { virtualKeyPress(49); });
+        $("#key2").on("click", function() { virtualKeyPress(50); });
+        $("#key3").on("click", function() { virtualKeyPress(51); });
+        $("#key4").on("click", function() { virtualKeyPress(52); });
+        $("#key5").on("click", function() { virtualKeyPress(53); });
+        $("#key6").on("click", function() { virtualKeyPress(54); });
+        $("#key7").on("click", function() { virtualKeyPress(55); });
+        $("#key8").on("click", function() { virtualKeyPress(56); });
+        $("#key9").on("click", function() { virtualKeyPress(57); });
+        $("#keyA").on("click", function() { virtualKeyPress(65); });
+        $("#keyB").on("click", function() { virtualKeyPress(66); });
+        $("#keyC").on("click", function() { virtualKeyPress(67); });
+        $("#keyD").on("click", function() { virtualKeyPress(68); });
+        $("#keyE").on("click", function() { virtualKeyPress(69); });
+        $("#keyF").on("click", function() { virtualKeyPress(70); });
+        $("#keyG").on("click", function() { virtualKeyPress(71); });
+        $("#keyH").on("click", function() { virtualKeyPress(72); });
+        $("#keyI").on("click", function() { virtualKeyPress(73); });
+        $("#keyJ").on("click", function() { virtualKeyPress(74); });
+        $("#keyK").on("click", function() { virtualKeyPress(75); });
+        $("#keyL").on("click", function() { virtualKeyPress(76); });
+        $("#keyM").on("click", function() { virtualKeyPress(77); });
+        $("#keyN").on("click", function() { virtualKeyPress(78); });
+        $("#keyO").on("click", function() { virtualKeyPress(79); });
+        $("#keyP").on("click", function() { virtualKeyPress(80); });
+        $("#keyQ").on("click", function() { virtualKeyPress(81); });
+        $("#keyR").on("click", function() { virtualKeyPress(82); });
+        $("#keyS").on("click", function() { virtualKeyPress(83); });
+        $("#keyT").on("click", function() { virtualKeyPress(84); });
+        $("#keyU").on("click", function() { virtualKeyPress(85); });
+        $("#keyV").on("click", function() { virtualKeyPress(86); });
+        $("#keyW").on("click", function() { virtualKeyPress(87); });
+        $("#keyX").on("click", function() { virtualKeyPress(88); });
+        $("#keyY").on("click", function() { virtualKeyPress(89); });
+        $("#keyZ").on("click", function() { virtualKeyPress(90); });
+        $("#keyEquals").on("click", function() { virtualKeyPress(187); });
+        $("#keyDiv").on("click", function() { virtualKeyPress(189); });
+        $("#keySemicolon").on("click", function() { virtualKeyPress(186); });
+        $("#keyEnter").on("click", function() { virtualKeyPress(13); });
+        $("#keyComma").on("click", function() { virtualKeyPress(188); });
+        $("#keyFullStop").on("click", function() { virtualKeyPress(190); });
+        $("#keySpace").on("click", function() { virtualKeyPress(32); });
+        $("#keyLShift").on("click", function() { virtualKeyPress(16); });
+        $("#keyRShift").on("click", function() { virtualKeyPress(16); });
+        $("#keyCtrl").on("click", function() { virtualKeyPress(17); });
+        $("#keyFctn").on("click", function() { virtualKeyPress(18); });
+        $("#keyAlpha").on("click", function() { virtualKeyPress(20); });
+        $('map').imageMapResize();
+
+        ///////////////////
+        // Debugger pane //
+        ///////////////////
+
+        $("#debuggerTab").on("click", function() { updateDebugger(true); });
+        $("#disassembly").on("click", function(evt) {
+            $("#disassemblyCheck").addClass("glyphicon glyphicon-ok");
+            $("#hexViewCheck").removeClass("glyphicon glyphicon-ok");
+            memoryView = 0;
+            updateDebugger();
+        });
+        $("#hexView").on("click", function() {
+            $("#disassemblyCheck").removeClass("glyphicon glyphicon-ok");
+            $("#hexViewCheck").addClass("glyphicon glyphicon-ok");
+            memoryView = 1;
+            updateDebugger();
+        });
+        $("#cpumem").on("click", function() {
+            $("#cpumemCheck").addClass("glyphicon glyphicon-ok");
+            $("#vdpmemCheck").removeClass("glyphicon glyphicon-ok");
+            memoryType = 0;
+            updateDebugger();
+        });
+        $("#vdpmem").on("click", function() {
+            $("#cpumemCheck").removeClass("glyphicon glyphicon-ok");
+            $("#vdpmemCheck").addClass("glyphicon glyphicon-ok");
+            memoryType = 1;
+            updateDebugger();
+        });
+
+        $("#breakpoint").on("focus", function() {
+            ti994a.keyboard.removeListeners();
+        }).on("blur", function() {
+            var val = this.value.parseHexWord();
+            if (val) {
+                this.value = val.toHexWord();
+                ti994a.tms9900.setBreakpoint(val);
+            }
+            else {
+                this.value = "";
+                ti994a.tms9900.setBreakpoint(null);
+            }
+            ti994a.keyboard.attachListeners();
+        });
+
+        $("#address").on("focus", function() {
+            ti994a.keyboard.removeListeners();
+        }).on("blur", function() {
+            var val = this.value.parseHexWord();
+            if (val) {
+                this.value = val.toHexWord();
+                debuggerAddress = val;
+            }
+            else {
+                this.value = "";
+                debuggerAddress = null;
+            }
+            ti994a.keyboard.attachListeners();
+            updateDebugger();
+        });
+
+        //////////////////
+        // Options pane //
+        //////////////////
 
         var enableSound = $("#enableSound");
         enableSound.bootstrapSwitch("state", settings.isSoundEnabled());
@@ -204,13 +328,22 @@
             ti994a.memory.set32KRAMEnabled(state);
         });
 
+        var enableFlicker = $("#enableFlicker");
+        enableFlicker.bootstrapSwitch("state", settings.isFlickerEnabled());
+        enableFlicker.on('switchChange.bootstrapSwitch', function(event, state) {
+            settings.setFlickerEnabled(state);
+            if (ti994a.vdp.setFlicker) {
+                ti994a.vdp.setFlicker(state)
+            }
+        });
+
         var enableF18A = $("#enableF18A");
         enableF18A.bootstrapSwitch("state", settings.isF18AEnabled());
         enableF18A.on('switchChange.bootstrapSwitch', function(event, state) {
             settings.setF18AEnabled(state);
             var running =  ti994a.isRunning();
             ti994a.stop();
-            ti994a = new TI994A(document, document.getElementById("canvas"), diskImages, settings);
+            ti994a = new TI994A(document.getElementById("canvas"), diskImages, settings, onBreakpoint);
             if (running) {
                 ti994a.start();
             }
@@ -229,26 +362,25 @@
             settings.setGoogleDriveEnabled(state);
             var running =  ti994a.isRunning();
             ti994a.stop();
-            ti994a = new TI994A(document, document.getElementById("canvas"), diskImages, settings);
+            ti994a = new TI994A(document.getElementById("canvas"), diskImages, settings, onBreakpoint);
             if (running) {
                 ti994a.start();
             }
         });
 
-        $("#diskImageList").on("change", function() { updateDiskFileTable(this.value); });
-        updateDiskImageList();
-
+        // Load editor/assembler
         software.loadProgram("software/editor-assembler.json", null, function(cart) {
             if (cart != null) {
                 ti994a.loadSoftware(cart);
             }
             // Start TI
             $("#btnStart").click();
-
-            // Status update
-            window.setInterval(updateStatus, 100);
         });
     });
+
+    /////////////////////////
+    // Main pane functions //
+    /////////////////////////
 
     function buildPreloads(list, programs) {
         for (var i = 0; i < programs.length; i++) {
@@ -285,8 +417,37 @@
         }
     }
 
-    function updateStatus() {
-        $("#status").text(ti994a.getStatusString());
+    function loadDiskFiles(files) {
+        for (var i = 0; i < files.length; i++) {
+            var file = files[i];
+            if (file != null) {
+                var extension = file.name.split('.').pop();
+                if (extension != null && extension.toLowerCase() == "zip") {
+                    zip.createReader(new zip.BlobReader(file), function (zipReader) {
+                        zipReader.getEntries(function (entries) {
+                            entries.forEach(function (entry) {
+                                if (!entry.directory) {
+                                    loadFile(entry);
+                                }
+                            });
+
+                            function loadFile(entry) {
+                                var blobWriter = new zip.BlobWriter();
+                                entry.getData(blobWriter, function (blob) {
+                                    loadTIFile(entry.filename, blob);
+                                });
+                            }
+                        });
+                    }, function (message) {
+                        log.error(message);
+                    });
+                }
+                else {
+                    loadTIFile(file.name, file);
+                }
+            }
+        }
+        updateDiskImageList();
     }
 
     function loadTIFile(filename, file) {
@@ -297,10 +458,10 @@
             var fileBuffer = new Uint8Array(this.result);
             var diskImage;
             if (fileBuffer.length >= 16 && fileBuffer[0x0D] == 0x44 &&  fileBuffer[0x0E] == 0x53 && fileBuffer[0x0F] == 0x4B) {
-                diskImage  = diskDrive.loadDSKFile(filename, fileBuffer);
+                diskImage = diskDrive.loadDSKFile(filename, fileBuffer);
                 if (diskImage) {
                     diskImages[diskImage.getName()] = diskImage;
-                    updateDiskImageList();
+                    updateDiskImageList(diskImage.getName());
                 }
             }
             else {
@@ -312,6 +473,10 @@
         };
         reader.readAsArrayBuffer(file);
     }
+
+    /////////////////////////////////
+    // Disk Manager pane functions //
+    /////////////////////////////////
 
     function saveState() {
         if (database.isSupported()) {
@@ -445,7 +610,7 @@
         if (defaultDiskImageName != null) {
             diskImageList.val(defaultDiskImageName);
         }
-        diskImageList.on("change");
+        diskImageList.trigger("change");
     }
 
     function updateDiskFileTable(diskImageName) {
@@ -479,9 +644,6 @@
                     diskFileTable.append(row);
                 }
             }
-        }
-        else {
-            alert("Disk not found");
         }
     }
 
@@ -529,6 +691,89 @@
         else {
             alert("No files selected.");
         }
+    }
+
+    /////////////////////////////
+    // Debugger pane functions //
+    /////////////////////////////
+
+    function updateDebugger(force) {
+        if (activeTab && activeTab.id == "debuggerTab" || force) {
+            $("#status").text(ti994a.getStatusString());
+            var $memory = $("#memory");
+            var viewObj;
+            var pc = ti994a.tms9900.getPC();
+            if (ti994a.isRunning()) {
+                // Running
+                if (memoryView == 0) {
+                    // Disassemble
+                    if (memoryType == 0) {
+                        // CPU
+                        disassembler.setMemory(ti994a.memory);
+                        viewObj = disassembler.disassemble(pc, null, 20, pc);
+                    }
+                    else {
+                        // VDP
+                        disassembler.setMemory(ti994a.vdp);
+                        viewObj = disassembler.disassemble(debuggerAddress || 0, null, 20, pc);
+                    }
+                }
+                else {
+                    // Hex view
+                    if (memoryType == 0) {
+                        // CPU
+                        viewObj = ti994a.memory.hexView(debuggerAddress || 0x8300, 320, debuggerAddress);
+                    }
+                    else {
+                        // VDP
+                        viewObj = ti994a.vdp.hexView(debuggerAddress || 0, 320, debuggerAddress);
+                    }
+                }
+            }
+            else {
+                // Stopped
+                if (memoryView == 0) {
+                    // Disassemble
+                    if (memoryType == 0) {
+                        // CPU
+                        disassembler.setMemory(ti994a.memory);
+                        viewObj = disassembler.disassemble(0, 0x10000, null, debuggerAddress || pc);
+                    }
+                    else {
+                        // VDP
+                        disassembler.setMemory(ti994a.vdp);
+                        viewObj = disassembler.disassemble(0, 0x4000, null, debuggerAddress || 0);
+                    }
+                }
+                else {
+                    // Hex view
+                    if (memoryType == 0) {
+                        // CPU
+                        viewObj = ti994a.memory.hexView(0, 0x10000, debuggerAddress || pc);
+                    }
+                    else {
+                        // VDP
+                        viewObj = ti994a.vdp.hexView(0, 0x4000, debuggerAddress || 0);
+                    }
+                }
+            }
+            $memory.text(viewObj.text);
+            if (viewObj.anchorLine) {
+                $memory.scrollTop(viewObj.anchorLine * 19);
+            }
+        }
+    }
+
+    function onBreakpoint(cpu) {
+        $("#btnStop").click();
+    }
+
+    /////////////////////////////
+    // Keyboard pane functions //
+    /////////////////////////////
+
+    function virtualKeyPress(keyCode) {
+        ti994a.keyboard.virtualKeyPress(keyCode);
     }
 
 })(document, window, jQuery);

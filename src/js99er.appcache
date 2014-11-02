@@ -1,32 +1,35 @@
 CACHE MANIFEST
-#2014-10-04 version 2.7.6
+#2014-10-26 build 3.0.0
 
 CACHE:
 index.html
 js99er.js
-ti994a.js
 software.js
 database.js
 settings.js
+disassembler.js
 log.js
-cru.js
-f18a.js
-f18agpu.js
-disk.js
-googledrive.js
-keyboard.js
-memory.js
-tms5220.js
-tms9900.js
-tms9918a.js
-tms9919.js
 util.js
+emu/ti994a.js
+emu/cru.js
+emu/f18a.js
+emu/f18agpu.js
+emu/disk.js
+emu/googledrive.js
+emu/keyboard.js
+emu/memory.js
+emu/decoder.js
+emu/tms5220.js
+emu/tms9900.js
+emu/tms9918a.js
+emu/tms9919.js
 javagear/sn76489.js
 lib/bootstrap-multilevel-dropdown.js
 lib/bootstrap-select.min.js
 lib/bootstrap-switch.min.js
 lib/bootstrap.min.js
 lib/google-client.js
+lib/imageMapResizer.js
 lib/jquery-1.11.0.min.js
 lib/zip/deflate.js
 lib/zip/inflate.js
@@ -44,6 +47,7 @@ fonts/glyphicons-halflings-regular.eot
 fonts/glyphicons-halflings-regular.svg
 fonts/glyphicons-halflings-regular.ttf
 fonts/glyphicons-halflings-regular.woff
+images/keyboard.jpg
 software/system.js
 software/editor-assembler.json
 software/xb.json

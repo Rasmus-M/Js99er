@@ -12,6 +12,7 @@ function Settings(persistent) {
     this.enableSpeech = false;
     this.enable32KRAM = true;
     this.enableF18A = false;
+    this.enableFlicker = false;
     this.enablePCKeyboard = false;
     this.enableGoogleDrive = false;
     if (persistent && window.localStorage) {
@@ -27,6 +28,9 @@ function Settings(persistent) {
         }
         if (this.storage.getItem("enableF18A") != null) {
             this.enableF18A = this.storage.getItem("enableF18A") == "true";
+        }
+        if (this.storage.getItem("enableFlicker") != null) {
+            this.enableFlicker = this.storage.getItem("enableFlicker") == "true";
         }
         if (this.storage.getItem("enablePCKeyboard") != null) {
             this.enablePCKeyboard = this.storage.getItem("enablePCKeyboard") == "true";
@@ -80,6 +84,17 @@ Settings.prototype =  {
         this.enableF18A = enabled;
         if (this.persistent && this.storage) {
             this.storage.setItem("enableF18A", enabled);
+        }
+    },
+
+    isFlickerEnabled: function() {
+        return this.enableFlicker;
+    },
+
+    setFlickerEnabled: function(enabled) {
+        this.enableFlicker = enabled;
+        if (this.persistent && this.storage) {
+            this.storage.setItem("enableFlicker", enabled);
         }
     },
 

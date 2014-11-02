@@ -53,7 +53,7 @@ Software.programs = [
             {
                 name: "TurboForth",
                 type: Software.TYPE_CART,
-                url: "software/turboforth.json"
+                url: "software/turboforth.rpk"
             },
             {
                 name: "fbForth",
@@ -137,7 +137,7 @@ Software.programs = [
             {
                 name: "Sabre Wulf",
                 type: Software.TYPE_INVERTED_CART,
-                url: "software/sabrewulf.json"
+                url: "software/sabrewulf.rpk"
             },
             {
                 name: "Pitfall!",
@@ -262,6 +262,7 @@ Software.prototype = {
     },
 
     getProgram: function(path, onReady) {
+        var log = this.log;
         var pathParts = path.split(".");
         var programs = this.programs;
         for (var i = 0; i < pathParts.length && programs != null; i++) {
@@ -272,10 +273,15 @@ Software.prototype = {
                 var program = programs[pathParts[i]];
                 if (program != null) {
                     if (program.url != null) {
-                        this.loadProgram(program.url, program, function(prg) {
-                            program.url = null; // Mark as loaded
-                            onReady(prg);
-                        });
+                        if (program.url.substr(program.url.length - 3).toLowerCase() == "rpk") {
+                            this.loadRPKModuleFromURL(program.url, onReady, function(msg) { log.error(msg); });
+                        }
+                        else {
+                            this.loadProgram(program.url, program, function(prg) {
+                                program.url = null; // Mark as loaded
+                                onReady(prg);
+                            });
+                        }
                     }
                     else {
                         onReady(program);

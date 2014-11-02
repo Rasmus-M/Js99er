@@ -8,6 +8,7 @@
 
 <html manifest="js99er.appcache">
 <head>
+    <title>Js99'er</title>
     <!-- Utilities -->
     <script src="util.js"></script>
     <script src="log.js"></script>
@@ -17,7 +18,9 @@
     <script src="lib/bootstrap-switch.min.js"></script>
     <script src="lib/bootstrap-multilevel-dropdown.js"></script>
     <script src="lib/google-client.js"></script>
+    <script src="lib/imageMapResizer.js"></script>
     <script src="lib/zip/zip.js"></script>
+    <script src="lib/zip/zip-ext.js"></script>
     <script>zip.workerScriptsPath = "lib/zip/";</script>
     <!-- Software -->
     <script src="software/system.js"></script>
@@ -25,22 +28,24 @@
     <!-- Sound -->
     <script src="javagear/sn76489.js"></script>
     <!-- TI-99/4a components -->
-    <script src="disk.js"></script>
-    <script src="googledrive.js"></script>
-    <script src="tms9900.js"></script>
-    <script src="tms9918a.js"></script>
-    <script src="f18a.js"></script>
-    <script src="f18agpu.js"></script>
-    <script src="tms9919.js"></script>
-    <script src="tms5220.js"></script>
-    <script src="memory.js"></script>
-    <script src="cru.js"></script>
-    <script src="keyboard.js"></script>
-    <script src="ti994a.js"></script>
+    <script src="emu/disk.js"></script>
+    <script src="emu/googledrive.js"></script>
+    <script src="emu/decoder.js"></script>
+    <script src="emu/tms9900.js"></script>
+    <script src="emu/tms9918a.js"></script>
+    <script src="emu/f18a.js"></script>
+    <script src="emu/f18agpu.js"></script>
+    <script src="emu/tms9919.js"></script>
+    <script src="emu/tms5220.js"></script>
+    <script src="emu/memory.js"></script>
+    <script src="emu/cru.js"></script>
+    <script src="emu/keyboard.js"></script>
+    <script src="emu/ti994a.js"></script>
     <!-- Main -->
     <script src="js99er.js"></script>
     <script src="database.js"></script>
     <script src="settings.js"></script>
+    <script src="disassembler.js"></script>
     <!-- CSS -->
     <link rel="stylesheet" type="text/css" href="css/bootstrap.min.css">
     <link rel="stylesheet" type="text/css" href="css/bootstrap-theme.min.css">
@@ -52,24 +57,27 @@
 <body>
 <div class="container">
     <ul class="nav nav-pills">
-        <li class="active"><a href="#home" data-toggle="tab">Home</a></li>
-        <li><a href="#diskManager" data-toggle="tab">Disk Manager</a></li>
-        <li><a href="#options" data-toggle="tab">Options</a></li>
+        <li class="active"><a href="#homePane" data-toggle="tab" id="homeTab">Home</a></li>
+        <li><a href="#logPane" data-toggle="tab" id="logTab">Log</a></li>
+        <li><a href="#diskManagerPane" data-toggle="tab" id="diskManagerTab">Disk Manager</a></li>
+        <li><a href="#keyboardPane" data-toggle="tab" id="keyboardTab">Keyboard</a></li>
+        <li><a href="#debuggerPane" data-toggle="tab" id="debuggerTab">Debugger</a></li>
+        <li><a href="#optionsPane" data-toggle="tab" id="optionsTab">Options</a></li>
     </ul>
     <div class="tab-content">
-        <div class="tab-pane fade in active" id="home">
+        <!-- Home pane -->
+        <div class="tab-pane fade in active" id="homePane">
             <canvas id="canvas" width="304" height="240"></canvas>
             <div id="tools" class="navbar navbar-default">
                 <div class="btn-group">
                     <button id="btnStart" class="btn btn-primary navbar-btn"><span class="glyphicon glyphicon-play"></span> Start</button>
                     <button id="btnFast" class="btn btn-default navbar-btn"><span class="glyphicon glyphicon-fast-forward"></span> Fast</button>
+                    <button id="btnFrame" class="btn btn-default navbar-btn"><span class="glyphicon glyphicon-fast-forward"></span> Frame</button>
                     <button id="btnStep" class="btn btn-default navbar-btn"><span class="glyphicon glyphicon-step-forward"></span> Step</button>
                     <button id="btnStop" class="btn btn-warning navbar-btn"><span class="glyphicon glyphicon-pause"></span> Pause</button>
                     <button id="btnReset" class="btn btn-danger navbar-btn"><span class="glyphicon glyphicon-refresh"></span> Reset</button>
                 </div>
-                <div class="btn-group">
-                    <a id="btnScreenshot" class="btn btn-default navbar-btn" title="Screen shot" download="screenshot.png"><span class="glyphicon glyphicon-camera"></span></a>
-                </div>
+                <!--
                 <div class="btn-group">
                     <button id="btnLeft" class="btn btn-default navbar-btn"><span class="glyphicon glyphicon-circle-arrow-left"></span></button>
                     <button id="btnUp" class="btn btn-default navbar-btn"><span class="glyphicon glyphicon-circle-arrow-up"></span></button>
@@ -77,6 +85,7 @@
                     <button id="btnRight" class="btn btn-default navbar-btn"><span class="glyphicon glyphicon-circle-arrow-right"></span></button>
                     <button id="btnFire" class="btn btn-primary navbar-btn"><span class="glyphicon glyphicon-screenshot"></span></button>
                 </div>
+                -->
                 <div class="btn-group dropup">
                     <div class="dropdown">
                         <button class="btn btn-success dropdown-toggle" type="button" data-toggle="dropdown">
@@ -98,9 +107,17 @@
                         <option data-icon="glyphicon-floppy-open" value="2">DSK3</option>
                     </select>
                 </div>
+                <div class="btn-group">
+                    <a id="btnScreenshot" class="btn btn-default navbar-btn" title="Screen shot" download="screenshot.png"><span class="glyphicon glyphicon-camera"></span></a>
+                </div>
             </div>
         </div>
-        <div class="tab-pane fade" id="diskManager">
+        <!-- Log pane -->
+        <div class="tab-pane fade" id="logPane">
+            <pre id="log"></pre>
+        </div>
+        <!-- Disk manager pane -->
+        <div class="tab-pane fade" id="diskManagerPane">
             <div class="panel panel-default" id="diskManagerPanel">
                 <div class="panel-body">
                     <div class="row">
@@ -144,7 +161,103 @@
                 </div>
             </div>
         </div>
-        <div class="tab-pane fade" id="options">
+        <!-- Keyboard pane -->
+        <div class="tab-pane fade" id="keyboardPane">
+            <div class="panel panel-default" id="keyboardPanel" style="position:relative">
+                <img src="images/keyboard.jpg" usemap="#keyboardMap" name="Keyboard" id="keyboard" alt="TI-99/4A keyboard" border="0">
+                <map name="keyboardMap">
+                    <area shape="RECT" coords="3, 1, 39, 37" alt="1" id="key1">
+                    <area shape="RECT" coords="45, 1, 81, 37" alt="2" id="key2">
+                    <area shape="RECT" coords="88, 1, 124, 37" alt="3" id="key3">
+                    <area shape="RECT" coords="131, 1, 167, 37" alt="4" id="key4">
+                    <area shape="RECT" coords="174, 1, 210, 37" alt="5" id="key5">
+                    <area shape="RECT" coords="218, 1, 254, 37" alt="6" id="key6">
+                    <area shape="RECT" coords="258, 1, 294, 37" alt="7" id="key7">
+                    <area shape="RECT" coords="301, 1, 337, 37" alt="8" id="key8">
+                    <area shape="RECT" coords="344, 1, 380, 37" alt="9" id="key9">
+                    <area shape="RECT" coords="387, 1, 423, 37" alt="0" id="key0">
+                    <area shape="RECT" coords="430, 1, 466, 37" alt="= or +" id="keyEquals">
+                    <area shape="RECT" coords="24, 43, 60, 79" alt="Q" id="keyQ">
+                    <area shape="RECT" coords="67, 43, 103, 79" alt="W" id="keyW">
+                    <area shape="RECT" coords="109, 43, 145, 79" alt="E" id="keyE">
+                    <area shape="RECT" coords="152, 43, 188, 79" alt="R" id="keyR">
+                    <area shape="RECT" coords="195, 42, 231, 78" alt="T" id="keyT">
+                    <area shape="RECT" coords="237, 42, 273, 78" alt="Y" id="keyY">
+                    <area shape="RECT" coords="281, 43, 317, 79" alt="U" id="keyU">
+                    <area shape="RECT" coords="321, 43, 357, 79" alt="I" id="keyI">
+                    <area shape="RECT" coords="366, 42, 402, 78" alt="O" id="keyO">
+                    <area shape="RECT" coords="408, 42, 444, 78" alt="P" id="keyP">
+                    <area shape="RECT" coords="450, 42, 486, 78" alt="/ or -" id="keyDiv">
+                    <area shape="RECT" coords="34, 86, 70, 122" alt="A" id="keyA">
+                    <area shape="RECT" coords="77, 86, 113, 122" alt="S" id="keyS">
+                    <area shape="RECT" coords="120, 86, 156, 122" alt="D" id="keyD">
+                    <area shape="RECT" coords="162, 86, 198, 122" alt="F" id="keyF">
+                    <area shape="RECT" coords="204, 86, 240, 122" alt="G" id="keyG">
+                    <area shape="RECT" coords="249, 86, 285, 122" alt="H"  id="keyH">
+                    <area shape="RECT" coords="291, 85, 327, 121" alt="J" id="keyJ">
+                    <area shape="RECT" coords="334, 85, 370, 121" alt="K" id="keyK">
+                    <area shape="RECT" coords="376, 85, 412, 121" alt="L" id="keyL">
+                    <area shape="RECT" coords="419, 85, 455, 121" alt="; or :" id="keySemicolon">
+                    <area shape="RECT" coords="460, 85, 496, 121" alt="Enter" id="keyEnter">
+                    <area shape="RECT" coords="13, 128, 49, 164" alt="Left shift" id="keyLShift">
+                    <area shape="RECT" coords="56, 129, 92, 165" alt="Z" id="keyZ">
+                    <area shape="RECT" coords="99, 129, 135, 165" alt="X" id="keyX">
+                    <area shape="RECT" coords="142, 129, 178, 165" alt="C" id="keyC">
+                    <area shape="RECT" coords="185, 129, 221, 165" alt="V" id="keyV">
+                    <area shape="RECT" coords="228, 129, 264, 165" alt="B" id="keyB">
+                    <area shape="RECT" coords="269, 130, 305, 166" alt="N" id="keyN">
+                    <area shape="RECT" coords="312, 129, 348, 165" alt="M" id="keyM">
+                    <area shape="RECT" coords="354, 130, 390, 166" alt=", or <" id="keyComma">
+                    <area shape="RECT" coords="398, 129, 434, 165" alt="> or ." id="keyFullStop">
+                    <area shape="RECT" coords="441, 129, 498, 164" alt="Right shift" id="keyRShift">
+                    <area shape="RECT" coords="14, 170, 50, 206" alt="Alpha lock" id="keyAlpha">
+                    <area shape="RECT" coords="56, 171, 92, 207" alt="Ctrl" id="keyCtrl">
+                    <area shape="RECT" coords="97, 169, 434, 207" alt="Space"  id="keySpace">
+                    <area shape="RECT" coords="441, 171, 477, 207" alt="Fctn" id="keyFctn">
+                </map>
+            </div>
+        </div>
+        <!-- Debugger pane -->
+        <div class="tab-pane fade" id="debuggerPane">
+            <div class="row">
+                <pre id="status"></pre>
+                <pre id="memory"></pre>
+            </div>
+            <div class="row">
+                <div id="debuggerTools" class="navbar navbar-default">
+                    <div class="btn-group dropup">
+                        <div class="dropdown">
+                            <button class="btn btn-primary dropdown-toggle" type="button" data-toggle="dropdown">
+                                <span class="glyphicon glyphicon-eye-open"></span> View
+                                <span class="caret"></span>
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><a data-target="#" id="disassembly">Disassembly <span id="disassemblyCheck" class="glyphicon glyphicon-ok"></span></a></li>
+                                <li><a data-target="#" id="hexView">Hex view <span id="hexViewCheck"></span></a></li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="btn-group dropup">
+                        <div class="dropdown">
+                            <button class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown">
+                                <span class="glyphicon glyphicon-th"></span> Memory
+                                <span class="caret"></span>
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li><a data-target="#" id="cpumem">CPU memory <span id="cpumemCheck" class="glyphicon glyphicon-ok"></span></a></li>
+                                <li><a data-target="#" id="vdpmem">VDP memory <span id="vdpmemCheck"></span></a></li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="btn-group pull-right">
+                        <label for="address">Address:</label> <input type="text" id="address" maxlength="5">
+                        <label for="breakpoint">Breakpoint:</label> <input type="text" id="breakpoint" maxlength="5">
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Options pane -->
+        <div class="tab-pane fade" id="optionsPane">
             <div class="panel panel-default" id="optionsPanel">
                 <div class="panel-body">
                     <div class="form-group">
@@ -152,8 +265,9 @@
                         <p><input type="checkbox" id="enableSpeech"> Speech hack enabled</p>
                         <p><input type="checkbox" id="enable32KRAM"> 32K RAM expansion enabled</p>
                         <p><input type="checkbox" id="enableF18A"> F18A enabled</p>
+                        <p><input type="checkbox" id="enableFlicker"> Sprite flicker enabled (9918A only)</p>
                         <p><input type="checkbox" id="enablePCKeyboard"> PC keyboard enabled</p>
-                        <p><input type="checkbox" id="enableGoogleDrive"> Google drives (GDR1, GDR2, GDR3 devices) enabled</p>
+                        <p><input type="checkbox" id="enableGoogleDrive"> Google drives (GDR1, GDR2, GDR3) enabled</p>
                     </div>
                 </div>
             </div>

@@ -2,15 +2,28 @@ body {
     margin-top: 10px;
 }
 
-h3, h6 {
+#title {
+    padding: 4px;
     text-align: center;
-    margin-top: 6px;
-    margin-bottom: 4px;
+    height: 40px;
+    margin-bottom: 0;
 }
 
-th {
-    text-align: center;
-    font-size: 11px;
+.title {
+    font-size: 20px;
+}
+
+.subtitle {
+    font-size: 12px;
+    margin-left: 10px;
+}
+
+#canvas {
+    width: 100%;
+}
+
+#tools, #diskTools, #debuggerTools {
+    padding-left: 8px;
 }
 
 .btn-file {
@@ -34,60 +47,57 @@ th {
     display: block;
 }
 
-#tools, #diskTools {
-    padding-left: 8px;
-}
-
-#title {
-    height: 72px;
+#log, #diskManagerPanel, #optionsPanel, #keyboardPanel {
+    height: 622px;
 }
 
 #log {
-    height: 384px;
     white-space: pre;
     overflow-x: scroll;
     overflow-y: scroll;
     word-wrap: normal;
 }
 
-#status {
-    height: 176px;
-    overflow: auto;
-    word-wrap: normal;
-}
-
-#diskManagerPanel, #optionsPanel {
-    height: 624px;
-}
-
 #diskFileTable {
     overflow: scroll;
+}
+
+#diskFileTable.th {
+    text-align: center;
+    font-size: 11px;
 }
 
 #fileTableRow {
     overflow:auto;
     margin-top: 12px;
     margin-bottom: 12px;
+    height:433px;
 }
 
-#canvas {
+#keyboard {
     width: 100%;
+    margin-top: 14px;
 }
 
-@media (max-width: 360px) {
-    #fileTableRow {
-        height:400px;
-    }
+#status {
+    height: 160px;
+    overflow: auto;
+    word-wrap: normal;
 }
 
-@media (min-width: 361px) and (max-width: 513px) {
-    #fileTableRow {
-        height:432px;
-    }
+#memory {
+    height: 394px;
+    overflow: auto;
+    word-wrap: normal;
+    line-height: 19px;
 }
 
-@media (min-width: 514px) {
-    #fileTableRow {
-        height:498px;
-    }
+#debuggerTools {
+    padding-top: 8px;
+}
+
+#breakpoint, #address {
+    width: 50px;
+    margin-top: 3px;
+    margin-right: 8px;
 }
