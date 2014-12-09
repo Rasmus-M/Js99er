@@ -1,5 +1,5 @@
 CACHE MANIFEST
-#2014-10-26 build 3.0.0
+#2014-12-03 build 3.2.0
 
 CACHE:
 index.html
@@ -30,6 +30,7 @@ lib/bootstrap-switch.min.js
 lib/bootstrap.min.js
 lib/google-client.js
 lib/imageMapResizer.js
+lib/fileSaver.js
 lib/jquery-1.11.0.min.js
 lib/zip/deflate.js
 lib/zip/inflate.js

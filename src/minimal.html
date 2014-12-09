@@ -36,7 +36,7 @@
         software.loadRPKModuleFromURL("software/turboforth.rpk", function(cart) {
             if (cart != null) {
                 ti994a.loadSoftware(cart);
-                ti994a.getDiskDrives()[0].loadDSKFromURL("software/turboforth.dsk", function() {
+                ti994a.getDiskDrives()[0].loadDSKFromURL("disks/turboforth.dsk", function() {
                     ti994a.start();
                 });
             }

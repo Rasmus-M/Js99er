@@ -1,5 +1,6 @@
 {
     "name": "F18A Scroll v. 1.6",
+    "startAddress": "0xA01A",
     "memoryBlocks": [
         {
             "address": "0xA000",

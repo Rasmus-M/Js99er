@@ -783,7 +783,21 @@ Keyboard.prototype = {
         return this.alphaLock;
     },
 
+    simulateKeyPresses: function(keyString) {
+        if (keyString.length > 0) {
+            var pause = keyString.charAt(0) == "§";
+            if (!pause) {
+                this.simulateKeyPress(keyString.charCodeAt(0));
+            }
+            var that = this;
+            window.setTimeout(function() {
+                that.simulateKeyPresses(keyString.substr(1));
+            }, pause ? 1000 : 2 * Keyboard.KEYPRESS_DURATION);
+        }
+    },
+
     simulateKeyPress: function(keyCode) {
+        this.log.info(keyCode);
         this.keyEvent({keyCode: keyCode, preventDefault: function() {}}, true);
         var that = this;
         window.setTimeout(function() {

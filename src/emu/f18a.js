@@ -1137,7 +1137,7 @@ F18A.prototype = {
     readData: function() {
         var i = this.prefetchByte;
         this.prefetchByte = this.ram[this.addressRegister++];
-        this.addressRegister %= 16384;
+        this.addressRegister &= 0x3FFF;
         return i;
     },
 
@@ -1153,6 +1153,24 @@ F18A.prototype = {
         return this.currentScanline;
     },
 
+    colorTableSize: function() {
+        if (this.screenMode == TMS9918A.MODE_BITMAP) {
+            return Math.min(this.patternTableMask + 1, 0x1800);
+        }
+        else {
+            return 0x20;
+        }
+    },
+
+    patternTableSize: function() {
+        if (this.screenMode == TMS9918A.MODE_BITMAP) {
+            return Math.min(this.colorTableMask + 1, 0x1800);
+        }
+        else {
+            return 0x800;
+        }
+    },
+
     logRegisters: function() {
         this.log.info(this.getRegsString());
     },
@@ -1160,8 +1178,11 @@ F18A.prototype = {
     getRegsString: function() {
         var s = "";
         for (var i = 0; i < 8; i++) {
-            s += "VR" + i + "=" + this.registers[i].toHexByte() + (i == 3 ? "\n     " : " ");
+            s += "VR" + i + ":" + this.registers[i].toHexByte() + " ";
         }
+        s += "\nSIT:" + this.nameTable.toHexWord() + " PDT:" + this.charPatternTable.toHexWord() + " (" + this.patternTableSize().toHexWord() + ")" +
+            " CT:" + this.colorTable.toHexWord() + " (" + this.colorTableSize().toHexWord() + ") SDT:" + this.spritePatternTable.toHexWord() +
+            " SAL:" + this.spriteAttributeTable.toHexWord();
         return s;
     },
 

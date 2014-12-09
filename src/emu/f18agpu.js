@@ -1641,13 +1641,13 @@ F18AGPU.prototype = {
     },
 
     getInternalRegsString: function() {
-        return "PC=" + this.PC.toHexWord() + " ST=" + this.ST.toHexWord();
+        return "PC: " + this.PC.toHexWord() + " ST: " + this.ST.toHexWord();
     },
 
     getRegsString: function() {
         var s = "";
         for (var i = 0; i < 16; i++) {
-            s += "R" + i + "=" + (this.readMemoryWord(this.WP + 2 * i)).toHexWord() + " ";
+            s += "R" + i + ":" + (this.readMemoryWord(this.WP + 2 * i)).toHexWord() + " ";
         }
         return s;
     },
@@ -1655,7 +1655,7 @@ F18AGPU.prototype = {
     getRegsStringFormatted: function() {
         var s = "";
         for (var i = 0; i < 16; i++) {
-            s += "R" + i + (i < 10 ? " " : "") + "=" + (this.readMemoryWord(this.WP + 2 * i)).toHexWord() + (i % 4 == 3 ? "\n" : " ");
+            s += "R" + i + (i < 10 ? " " : "") + ":" + (this.readMemoryWord(this.WP + 2 * i)).toHexWord() + (i % 4 == 3 ? "\n" : " ");
         }
         return s;
     }

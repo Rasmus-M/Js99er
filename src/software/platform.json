@@ -1,5 +1,6 @@
 {
     "name": "platform",
+    "startAddress": "0xA000",
     "memoryBlocks": [
         {
             "address": "0xA000",

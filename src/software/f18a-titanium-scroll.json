@@ -1,5 +1,6 @@
 {
     "name": "F18A Titanium scroll",
+    "startAddress": "0xA04C",
     "memoryBlocks": [
         {
             "address": "0xA000",

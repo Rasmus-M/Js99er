@@ -19,13 +19,16 @@ CRU.prototype = {
         for (var i = 0; i < 4096; i++) {
             this.cru[i] = true;
         }
+        this.cru[24] = false; // Audio gate
+        this.cru[25] = false; // Output to cassette mike jack
     },
 
     readBit: function(addr) {
         // Keyboard
         if (addr >= 3 && addr <= 10) {
-            var col = (this.cru[0x12] ? 1 : 0) | (this. cru[0x13] ? 2 : 0) | (this.cru[0x14] ? 4 : 0);
-            if (addr == 7 && !this.cru[0x15]) {
+            var col = (this.cru[18] ? 1 : 0) | (this.cru[19] ? 2 : 0) | (this.cru[20] ? 4 : 0);
+            // this.log.info("Addr: " + addr + " Col: " + col + " Down: " + this.keyboard.isKeyDown(col, addr));
+            if (addr == 7 && !this.cru[21]) {
                 return !this.keyboard.isAlphaLockDown();
             }
             else {

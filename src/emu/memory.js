@@ -123,7 +123,10 @@ Memory.prototype = {
     reset: function(keepCart) {
         var i;
         for (i = 0; i < this.ram.length; i++) {
-            this.ram[i] = 0;
+            // Don't erase cartridge RAM for Mini Memory etc.
+            if (!keepCart || i >= 0x2000 && i < 0x4000 || i >= 0xa000 && i < 0x10000) {
+                this.ram[i] = 0;
+            }
         }
         if (!keepCart) {
             var grom = this.groms[0];
@@ -444,7 +447,8 @@ Memory.prototype = {
     },
 
     getStatusString: function() {
-        return "GROM: " + this.gromAddress.toHexWord() + " (bank=" + ((this.gromAddress & 0xE000) >> 13) + ", addr=" + (this.gromAddress & 0x1FFF).toHexWord() + ")";
+        return "GROM:" + this.gromAddress.toHexWord() + " (bank:" + ((this.gromAddress & 0xE000) >> 13) + ", addr:" + (this.gromAddress & 0x1FFF).toHexWord() + ") " +
+               (this.cartImage != null ? "CART: bank " + this.currentCartBank +" / 0-" + (this.cartBankCount - 1) : "");
     },
 
     hexView: function(start, length, anchorAddr) {

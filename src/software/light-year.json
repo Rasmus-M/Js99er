@@ -1,5 +1,6 @@
 {
     "name": "Light-year demo",
+    "startAddress": "0xA000",
     "memoryBlocks": [
         {
             "address": "0x2700",

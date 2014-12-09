@@ -1,5 +1,6 @@
 {
     "name": "GPU image rotation",
+    "startAddress": "0xA000",
     "memoryBlocks": [
         {
             "address": "0x2C00",

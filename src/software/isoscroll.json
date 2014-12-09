@@ -1,5 +1,6 @@
 {
     "name": "Isometric scrolling demo",
+    "startAddress": "0xA000",
     "memoryBlocks": [
         {
             "address": "0x2800",

@@ -1197,15 +1197,15 @@ DiskImage.prototype = {
             // Status flags
             n = this.writeByte(dskImg, n, (file.getRecordType() << 7) | (file.getDatatype() << 1) | file.getFileType());
             // Records per sector
-            n = this.writeByte(dskImg, n, file.getRecordType() == TI_FILE.RECORD_TYPE_FIXED ? Math.floor(256 / file.getRecordLength()) : 0);
+            n = this.writeByte(dskImg, n, file.getFileType() == TI_FILE.FILE_TYPE_DATA ? Math.floor(256 / file.getRecordLength()) : 0);
             // Sectors allocated
             n = this.writeWord(dskImg, n, file.getSectorCount());
             // End of file offset
             n = this.writeByte(dskImg, n, file.getEOFOffset());
             // Record length
-            n = this.writeByte(dskImg, n, file.getRecordType() == TI_FILE.RECORD_TYPE_FIXED ? file.getRecordLength() : 0);
+            n = this.writeByte(dskImg, n, file.getFileType() == TI_FILE.FILE_TYPE_DATA ? file.getRecordLength() : 0);
             // Number of level 3 records
-            n = this.writeWord(dskImg, n, file.getRecordType() == TI_FILE.RECORD_TYPE_FIXED ? file.getRecordCount() : 0);
+            n = this.writeLEWord(dskImg, n, file.getFileType() == TI_FILE.FILE_TYPE_DATA ? (file.getRecordType() == TI_FILE.RECORD_TYPE_FIXED ? file.getRecordCount() : file.getSectorCount()) : 0);
             // Data sectors
             var startSectorNo = nextDataSectorNo;
             var sectorNo = startSectorNo;
@@ -1238,6 +1238,14 @@ DiskImage.prototype = {
                     for (i = 0; i < recordCount; i++) {
                         data = records[i].getData();
                         if (sectorBytesLeft <= data.length) {
+                            if (sectorBytesLeft > 0) {
+                                n = this.writeByte(dskImg, n, 0xFF);
+                                sectorBytesLeft--;
+                                while (sectorBytesLeft > 0) {
+                                    n = this.writeByte(dskImg, n, 0);
+                                    sectorBytesLeft--;
+                                }
+                            }
                             sectorNo++;
                             n = sectorNo * 256;
                             sectorBytesLeft = 256;
@@ -1249,7 +1257,14 @@ DiskImage.prototype = {
                             sectorBytesLeft--;
                         }
                     }
-                    n = this.writeByte(dskImg, n, 0xFF);
+                    if (sectorBytesLeft > 0) {
+                        n = this.writeByte(dskImg, n, 0xFF);
+                        sectorBytesLeft--;
+                        while (sectorBytesLeft > 0) {
+                            n = this.writeByte(dskImg, n, 0);
+                            sectorBytesLeft--;
+                        }
+                    }
                     if (sectorBytesLeft == 256) {
                         sectorNo--;
                     }
@@ -1268,12 +1283,13 @@ DiskImage.prototype = {
             var sectorCount = sectorNo - startSectorNo;
             n = fileDescriptorAddr + 0x1C;
             n = this.writeByte(dskImg, n, startSectorNo & 0x00FF);
-            n = this.writeWord(dskImg, n, ((sectorCount & 0x000F) << 4) | ((startSectorNo & 0x0F00) >> 8));
-            n = this.writeWord(dskImg, n, (sectorCount & 0x0FF0) >> 4);
+            n = this.writeByte(dskImg, n, ((sectorCount & 0x000F) << 4) | ((startSectorNo & 0x0F00) >> 8));
+            n = this.writeByte(dskImg, n, (sectorCount & 0x0FF0) >> 4);
             // Allocation bit map
             for (i = startSectorNo; i <= sectorNo; i++) {
-                dskImg[0x38 + Math.floor(i / 8)] |= (1 << (i % 8));
+                dskImg[0x38 + (i >> 3)] |= (1 << (i & 7));
             }
+			dskImg[0x38 + ((f + 2) >> 3)] |= (1 << ((f + 2) & 7));
         }
         return dskImg;
     },

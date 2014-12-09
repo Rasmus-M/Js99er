@@ -168,11 +168,20 @@ TI994A.prototype = {
         this.lastFpsTime = now;
     },
 
+    getPC: function() {
+        if (this.vdp.gpu && !this.vdp.gpu.isIdle()) {
+            return this.vdp.gpu.getPC();
+        }
+        else {
+            return this.tms9900.getPC();
+        }
+    },
+
     getStatusString: function() {
-        return "CPU: " + this.tms9900.getInternalRegsString() + "\n" +
+        return this.tms9900.getInternalRegsString() + "\n" +
                this.tms9900.getRegsStringFormatted() +
-               this.memory.getStatusString() + "\n" +
-               "VDP: " + this.vdp.getRegsString();
+               this.vdp.getRegsString() + "\n" +
+               this.memory.getStatusString();
     },
 
     getDiskDrives: function() {
@@ -208,6 +217,15 @@ TI994A.prototype = {
         this.tms9900.setPC(sw.startAddress != null ? sw.startAddress : (SYSTEM.ROM[2] << 8 | SYSTEM.ROM[3]));
         if (wasRunning) {
             this.start();
+        }
+        if (sw.keyPresses) {
+            var that = this;
+            window.setTimeout(
+                function() {
+                    that.keyboard.simulateKeyPresses(sw.keyPresses);
+                },
+                1000
+            );
         }
     }
 };

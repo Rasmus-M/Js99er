@@ -10,69 +10,118 @@ function TMS5220(enabled) {
     this.enabled = enabled;
     this.log = Log.getLog();
     this.reset();
+    if (TMS5220.timer != null) {
+        window.clearInterval(TMS5220.timer)
+    }
+    TMS5220.timer = window.setInterval(
+        function() {
+            if (this.speakExternal && this.fifoBuffer.length > 0) {
+                this.fifoBuffer = this.fifoBuffer.slice(1);
+                this.setStatus();
+            }
+        }.bind(this),
+        200
+    );
 }
+
+TMS5220.timer = null;
 
 TMS5220.prototype =  {
 
     reset: function() {
         this.dataReg = 0;
-        this.statusReg = 0;
+        this.statusTalk = 0;
+        this.statusBufferLow = 0;
+        this.statusBufferEmpty = 0;
         this.dataLatch = false;
         this.address = 0;
         this.nybbleNo = 0;
+        this.speakExternal = false;
+        this.fifoBuffer = [];
+        this.setStatus();
     },
 
     writeSpeechData: function(b) {
         if (this.enabled) {
-            var cmd = (b & 0xF0) >> 4;
-            var nybble = (b & 0x0F);
-            this.dataLatch = false;
-            switch (cmd) {
-                case 0:
-                    this.log.info("Load frame rate");
-                    break;
-                case 1:
-                    // Read speech data
-                    this.log.info("Read speech data command");
-                    this.dataReg = this.getROMByte(this.address);
-                    this.dataLatch = true;
-                    break;
-                case 2:
-                    this.log.info("Load frame rate");
-                    break;
-                case 3:
-                    this.log.info("Read and branch");
-                    this.address = this.getROMByte(this.address) << 8 | this.getROMByte(this.address + 1);
-                    break;
-                case 4:
-                    if (this.nybbleNo < 4) {
-                        this.address |= (nybble << 16);
-                        this.address >>= 4;
-                        this.nybbleNo++;
-                    }
-                    else {
-                        // 5th nybble
-                        this.log.info("Speech address set to " + this.address.toHexWord());
-                        this.nybbleNo = 0;
-                    }
-                    break;
-                case 5:
-                    var text = TMS5220.RESIDENT_VOCABULARY[this.address];
-                    this.log.info("Resident speech: " + (text != null ? text : this.address.toHexWord()));
-                    if (text && 'speechSynthesis' in window) {
-                        var msg = new SpeechSynthesisUtterance(text);
-                        // var voices = window.speechSynthesis.getVoices();
-                        // msg.voice = voices[1];
-                        window.speechSynthesis.speak(msg);
-                    }
-                    break;
-                case 6:
-                    this.log.info("Direct speech");
-                    break;
-                case 7:
-                    this.log.info("Speech reset");
-                    this.reset();
-                    break;
+            if (!this.speakExternal) {
+                var cmd = (b & 0xF0) >> 4;
+                var nybble = (b & 0x0F);
+                this.dataLatch = false;
+                switch (cmd) {
+                    case 0:
+                        // Load frame rate - not implemented
+                        this.log.info("Load frame rate");
+                        break;
+                    case 1:
+                        // Read speech data
+                        if (this.statusTalk == 0) {
+                            this.log.info("Read speech data command");
+                            this.dataReg = this.getROMByte(this.address);
+                            this.dataLatch = true;
+                        }
+                        break;
+                    case 2:
+                        // Load frame rate - not implemented
+                        this.log.info("Load frame rate");
+                        break;
+                    case 3:
+                        // Read and branch
+                        if (this.statusTalk == 0) {
+                           this.log.info("Read and branch");
+                            this.address = this.getROMByte(this.address) << 8 | this.getROMByte(this.address + 1);
+                        }
+                        break;
+                    case 4:
+                        // Load address
+                        if (this.nybbleNo < 4) {
+                            this.address |= (nybble << 16);
+                            this.address >>= 4;
+                            this.nybbleNo++;
+                        }
+                        else {
+                            // 5th nybble
+                            this.log.info("Speech address set to " + this.address.toHexWord());
+                            this.nybbleNo = 0;
+                        }
+                        break;
+                    case 5:
+                        // Speak internal
+                        var text = TMS5220.RESIDENT_VOCABULARY[this.address];
+                        this.log.info("Speak internal: " + (text != null ? text : this.address.toHexWord()));
+                        this.speakExternal = false;
+                        if (text && 'speechSynthesis' in window) {
+                            this.statusTalk = 1;
+                            var msg = new SpeechSynthesisUtterance(text);
+                            // var voices = window.speechSynthesis.getVoices();
+                            // msg.voice = voices[1];
+                            msg.onend = function() {
+                                this.statusTalk = 0;
+                            }.bind(this);
+                            window.speechSynthesis.speak(msg);
+                        }
+                        break;
+                    case 6:
+                        // Speak external
+                        this.log.info("Speak external");
+                        this.speakExternal = true;
+                        break;
+                    case 7:
+                        // Reset
+                        this.log.info("Speech reset");
+                        this.reset();
+                        break;
+                }
+            }
+            else {
+                // this.log.info("External speech: " + b.toHexByte());
+                if (this.fifoBuffer.length < 16) {
+                    this.fifoBuffer.push(b);
+                }
+                this.setStatus();
+                if (this.statusTalk == 0 && this.statusBufferLow == 0) {
+                    // Begin talking
+                    this.statusTalk = 1;
+                }
             }
         }
     },
@@ -87,12 +136,22 @@ TMS5220.prototype =  {
             }
             else {
                 this.log.debug("Read speech status");
-                return this.statusReg;
+                return (this.statusTalk << 7) | (this.statusBufferLow << 6) | (this.statusBufferEmpty << 5);
             }
         }
         else {
             return 0;
         }
+    },
+
+    setStatus: function() {
+        this.statusBufferLow = this.fifoBuffer.length <= 8 ? 1 : 0;
+        this.statusBufferEmpty = this.fifoBuffer.length == 0 ? 1 : 0;
+        if (this.speakExternal && this.statusBufferEmpty == 1 && this.statusTalk == 1) {
+            this.statusTalk = 0;
+            this.speakExternal = 0;
+        }
+        // this.log.info("Speech status: " + ((this.statusTalk << 7) | (this.statusBufferLow << 6) | (this.statusBufferEmpty << 5)).toHexByte());
     },
 
     getROMByte: function(addr) {

@@ -134,6 +134,7 @@
         buildPreloads($("#preloads"), software.getPrograms());
         $(".selectpicker").selectpicker();
         $("ul.dropdown-menu [data-toggle=dropdown]").multilevelDropdown();
+        buildMore();
 
         $("#fileInputModule").on("change", function() {
             var file = this.files[0];
@@ -181,6 +182,7 @@
                 loadState();
             }
         });
+        $("#btnDownload").on("click", function() { downloadDisk(); });
 
         $("#insertDSK0").on("click", function() { insertDisk(0); });
         $("#insertDSK1").on("click", function() { insertDisk(1); });
@@ -383,23 +385,32 @@
     /////////////////////////
 
     function buildPreloads(list, programs) {
+        var item, link, subList;
         for (var i = 0; i < programs.length; i++) {
             if (programs[i].type == Software.TYPE_GROUP) {
-                var item = $("<li class=\"dropdown-submenu\">");
+                item = $("<li class=\"dropdown-submenu\">");
                 item.appendTo(list);
-                item.append("<a href=\"#\" class=\"dropdown-toggle\" data-toggle=\"dropdown\">" + programs[i].name + "</a>");
-                var subList = $("<ul id=\"" + list.attr("id") + "." + i + "\" class=\"dropdown-menu\"/>");
+                link = $("<a href=\"#\" class=\"dropdown-toggle\" data-toggle=\"dropdown\">" + programs[i].name + "</a>");
+                item.append(link);
+                subList = $("<ul id=\"" + list.attr("id") + "." + i + "\" class=\"dropdown-menu\"/>");
                 subList.appendTo(item);
                 buildPreloads(subList, programs[i].programs);
             }
             else if (programs[i].type == Software.TYPE_DIVIDER) {
                 list.append("<li class=\"divider\"></li>");
             }
+            else if (programs[i].type == Software.TYPE_MORE) {
+                item = $("<li></li>");
+                item.appendTo(list);
+                link = $("<a href=\"#\">" + programs[i].name + "</a>");
+                link.appendTo(item);
+                link.on("click", function() { $("#more").modal(); });
+            }
             else {
                 var id = list.attr("id") + "." + i;
                 item = $("<li></li>");
                 item.appendTo(list);
-                var link = $("<a id=\"" + id + "\" href=\"#\">" + programs[i].name + "</a>");
+                link = $("<a id=\"" + id + "\" href=\"#\">" + programs[i].name + "</a>");
                 link.appendTo(item);
                 link.on("click", makeLoadSoftwareCallback(id.substr(9)));
             }
@@ -415,6 +426,42 @@
                 }
             });
         }
+    }
+
+    function buildMore() {
+        var moreSelect = $("#moreSelect");
+        var carts = Software.carts;
+        var sortedCarts = [];
+        for (var i = 0; i < carts.length; i++) {
+            var cart = carts[i];
+            var filename = cart[0];
+            var name = cart[1] || fileToName(filename);
+            sortedCarts.push({name: name, filename: filename});
+        }
+        sortedCarts.sort(function(c1, c2) {return c1.name > c2.name ? 1 : -1});
+        for (var j in sortedCarts) {
+            var sortedCart = sortedCarts[j];
+            moreSelect.append("<option value=\"" + sortedCart.filename + ".rpk\">" + sortedCart.name + "</option>");
+        }
+        moreSelect.on("change", function() {
+            $("#more").modal("hide");
+            var filename = this.value;
+            var name = $(this).find(":selected").text();
+            software.loadRPKModuleFromURL("carts/" + filename, function(cart) {
+                if (cart != null) {
+                    ti994a.loadSoftware(cart);
+                }
+            }, function(msg) {
+                log.error("Failed to load '" + name + "' (" + filename + ").");
+            });
+        });
+    }
+
+    function fileToName(filename) {
+        filename = filename.replace(/^(ag|as|aw|co|cy|db|dc|de|dlm|dv|fw|im|jp|mb|mi|na|ni|pb|ro|se|sf|sm|so|sp|ss|th|tv|vm|wd|wl)\_/, "");
+        filename = filename.replace(/\_/g, " ");
+        filename = filename.substr(0, 1).toUpperCase() + filename.substr(1);
+        return filename;
     }
 
     function loadDiskFiles(files) {
@@ -639,10 +686,22 @@
                             "<td>&nbsp;</td>" +
                             "<td>&nbsp;</td>";
                     }
-                    row += "<td>" + file.getSectorCount() + " ("  + file.getFileSize() + ")</td>";
+                    row += "<td>" + file.getSectorCount() + "&nbsp;("  + file.getFileSize() + ")</td>";
                     row += "</tr>";
                     diskFileTable.append(row);
                 }
+            }
+        }
+    }
+
+    function downloadDisk() {
+        var diskImageName = $("#diskImageList").val();
+        if (diskImageName && diskImageName.length > 0) {
+            var diskImage = diskImages[diskImageName];
+            if (diskImage) {
+                var imageFile = diskImage.getTIDiskImage();
+                var blob = new Blob([imageFile], { type: "application/octet-stream" });
+                saveAs(blob, diskImageName + ".dsk");
             }
         }
     }
@@ -702,7 +761,7 @@
             $("#status").text(ti994a.getStatusString());
             var $memory = $("#memory");
             var viewObj;
-            var pc = ti994a.tms9900.getPC();
+            var pc = ti994a.getPC();
             if (ti994a.isRunning()) {
                 // Running
                 if (memoryView == 0) {
@@ -710,12 +769,12 @@
                     if (memoryType == 0) {
                         // CPU
                         disassembler.setMemory(ti994a.memory);
-                        viewObj = disassembler.disassemble(pc, null, 20, pc);
+                        viewObj = disassembler.disassemble(pc, null, 19, null);
                     }
                     else {
                         // VDP
                         disassembler.setMemory(ti994a.vdp);
-                        viewObj = disassembler.disassemble(debuggerAddress || 0, null, 20, pc);
+                        viewObj = disassembler.disassemble(pc, null, 19, null);
                     }
                 }
                 else {
@@ -742,7 +801,7 @@
                     else {
                         // VDP
                         disassembler.setMemory(ti994a.vdp);
-                        viewObj = disassembler.disassemble(0, 0x4000, null, debuggerAddress || 0);
+                        viewObj = disassembler.disassemble(0, 0x4000, null, debuggerAddress || pc);
                     }
                 }
                 else {
@@ -753,7 +812,7 @@
                     }
                     else {
                         // VDP
-                        viewObj = ti994a.vdp.hexView(0, 0x4000, debuggerAddress || 0);
+                        viewObj = ti994a.vdp.hexView(0, 0x4000, debuggerAddress || pc);
                     }
                 }
             }
