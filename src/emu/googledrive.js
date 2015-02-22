@@ -759,5 +759,9 @@ GoogleDrive.prototype = {
             // console.log(result);
             callback(id);
         }.bind(this));
+    },
+
+    setRAM: function(ram) {
+        this.ram = ram;
     }
 };

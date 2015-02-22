@@ -19,12 +19,19 @@ function F18AGPU(f18a) {
     this.vdpRAM = f18a.getRAM();
 
     this.cpuIdle = true;
-    this.WP = 0x4800;
+    this.WP = 0xF000; // Place workspace in an unused part of the memory space
 
     // Internal registers
     this.PC = 0;
     this.ST = 0;
     this.flagX = 0;
+
+    // DMA
+    this.dmaSrc = 0;
+    this.dmaDst = 0;
+    this.dmaLength = 0;
+    this.dmaSrcStep = 0;
+    this.dmaDstStep = 0;
 
     // Operands
     this.Ts = 0;
@@ -65,6 +72,7 @@ function F18AGPU(f18a) {
     this.bStatusLookup = this.buildBStatusLookupTable();
 
     // Misc
+    this.breakpoint = null;
     this.log = Log.getLog();
 }
 
@@ -130,12 +138,21 @@ F18AGPU.prototype = {
     },
 
     run: function(cyclesToRun) {
+        var startPC = this.PC;
         var startCycles = this.cycles;
         while (!this.cpuIdle && this.cycles - startCycles < cyclesToRun) {
-            // Execute instruction
-            var instruction = this.readMemoryWord(this.PC);
-            this.inctPC();
-            this.addCycles(this.execute(instruction));
+            // Handle breakpoint
+            var atBreakpoint = this.atBreakpoint();
+            if (atBreakpoint) {
+                this.log.info("At breakpoint " + this.breakpoint.toHexWord());
+                cyclesToRun = -1;
+            }
+            if (!atBreakpoint || this.PC == startPC) {
+                // Execute instruction
+                var instruction = this.readMemoryWord(this.PC);
+                this.inctPC();
+                this.addCycles(this.execute(instruction));
+            }
         }
     },
 
@@ -367,36 +384,158 @@ F18AGPU.prototype = {
     },
 
     writeMemoryWord: function(addr, w) {
-        this.vdpRAM[addr] = (w & 0xFF00) >> 8;
-        this.vdpRAM[addr + 1] = w & 0x00FF;
-        if (addr < 0x4000) {
-            this.f18a.redrawRequired = true;
-        }
+        this.writeMemoryByte(addr, (w & 0xFF00) >> 8);
+        this.writeMemoryByte(addr + 1, w & 0x00FF);
     },
 
     writeMemoryByte: function(addr, b) {
-        if (addr >= 0x6000 && addr < 0x6040) {
-            this.f18a.writeRegister(addr - 0x6000, b);
-        }
-        else {
+        // GPU register
+        if (addr >= this.WP) {
             this.vdpRAM[addr] = b;
-            if (addr < 0x4000) {
-                this.f18a.redrawRequired = true;
+        }
+        // VRAM
+        else if (addr < 0x4000) {
+            this.vdpRAM[addr] = b;
+            this.f18a.redrawRequired = true;
+        }
+        // GRAM
+        else if (addr < 0x5000) {
+            this.vdpRAM[addr & 0x47FF] = b;
+        }
+        // PRAM
+        else if (addr < 0x6000) {
+            var color = this.f18a.palette[(addr & 0x7F) >> 1];
+            if ((addr & 1) == 0) {
+                // MSB
+                color[0] = b * 17;
+            }
+            else {
+                // LSB
+                color[1] = (b >> 4) * 17;
+                color[2] = (b & 0xF) * 17;
+            }
+        }
+        // VREG >6000->603F
+        else if (addr < 0x7000) {
+            this.f18a.writeRegister(addr & 0x3F, b);
+        }
+        // Scanline and blanking
+        else if (addr < 0x8000) {
+            //  Read only
+        }
+        else if (addr < 0x9000) {
+            // DMA
+            switch (addr & 0xF) {
+                // 8xx0 - MSB src
+                case 0:
+                    this.dmaSrc = (this.dmaSrc & 0x00FF) | (b << 8);
+                    break;
+                // 8xx1 - LSB src
+                case 1:
+                    this.dmaSrc = (this.dmaSrc & 0xFF00) | b;
+                    break;
+                // 8xx2 - MSB dst
+                case 2:
+                    this.dmaDst = (this.dmaDst & 0x00FF) | (b << 8);
+                    break;
+                // 8xx3 - LSB dst
+                case 3:
+                    this.dmaDst = (this.dmaDst & 0xFF00) | b;
+                    break;
+                // 8xx4 - MSB length
+                case 4:
+                    this.dmaLength = (this.dmaLength & 0x00FF) | (b << 8);
+                    break;
+                // 8xx5 - LSB length
+                case 5:
+                    this.dmaLength = (this.dmaLength & 0xFF00) | b;
+                    break;
+                // 8xx6 - MSB src step, signed 8.8
+                case 6:
+                    this.dmaSrcStep = (this.dmaSrcStep & 0x00FF) | (b << 8);
+                    break;
+                // 8xx7 - LSB src step, signed 8.8
+                case 7:
+                    this.dmaSrcStep = (this.dmaSrcStep & 0xFF00) | b;
+                    break;
+                // 8xx8 - MSB dst step, signed 8.8
+                case 8:
+                    this.dmaDstStep = (this.dmaDstStep & 0x00FF) | (b << 8);
+                    break;
+                // 8xx9 - LSB dst step, signed 8.8
+                case 9:
+                    this.dmaDstStep = (this.dmaDstStep & 0xFF00) | b;
+                    break;
+                // 8xxA - trigger DMA by writing to this address
+                case 10:
+                    var src = this.dmaSrc;
+                    var dst = this.dmaDst;
+                    // Steps are fixed 8.8 format - convert to floating point
+                    var srcStep = this.dmaSrcStep / 256;
+                    var dstStep = this.dmaDstStep / 256;
+                    this.log.debug("DMA triggered src=" + src.toHexWord() + " dst=" + dst.toHexWord() + " length=" + this.dmaLength.toHexWord());
+                    for (var length = this.dmaLength; length > 0; length--) {
+                        this.vdpRAM[Math.floor(dst)] = this.vdpRAM[Math.floor(src)];
+                        src += srcStep;
+                        dst += dstStep;
+                    }
+                    this.addCycles(length); // ?
+                    this.f18a.redrawRequired = true;
+                    break;
             }
         }
     },
 
     readMemoryWord: function(addr) {
-        return this.vdpRAM[addr] << 8 | this.vdpRAM[addr + 1];
+        return (this.readMemoryByte(addr) << 8) | this.readMemoryByte(addr + 1);
     },
 
     readMemoryByte: function(addr) {
-        if (addr == 0x7000) {
-            return this.f18a.getCurrentScanline();
-        }
-        else {
+        // GPU register
+        if (addr >= this.WP) {
             return this.vdpRAM[addr];
         }
+        // VRAM
+        if (addr < 0x4000) {
+            return this.vdpRAM[addr];
+        }
+        // GRAM
+        if (addr < 0x5000) {
+            return this.vdpRAM[addr & 0x47FF];
+        }
+        // PRAM
+        if (addr < 0x6000) {
+            var color = this.f18a.palette[(addr & 0x7F) >> 1];
+            if ((addr & 1) == 0) {
+                // MSB
+                return Math.floor(color[0] / 17);
+            }
+            else {
+                // LSB
+                return (Math.floor(color[1] / 17) << 4) | Math.floor(color[2] / 17);
+            }
+        }
+        // VREG >6000->603F
+        if (addr < 0x7000) {
+            return this.f18a.readRegister(addr & 0x3F);
+        }
+        // Scanline and blanking
+        if (addr < 0x8000) {
+            if ((addr & 1) == 0) {
+                // Current scanline
+                return this.f18a.getCurrentScanline();
+            }
+            else {
+                // Blanking
+                return 0; // TODO
+            }
+        }
+        // DMA
+        if (addr < 0x9000) {
+            // TODO: can you read the DMA?
+            return 0;
+        }
+        return 0;
     },
 
     // Load Immediate: LI src, imm
@@ -1658,5 +1797,17 @@ F18AGPU.prototype = {
             s += "R" + i + (i < 10 ? " " : "") + ":" + (this.readMemoryWord(this.WP + 2 * i)).toHexWord() + (i % 4 == 3 ? "\n" : " ");
         }
         return s;
+    },
+
+    getBreakpoint: function() {
+        return this.breakpoint;
+    },
+
+    setBreakpoint: function(addr) {
+        this.breakpoint = addr;
+    },
+
+    atBreakpoint: function() {
+        return this.breakpoint && this.PC == this.breakpoint;
     }
 };

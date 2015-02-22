@@ -101,7 +101,7 @@ var Disassembler = (function() {
                             w = (instr & 0x000f); // 0 for LIMI and LWPI
                             this.addr += 2;
                             imm = this.memory.getWord(this.addr);
-                            if (w != 0) {
+                            if (opcode.id != "LIMI" && opcode.id != "LWPI") {
                                 src = r(w);
                             }
                             dst = imm.toHexWord();

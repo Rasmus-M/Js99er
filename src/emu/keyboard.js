@@ -736,7 +736,7 @@ Keyboard.prototype = {
                 break;
             case 121: // F10
                 this.columns[0][7] = down; // Fctn
-                this.columns[5][6] = down; // 0
+                this.columns[0][3] = down; // =
                 break;
             default:
                 if (down) {

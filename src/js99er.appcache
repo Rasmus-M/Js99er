@@ -1,9 +1,10 @@
 CACHE MANIFEST
-#2014-12-03 build 3.2.0
+#2014-02-19 build 3.6.0
 
 CACHE:
 index.html
 js99er.js
+sound.js
 software.js
 database.js
 settings.js
@@ -23,7 +24,7 @@ emu/tms5220.js
 emu/tms9900.js
 emu/tms9918a.js
 emu/tms9919.js
-javagear/sn76489.js
+emu/sn76489.js
 lib/bootstrap-multilevel-dropdown.js
 lib/bootstrap-select.min.js
 lib/bootstrap-switch.min.js

@@ -6,60 +6,20 @@
 
 'use strict';
 
-function TMS9919(enabled) {
-
-    this.psgdev = new SN76489();
-    this.bufferSize = 1024;
-    this.buffer = new Int8Array(this.bufferSize);
+function TMS9919() {
+    this.sn76489 = new SN76489();
     this.log = Log.getLog();
-    if (TMS9919.audioContext == null) {
-        if (window.AudioContext) {
-            TMS9919.audioContext = new AudioContext();
-        }
-        else if (window.webkitAudioContext) {
-            TMS9919.audioContext = new webkitAudioContext();
-        }
-    }
-    if (TMS9919.audioContext != null) {
-        this.log.info("Web Audio API detected");
-        this.sampleRate = TMS9919.audioContext.sampleRate;
-        this.log.info('AudioContext: sample rate is ' + this.sampleRate);
-        this.scriptProcessor = TMS9919.audioContext.createScriptProcessor(this.bufferSize, 2, 2);
-        this.scriptProcessor.connect(TMS9919.audioContext.destination);
-        this.setSoundEnabled(enabled);
-    }
-    else {
-        this.log.warn("Web Audio API not supported by this browser.");
-    }
 }
-
-TMS9919.audioContext = null;
 
 TMS9919.prototype = {
 
     reset: function() {
         this.mute();
-        this.psgdev.init(SN76489.CLOCK_3_58MHZ, SN76489.SAMPLE_FREQUENCY);
+        this.sn76489.init(SN76489.CLOCK_3_58MHZ, SN76489.SAMPLE_FREQUENCY);
     },
 
     writeData: function(b) {
-        this.psgdev.write(b);
-    },
-
-    onAudioProcess: function(event) {
-        // Get Float32Array output buffer.
-        var lOut = event.outputBuffer.getChannelData(0);
-        var rOut = event.outputBuffer.getChannelData(1);
-
-        // Get Int8Array input buffer.
-        this.psgdev.update(this.buffer, 0, this.bufferSize);
-
-        // Process buffer conversion.
-        for (var i = 0; i < this.bufferSize; i++) {
-            var sample = this.buffer[i] / 256.0;
-            lOut[i] = sample;
-            rOut[i] = sample;
-        }
+        this.sn76489.write(b);
     },
 
     mute: function() {
@@ -67,17 +27,6 @@ TMS9919.prototype = {
         this.writeData(0xBF);
         this.writeData(0xDF);
         this.writeData(0xFF);
-    },
-
-    setSoundEnabled: function(enabled) {
-        if (enabled) {
-            var that = this;
-            this.scriptProcessor.onaudioprocess = function(event) { that.onAudioProcess(event); };
-        }
-        else {
-            this.mute();
-            this.scriptProcessor.onaudioprocess = null;
-        }
     },
 
     setGROMClock: function(gromClock) {
@@ -89,7 +38,11 @@ TMS9919.prototype = {
         else {
             divider = gromClock / 112;
         }
-        this.psgdev.init(SN76489.CLOCK_3_58MHZ / divider, SN76489.SAMPLE_FREQUENCY);
+        this.sn76489.init(SN76489.CLOCK_3_58MHZ / divider, SN76489.SAMPLE_FREQUENCY);
+    } ,
+
+    update: function(buffer, length){
+        this.sn76489.update(buffer, 0, length);
     }
 };
 

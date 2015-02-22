@@ -9,7 +9,6 @@
     <script>zip.workerScriptsPath = "lib/zip/";</script>
     <script src="software/system.js"></script>
     <script src="software.js"></script>
-    <script src="javagear/sn76489.js"></script>
     <!-- TI-99/4a components -->
     <script src="emu/disk.js"></script>
     <script src="emu/decoder.js"></script>
@@ -17,6 +16,7 @@
     <script src="emu/tms9918a.js"></script>
     <script src="emu/f18a.js"></script>
     <script src="emu/f18agpu.js"></script>
+    <script src="emu/sn76489.js"></script>
     <script src="emu/tms9919.js"></script>
     <script src="emu/tms5220.js"></script>
     <script src="emu/memory.js"></script>
@@ -24,6 +24,7 @@
     <script src="emu/keyboard.js"></script>
     <script src="emu/ti994a.js"></script>
     <!-- Main -->
+    <script src="sound.js"></script>
     <script src="settings.js"></script>
 </head>
 <body>
@@ -32,6 +33,7 @@
         var settings = new Settings(false);
         settings.setF18AEnabled(true);
         var ti994a = new TI994A(document.getElementById("canvas"), {FLOPPY1: new DiskImage("FLOPPY1")}, settings);
+        var sound = new Sound(settings.isSoundEnabled(), ti994a.tms9919, ti994a.tms5220);
         var software = new Software();
         software.loadRPKModuleFromURL("software/turboforth.rpk", function(cart) {
             if (cart != null) {

@@ -832,6 +832,10 @@ DiskDrive.prototype = {
             name: this.name,
             diskImage: this.diskImage != null ? this.diskImage.getName() : null
         };
+    },
+
+    setRAM: function(ram) {
+        this.ram = ram;
     }
 };
 

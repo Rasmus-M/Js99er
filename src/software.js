@@ -377,6 +377,31 @@ Software.programs = [
                 name: "Light-year demo",
                 type: Software.TYPE_MEMORY_DUMP,
                 url: "software/light-year.json"
+            },
+            {
+                name: "Lines demo",
+                type: Software.TYPE_MEMORY_DUMP,
+                url: "software/lines.json"
+            },
+            {
+                name: "Multicolor demo",
+                type: Software.TYPE_MEMORY_DUMP,
+                url: "software/multicolor.json"
+            },
+            {
+                name: "Scrolling Text demo",
+                type: Software.TYPE_MEMORY_DUMP,
+                url: "software/scrolltxt.json"
+            },
+            {
+                name: "Happy 2015 demo",
+                type: Software.TYPE_MEMORY_DUMP,
+                url: "software/happy2015.json"
+            },
+            {
+                name: "Another scrolling demo",
+                type: Software.TYPE_MEMORY_DUMP,
+                url: "software/platform2.json"
             }
         ]
     },
@@ -431,7 +456,23 @@ Software.programs = [
                 name: "Power Strike demo",
                 type: Software.TYPE_MEMORY_DUMP,
                 url: "software/powerstrike.json"
+            },
+            {
+                name: "Poly 3D demo",
+                type: Software.TYPE_MEMORY_DUMP,
+                url: "software/poly3d.json"
+            },
+            {
+                name: "Position attributes demo",
+                type: Software.TYPE_MEMORY_DUMP,
+                url: "software/posattr.json"
+            },
+            {
+                name: "Two plane scrolling demo",
+                type: Software.TYPE_MEMORY_DUMP,
+                url: "software/2plane.json"
             }
+
         ]
     },
     {

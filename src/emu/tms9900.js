@@ -185,11 +185,17 @@ TMS9900.prototype = {
         var opcode = this.decoderTable[instruction];
         if (opcode != null && opcode.original) {
             var cycles = this.decodeOperands(opcode, instruction);
-            cycles += this[opcode.id.toLowerCase()].call(this);
+            var cycles2 = this[opcode.id.toLowerCase()].call(this);
+            if (cycles2 != null) {
+                cycles += cycles2;
+            }
+            else {
+                this.log.info(((this.PC - 2) & 0xFFFF).toHexWord() + " " + instruction.toHexWord() + " " + opcode.id + ": Not implemented");
+            }
             return cycles;
         }
         else {
-            this.log.info(((this.PC - 2) & 0xFFFF).toHexWord() + ": " + instruction.toHexWord() + " " + "Illegal");
+            this.log.info(((this.PC - 2) & 0xFFFF).toHexWord() + " " + instruction.toHexWord() + ": Illegal");
             return 10;
         }
     },
@@ -546,8 +552,7 @@ TMS9900.prototype = {
 
     // This sets A0-A2 to 010, and pulses CRUCLK until an interrupt is received.
     idle: function() {
-        // Not implemented
-        return null;
+        return TMS9900.FRAME_CYCLES - this.cycles % TMS9900.FRAME_CYCLES;
     },
 
     // This will set A0-A2 to 011 and pulse CRUCLK (so not emulated)

@@ -11,30 +11,21 @@ TI994A.FRAME_MS = 16.66;
 TI994A.FPS_MS = 4000;
 
 function TI994A(canvas, diskImages, settings, onBreakpoint) {
-
+    this.canvas = canvas;
     this.onBreakpoint = onBreakpoint;
 
     // Assemble the console
     this.keyboard = new Keyboard(settings && settings.isPCKeyboardEnabled());
     this.cru = new CRU(this.keyboard);
-    this.tms9919 = new TMS9919(settings && settings.isSoundEnabled());
-    this.vdp = settings && settings.isF18AEnabled() ? new F18A(canvas, this.cru, this.tms9919) : new TMS9918A(canvas, this.cru, settings.isFlickerEnabled());
+    this.tms9919 = new TMS9919();
+    this.setVDP(settings);
     var vdpRAM = this.vdp.getRAM();
     this.diskDrives = [
         new DiskDrive("DSK1", vdpRAM, diskImages ? diskImages.FLOPPY1 : null),
         new DiskDrive("DSK2", vdpRAM, diskImages ? diskImages.FLOPPY2 : null),
         new DiskDrive("DSK3", vdpRAM, diskImages ? diskImages.FLOPPY3 : null)
     ];
-    if (settings && settings.isGoogleDriveEnabled()) {
-        this.googleDrives = [
-            new GoogleDrive("GDR1", vdpRAM, "Js99erDrives/GDR1"),
-            new GoogleDrive("GDR2", vdpRAM, "Js99erDrives/GDR2"),
-            new GoogleDrive("GDR3", vdpRAM, "Js99erDrives/GDR3")
-        ];
-    }
-    else {
-        this.googleDrives = [];
-    }
+    this.setGoogleDrive(settings);
     this.tms5220 = new TMS5220(settings.isSpeechEnabled());
     this.memory = new Memory(this.vdp, this.tms9919, this.tms5220, settings);
     this.tms9900 = new TMS9900(this.memory, this.cru, this.diskDrives, this.googleDrives);
@@ -45,12 +36,49 @@ function TI994A(canvas, diskImages, settings, onBreakpoint) {
     this.lastFpsTime = null;
     this.fpsFrameCount = 0;
     this.running = false;
+    this.cpuFlag = true;
     this.log = Log.getLog();
 
     this.reset();
 }
 
 TI994A.prototype = {
+
+    setVDP: function(settings) {
+        if (settings && settings.isF18AEnabled()) {
+            this.vdp = new F18A(this.canvas, this.cru, this.tms9919);
+        }
+        else {
+            this.vdp = new TMS9918A(this.canvas, this.cru, settings.isFlickerEnabled());
+        }
+        if (this.memory) {
+            this.memory.vdp = this.vdp;
+        }
+        if (this.diskDrives) {
+            for (var i = 0; i < this.diskDrives.length; i++) {
+                this.diskDrives[i].setRAM(this.vdp.getRAM());
+            }
+        }
+        if (settings && settings.isGoogleDriveEnabled() && this.googleDrives) {
+            for (var j = 0; j < this.googleDrives.length; j++) {
+                this.googleDrives[j].setRAM(this.vdp.getRAM());
+            }
+        }
+    },
+
+    setGoogleDrive: function(settings) {
+        if (settings && settings.isGoogleDriveEnabled()) {
+            var vdpRAM = this.vdp.getRAM();
+            this.googleDrives = [
+                new GoogleDrive("GDR1", vdpRAM, "Js99erDrives/GDR1"),
+                new GoogleDrive("GDR2", vdpRAM, "Js99erDrives/GDR2"),
+                new GoogleDrive("GDR3", vdpRAM, "Js99erDrives/GDR3")
+            ];
+        }
+        else {
+            this.googleDrives = [];
+        }
+    },
 
     isRunning: function() {
         return this.running;
@@ -59,6 +87,7 @@ TI994A.prototype = {
     reset: function(keepCart) {
         this.vdp.reset();
         this.tms9919.reset();
+        this.tms5220.reset();
         this.keyboard.reset();
         this.memory.reset(keepCart);
         this.cru.reset();
@@ -75,7 +104,6 @@ TI994A.prototype = {
             var self = this;
             this.frameInterval = setInterval(
                 function() {
-                    // Log.getLog().info("Frame " + self.frameCount);
                     if (self.frameCount < TI994A.FRAMES_TO_RUN) {
                         self.frame();
                     }
@@ -97,47 +125,36 @@ TI994A.prototype = {
         this.running = true;
     },
 
-    resumeFrame: function() {
-        this.tms9900.setSuspended(false);
-        this.frame();
-    },
-
     frame: function() {
-        if (!this.tms9900.isSuspended()) {
-            if (this.vdp.gpu && !this.vdp.gpu.isIdle()) {
-                this.vdp.gpu.run(F18AGPU.FRAME_CYCLES);
-            }
-            else {
-                this.tms9900.run(TMS9900.FRAME_CYCLES * this.cpuSpeed);
-                if (this.tms9900.atBreakpoint()) {
-                    this.tms9900.setSuspended(true);
-                    if (this.onBreakpoint) {
-                        this.onBreakpoint(this.tms9900);
-                    }
+        if (this.vdp.gpu && !this.vdp.gpu.isIdle() && this.cpuFlag) {
+            this.vdp.gpu.run(F18AGPU.FRAME_CYCLES);
+            if (this.vdp.gpu.atBreakpoint()) {
+                if (this.onBreakpoint) {
+                    this.onBreakpoint(this.vdp.gpu);
                 }
             }
-            if (window.requestAnimationFrame) {
-                var self = this;
-                requestAnimationFrame(function () {
-                    self.vdp.drawFrame();
-                }, null);
-            }
-            else {
-                this.vdp.drawFrame();
+        }
+        else if (!this.tms9900.isSuspended()) {
+            this.tms9900.run(TMS9900.FRAME_CYCLES * this.cpuSpeed);
+            if (this.tms9900.atBreakpoint()) {
+                if (this.onBreakpoint) {
+                    this.onBreakpoint(this.tms9900);
+                }
             }
         }
+        this.cpuFlag  = !this.cpuFlag;
+        this.drawFrame();
         this.frameCount++;
-        this.fpsFrameCount++;
     },
 
     step: function() {
-        this.tms9900.setSuspended(false);
         if (this.vdp.gpu && !this.vdp.gpu.isIdle()) {
             this.vdp.gpu.run(1);
         }
         else {
             this.tms9900.run(1);
         }
+        this.drawFrame();
     },
 
     stop: function() {
@@ -146,6 +163,20 @@ TI994A.prototype = {
         clearInterval(this.fpsInterval);
         this.tms9919.mute();
         this.running = false;
+    },
+
+    drawFrame: function() {
+        if (window.requestAnimationFrame) {
+            var that = this;
+            requestAnimationFrame(function (timestamp) {
+                that.vdp.drawFrame(timestamp);
+                that.fpsFrameCount++;
+            });
+        }
+        else {
+            that.vdp.drawFrame(new Date().getTime());
+            that.fpsFrameCount++;
+        }
     },
 
     resetFps: function() {
@@ -178,10 +209,11 @@ TI994A.prototype = {
     },
 
     getStatusString: function() {
-        return this.tms9900.getInternalRegsString() + "\n" +
-               this.tms9900.getRegsStringFormatted() +
-               this.vdp.getRegsString() + "\n" +
-               this.memory.getStatusString();
+        return (
+            this.vdp.gpu && !this.vdp.gpu.isIdle() ?
+                this.vdp.gpu.getInternalRegsString() + " F18A GPU\n" + this.vdp.gpu.getRegsStringFormatted() :
+                this.tms9900.getInternalRegsString() + "\n" + this.tms9900.getRegsStringFormatted()
+        ) + this.vdp.getRegsString() + "\n" + this.memory.getStatusString();
     },
 
     getDiskDrives: function() {
@@ -193,7 +225,7 @@ TI994A.prototype = {
         if (wasRunning) {
             this.stop();
         }
-        this.reset(false);
+        this.reset(sw.memoryBlocks != null);
         if (sw.memoryBlocks != null) {
             for (var i = 0; i < sw.memoryBlocks.length; i++) {
                 var memoryBlock = sw.memoryBlocks[i];

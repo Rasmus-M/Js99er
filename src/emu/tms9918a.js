@@ -57,6 +57,7 @@ function TMS9918A(canvas, cru, enableFlicker) {
     this.prefetchByte = null;
 
     this.displayOn = null;
+    this.interruptsOn = null;
     this.screenMode = null;
     this.colorTable = null;
     this.nameTable = null;
@@ -102,6 +103,7 @@ TMS9918A.prototype = {
         this.latch = false;
 
         this.displayOn = false;
+        this.interruptsOn = false;
         this.screenMode = 0;
         this.colorTable = 0;
         this.nameTable = 0;
@@ -129,7 +131,7 @@ TMS9918A.prototype = {
         this.imagedata = this.canvasContext.getImageData(24, 24, 256, 192);
     },
 
-    drawFrame: function() {
+    drawFrame: function(timestamp) {
         if (this.redrawRequired) {
             if (this.displayOn) {
                 if (this.redrawBorder) {
@@ -148,7 +150,7 @@ TMS9918A.prototype = {
             this.redrawRequired = false;
         }
         this.statusRegister |= 0x80;
-        if ((this.registers[1] & 0x20) != 0) {
+        if (this.interruptsOn) {
             this.cru.writeBit(2, false);
         }
         if (this.collision) {
@@ -418,6 +420,7 @@ TMS9918A.prototype = {
                             break;
                         case 1:
                             this.displayOn = (this.registers[1] & 0x40) != 0;
+                            this.interruptsOn = (this.registers[1] & 0x20) != 0;
                             this.updateMode(this.registers[0], this.latchByte);
                             break;
                         // Name table
@@ -556,10 +559,6 @@ TMS9918A.prototype = {
         else {
             return 0x800;
         }
-    },
-
-    logRegisters: function() {
-        this.log.info(this.getRegsString());
     },
 
     getRegsString: function() {

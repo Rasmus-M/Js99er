@@ -6,7 +6,7 @@
 
 function Log(id) {
 
-    this.debugEnabled = false;
+    this.minLevel = Log.LEVEL_INFO;
 
 	this.buffer = "";
 	this.bufferCount = 0;
@@ -58,6 +58,12 @@ function Log(id) {
 	};
 }
 
+Log.LEVEL_DEBUG = 0;
+Log.LEVEL_INFO = 1;
+Log.LEVEL_WARNING = 2;
+Log.LEVEL_ERROR = 3;
+Log.LEVEL_NONE = 4;
+
 Log.log = null;
 
 /**
@@ -79,12 +85,23 @@ Log.getLog = function () {
     return Log.log;
 };
 
+
+/**
+ * Set minimum log level.
+ * @param level Log level to set
+ */
+Log.prototype.setMinLevel = function(level) {
+    this.minLevel = level;
+};
+
 /**
  * Log error message.
  * @param message error message
  */
 Log.prototype.error = function (message) {
-    alert(message);
+    if (Log.ERROR >= this.minLevel) {
+        alert(message);
+    }
 };
 
 /**
@@ -92,7 +109,9 @@ Log.prototype.error = function (message) {
  * @param message warning message
  */
 Log.prototype.warn = function (message) {
-    this.print("*** Warning *** " + message);
+    if (Log.LEVEL_WARNING >= this.minLevel) {
+        this.print("*** Warning *** " + message);
+    }
 };
 
 /**
@@ -100,7 +119,9 @@ Log.prototype.warn = function (message) {
  * @param message information message
  */
 Log.prototype.info = function (message) {
-    this.print(message);
+    if (Log.LEVEL_INFO >= this.minLevel) {
+        this.print(message);
+    }
 };
 
 /**
@@ -108,8 +129,7 @@ Log.prototype.info = function (message) {
  * @param message fatal message
  */
 Log.prototype.debug = function (message) {
-    if (this.debugEnabled) {
+    if (Log.LEVEL_DEBUG >= this.minLevel) {
         this.print("Debug: " + message);
     }
 };
-

@@ -12,6 +12,7 @@
     var settings;
     var diskImages;
     var ti994a;
+    var sound;
     var software;
     var database;
     var disassembler;
@@ -48,6 +49,7 @@
             FLOPPY3: new DiskImage("FLOPPY3")
         };
         ti994a = new TI994A(document.getElementById("canvas"), diskImages, settings, onBreakpoint);
+        sound = new Sound(settings.isSoundEnabled(), ti994a.tms9919, ti994a.tms5220);
         software = new Software();
         database = new Database();
         if (!database.isSupported()) {
@@ -96,7 +98,7 @@
             debugTimerId = window.setInterval(updateDebugger, 100);
         });
         $("#btnFrame").on("click", function() {
-            ti994a.resumeFrame();
+            ti994a.frame();
             updateDebugger(false);
         });
         $("#btnStep").on("click", function() {
@@ -281,10 +283,16 @@
             if (val) {
                 this.value = val.toHexWord();
                 ti994a.tms9900.setBreakpoint(val);
+                if (ti994a.vdp.gpu) {
+                    ti994a.vdp.gpu.setBreakpoint(val);
+                }
             }
             else {
                 this.value = "";
                 ti994a.tms9900.setBreakpoint(null);
+                if (ti994a.vdp.gpu) {
+                    ti994a.vdp.gpu.setBreakpoint(null);
+                }
             }
             ti994a.keyboard.attachListeners();
         });
@@ -313,7 +321,7 @@
         enableSound.bootstrapSwitch("state", settings.isSoundEnabled());
         enableSound.on('switchChange.bootstrapSwitch', function(event, state) {
             settings.setSoundEnabled(state);
-            ti994a.tms9919.setSoundEnabled(state);
+            sound.setSoundEnabled(state);
         });
 
         var enableSpeech = $("#enableSpeech");
@@ -342,12 +350,10 @@
         var enableF18A = $("#enableF18A");
         enableF18A.bootstrapSwitch("state", settings.isF18AEnabled());
         enableF18A.on('switchChange.bootstrapSwitch', function(event, state) {
-            settings.setF18AEnabled(state);
-            var running =  ti994a.isRunning();
-            ti994a.stop();
-            ti994a = new TI994A(document.getElementById("canvas"), diskImages, settings, onBreakpoint);
-            if (running) {
-                ti994a.start();
+            if (state != settings.isF18AEnabled()) {
+                settings.setF18AEnabled(state);
+                ti994a.setVDP(settings);
+                window.setTimeout(function() { $("#btnReset").click(); }, 500);
             }
         });
 
@@ -361,12 +367,10 @@
         var enableGoogleDrive = $("#enableGoogleDrive");
         enableGoogleDrive.bootstrapSwitch("state", settings.isGoogleDriveEnabled());
         enableGoogleDrive.on('switchChange.bootstrapSwitch', function(event, state) {
-            settings.setGoogleDriveEnabled(state);
-            var running =  ti994a.isRunning();
-            ti994a.stop();
-            ti994a = new TI994A(document.getElementById("canvas"), diskImages, settings, onBreakpoint);
-            if (running) {
-                ti994a.start();
+            if (state != settings.isGoogleDriveEnabled()) {
+                settings.setGoogleDriveEnabled(state);
+                ti994a.setGoogleDrive(settings);
+                $("#btnReset").click();
             }
         });
 
@@ -801,7 +805,7 @@
                     else {
                         // VDP
                         disassembler.setMemory(ti994a.vdp);
-                        viewObj = disassembler.disassemble(0, 0x4000, null, debuggerAddress || pc);
+                        viewObj = disassembler.disassemble(0, ti994a.vdp.gpu ? 0x4800 : 0x4000, null, debuggerAddress || pc);
                     }
                 }
                 else {
@@ -812,7 +816,7 @@
                     }
                     else {
                         // VDP
-                        viewObj = ti994a.vdp.hexView(0, 0x4000, debuggerAddress || pc);
+                        viewObj = ti994a.vdp.hexView(0, ti994a.vdp.gpu ? 0x4800: 0x4000, debuggerAddress || pc);
                     }
                 }
             }
