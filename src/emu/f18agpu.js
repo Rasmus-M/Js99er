@@ -93,6 +93,7 @@ F18AGPU.prototype = {
         this.B = 0;
         this.nPostInc = [0, 0];
         this.cycles = 0;
+        this.cyclesRemaining = 0;
     },
 
     // Build the word status lookup table
@@ -145,6 +146,7 @@ F18AGPU.prototype = {
             var atBreakpoint = this.atBreakpoint();
             if (atBreakpoint) {
                 this.log.info("At breakpoint " + this.breakpoint.toHexWord());
+                this.cyclesRemaining = cyclesToRun - (this.cycles - startCycles);
                 cyclesToRun = -1;
             }
             if (!atBreakpoint || this.PC == startPC) {
@@ -156,13 +158,17 @@ F18AGPU.prototype = {
         }
     },
 
+    resume: function() {
+        this.run(this.cyclesRemaining);
+    },
+
     execute: function(instruction) {
         var opcode = this.decoderTable[instruction];
         if (opcode != null) {
             var cycles = this.decodeOperands(opcode, instruction);
-            var moreCycles = this[opcode.id.toLowerCase()].call(this);
-            if (moreCycles != 0) {
-                cycles += moreCycles;
+            var cycles2 = this[opcode.id.toLowerCase()].call(this);
+            if (cycles2 != null) {
+                cycles += cycles2;
             }
             else {
                 this.log.info(((this.PC - 2) & 0xFFFF).toHexWord() + ": " + instruction.toHexWord() + " Not implemented");
@@ -407,13 +413,14 @@ F18AGPU.prototype = {
             var color = this.f18a.palette[(addr & 0x7F) >> 1];
             if ((addr & 1) == 0) {
                 // MSB
-                color[0] = b * 17;
+                color[0] = (b & 0x0F) * 17;
             }
             else {
                 // LSB
-                color[1] = (b >> 4) * 17;
-                color[2] = (b & 0xF) * 17;
+                color[1] = ((b & 0xF0) >> 4) * 17;
+                color[2] = (b & 0x0F) * 17;
             }
+            this.f18a.redrawRequired = true;
         }
         // VREG >6000->603F
         else if (addr < 0x7000) {
@@ -484,6 +491,18 @@ F18AGPU.prototype = {
                     break;
             }
         }
+        // Unused
+        else if (addr < 0xA000) {
+        }
+        // Version
+        else if (addr < 0xB000) {
+            //  Read only
+        }
+        // Status data
+        else if (addr < 0xC000) {
+            // 7 least significant bits, goes to an enhanced status register for the host CPU to read
+            this.vdpRAM[0xB000] = b & 0x7F;
+        }
     },
 
     readMemoryWord: function(addr) {
@@ -533,6 +552,19 @@ F18AGPU.prototype = {
         // DMA
         if (addr < 0x9000) {
             // TODO: can you read the DMA?
+            return 0;
+        }
+        // Unused
+        else if (addr < 0xA000) {
+            return 0;
+        }
+        // Version
+        else if (addr < 0xB000) {
+            return F18A.VERSION;
+        }
+        // Status data
+        else if (addr < 0xC000) {
+            // Write only
             return 0;
         }
         return 0;
@@ -655,13 +687,15 @@ F18AGPU.prototype = {
     // This will set A0-A2 to 101 and pulse CRUCLK
     ckon: function() {
         // Not implemented
-        return null;
+        this.log.info("SPI EN - Enable line to SPI flash ROM");
+        return 10;
     },
 
     // This will set A0-A2 to 110 and pulse CRUCLK
     ckof: function() {
         // Not implemented
-        return null;
+        this.log.info("SPI DS - Disable line to SPI flash ROM");
+        return 10;
     },
 
     // This will set A0-A2 to 111 and pulse CRUCLK
@@ -1397,13 +1431,17 @@ F18AGPU.prototype = {
     // It's stupid and thinks 0 is true and 1 is false.
     // All addresses are offsets from the value in R12, which is divided by 2
     ldcr: function() {
-        return null;
+        var x1 = this.readMemoryByte(this.S);
+        this.log.info("Write byte to SPI: " + x1.toHexByte());
+        return 10;
     },
 
     // STore CRU: STCR src, dst
     // Stores dst bits from the CRU into src
     stcr: function() {
-        return null;
+        this.log.info("Read byte from SPI");
+        this.writeMemoryByte(this.S, 0);
+        return 10;
     },
 
     // MultiPlY: MPY src, dst

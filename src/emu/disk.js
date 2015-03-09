@@ -149,28 +149,28 @@ DiskDrive.execute = function(pc, diskDrives, memory) {
             DiskDrive.powerUp(memory);
             break;
         case DiskDrive.DSR_ROM_DSK1:
-            status = diskDrives[0].dsrRoutine(memory.getRAMWord(0x8356) - 14);
+            status = diskDrives[0].dsrRoutine(memory.getPADWord(0x8356) - 14);
             break;
         case DiskDrive.DSR_ROM_DSK2:
-            status = diskDrives[1].dsrRoutine(memory.getRAMWord(0x8356) - 14);
+            status = diskDrives[1].dsrRoutine(memory.getPADWord(0x8356) - 14);
             break;
         case DiskDrive.DSR_ROM_DSK3:
-            status = diskDrives[2].dsrRoutine(memory.getRAMWord(0x8356) - 14);
+            status = diskDrives[2].dsrRoutine(memory.getPADWord(0x8356) - 14);
             break;
         case DiskDrive.DSR_ROM_FILES:
             DiskDrive.setFiles(-1, memory);
             break;
         case DiskDrive.DSR_ROM_SECTOR_IO_10:
-            var drive = memory.getRAMByte(0x834C) - 1;
+            var drive = memory.getPADByte(0x834C) - 1;
             if (drive >= 0 && drive < diskDrives.length) {
                 diskDrives[drive].sectorIO(memory);
             }
             break;
         case DiskDrive.DSR_ROM_FILES_16:
-            DiskDrive.setFiles(memory.getRAMByte(0x834C), memory);
+            DiskDrive.setFiles(memory.getPADByte(0x834C), memory);
             break;
     }
-    memory.setRAMByte(0x837C, memory.getRAMByte(0x837C) | status);
+    memory.setPADByte(0x837C, memory.getPADByte(0x837C) | status);
 };
 
 DiskDrive.powerUp = function(memory) {
@@ -181,7 +181,7 @@ DiskDrive.powerUp = function(memory) {
 DiskDrive.setFiles = function(nFiles, memory) {
     if (nFiles == -1) {
         // Get parameter from BASIC (code from Classic99)
-        var x = memory.getRAMWord(0x832c);		    // Get next basic token
+        var x = memory.getPADWord(0x832c);		    // Get next basic token
         x += 7;						                // Skip "FILES"
         var vdpRAM = memory.vdp.getRAM();           // Get the VDP RAM
         var y = (vdpRAM[x] << 8) | vdpRAM[x + 1];	// Get two bytes (size of string)
@@ -193,8 +193,8 @@ DiskDrive.setFiles = function(nFiles, memory) {
                 nFiles = y;
                 // Try to skip the rest of the statement
                 x += 3;
-                memory.setRAMWord(0x832c, x);    // Write new pointer
-                memory.setRAMWord(0x8342, 0);    // Clear 'current' token
+                memory.setPADWord(0x832c, x);    // Write new pointer
+                memory.setPADWord(0x8342, 0);    // Clear 'current' token
             }
         }
     }
@@ -418,6 +418,7 @@ DiskDrive.prototype = {
                                     }
                                     this.ram[pabAddr + 6] = (file.getRecordPointer() & 0xFF00) >> 8;
                                     this.ram[pabAddr + 7] = file.getRecordPointer() & 0x00FF;
+                                    this.diskImage.setBinaryImage(null); // Invalidate binary image on write
                                 }
                                 else {
                                     errorCode = TI_FILE.ERROR_ILLEGAL_OPERATION;
@@ -481,6 +482,7 @@ DiskDrive.prototype = {
                             saveBuffer[i] = this.ram[dataBufferAddress + i];
                         }
                         file.setProgram(saveBuffer);
+                        this.diskImage.setBinaryImage(null); // Invalidate binary image on write
                         break;
                     case TI_FILE.OP_CODE_DELETE:
                         this.log.info("Op-code " + opCode + ": DELETE");
@@ -503,6 +505,7 @@ DiskDrive.prototype = {
                                         case TI_FILE.OPERATION_MODE_UPDATE:
                                             if (file.getRecord() != null) {
                                                 file.deleteRecord();
+                                                this.diskImage.setBinaryImage(null); // Invalidate binary image on write
                                             }
                                             else {
                                                 errorCode = TI_FILE.ERROR_ILLEGAL_OPERATION;
@@ -569,9 +572,9 @@ DiskDrive.prototype = {
     },
 
     sectorIO: function(memory) {
-        var read = (memory.getRAMWord(0x834C) & 0x0F) != 0;
-        var bufferAddr = memory.getRAMWord(0x834E);
-        var sectorNo = memory.getRAMWord(0x8350);
+        var read = (memory.getPADWord(0x834C) & 0x0F) != 0;
+        var bufferAddr = memory.getPADWord(0x834E);
+        var sectorNo = memory.getPADWord(0x8350);
         this.log.info("Sector I/O drive " + this.name + ", read: " + read + ", bufferAddr: " + bufferAddr.toHexWord() + ", sectorNo: " + sectorNo.toHexWord());
         if (this.diskImage != null) {
             if (read) {
@@ -579,8 +582,8 @@ DiskDrive.prototype = {
                 for (var i = 0; i < 256; i++) {
                     this.ram[bufferAddr + i] = sector[i];
                 }
-                memory.setRAMWord(0x834A, sectorNo);
-                memory.setRAMWord(0x8350, 0);
+                memory.setPADWord(0x834A, sectorNo);
+                memory.setPADWord(0x8350, 0);
             }
             else {
                 // Write not implemented:
@@ -600,9 +603,8 @@ DiskDrive.prototype = {
         var catFile = new DiskFile("CATALOG", TI_FILE.FILE_TYPE_DATA, TI_FILE.RECORD_TYPE_FIXED, 38, TI_FILE.DATATYPE_INTERNAL);
         catFile.open(TI_FILE.OPERATION_MODE_OUTPUT, TI_FILE.ACCESS_TYPE_SEQUENTIAL);
         var data = [];
-        var diskImageName = this.diskImage.getName().padr(" ", 10);
         var n = 0;
-        n = this.writeAsString(data, n, diskImageName);
+        n = this.writeAsString(data, n, this.diskImage.getName());
         n = this.writeAsFloat(data, n, 0);
         n = this.writeAsFloat(data, n, 1440); // Number of sectors on disk
         n = this.writeAsFloat(data, n, 1311); // Number of free sectors;
@@ -611,7 +613,6 @@ DiskDrive.prototype = {
         for (var fileName in files) {
             if (files.hasOwnProperty(fileName)) {
                 var file = files[fileName];
-                fileName = fileName.padr(" ", 10);
                 var type = 0;
                 if (file.getFileType() == TI_FILE.FILE_TYPE_PROGRAM) {
                     type = 5;
@@ -824,6 +825,7 @@ DiskDrive.prototype = {
             }
         }
         this.setDiskImage(diskImage);
+        diskImage.setBinaryImage(fileBuffer);
         return diskImage;
     },
 
@@ -842,6 +844,7 @@ DiskDrive.prototype = {
 function DiskImage(name) {
     this.name = name;
     this.files = {};
+    this.binaryImage = null;
     this.log = Log.getLog();
 }
 
@@ -867,6 +870,7 @@ DiskImage.prototype = {
 
     putFile: function(file) {
         this.files[file.getName()] = file;
+        this.setBinaryImage(null); // Invalidate binary image on write
     },
 
     getFile: function(fileName) {
@@ -875,6 +879,7 @@ DiskImage.prototype = {
 
     deleteFile: function(fileName) {
         delete this.files[fileName];
+        this.setBinaryImage(null); // Invalidate binary image on write
     },
 
     loadTIFile: function(fileName, fileBuffer, ignoreTIFileName) {
@@ -1048,8 +1053,7 @@ DiskImage.prototype = {
                     file.setProgram(program);
                 }
                 this.putFile(file);
-                // this.log.info("File name: " + file.getName());
-                // this.log.info("\n" + file.toString());
+                this.setBinaryImage(null); // Invalidate binary image on write
                 return file;
             }
             else {
@@ -1157,16 +1161,26 @@ DiskImage.prototype = {
 
     readSector: function(sectorNo) {
         var sector = new Uint8Array(256);
-        var tiDiskImage = this.getTIDiskImage();
+        var tiDiskImage = this.getBinaryImage();
         var sectorOffset = 256 * sectorNo;
         for (var i = 0; i < 256; i++) {
             sector[i] = tiDiskImage[sectorOffset + i];
         }
-        console.log(sector);
         return sector;
     },
 
-    getTIDiskImage: function() {
+    getBinaryImage: function() {
+        if (this.binaryImage == null) {
+            this.binaryImage = this.createBinaryImage();
+        }
+        return this.binaryImage;
+    },
+
+    setBinaryImage: function(binaryImage) {
+        this.binaryImage = binaryImage;
+    },
+
+    createBinaryImage: function() {
         var n, i, j;
         var dskImg = new Uint8Array(1440 * 256);
         // Volume Information Block

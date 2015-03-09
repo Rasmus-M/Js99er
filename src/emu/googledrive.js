@@ -86,7 +86,7 @@ GoogleDrive.execute = function(pc, googleDrives, memory, callback) {
             return false;
     }
     if (googleDrive != null) {
-        var pabAddr = memory.getRAMWord(0x8356) - 14;
+        var pabAddr = memory.getPADWord(0x8356) - 14;
         var opCode = googleDrive.ram[pabAddr];
         GoogleDrive.authorize(
             opCode != TI_FILE.OP_CODE_READ && opCode != TI_FILE.OP_CODE_WRITE,
@@ -94,14 +94,14 @@ GoogleDrive.execute = function(pc, googleDrives, memory, callback) {
                 googleDrive.dsrRoutine(pabAddr, function(status, errorCode) {
                     googleDrive.log.info("Returned error code: " + errorCode + "\n");
                     googleDrive.ram[pabAddr + 1] = (googleDrive.ram[pabAddr + 1] | (errorCode << 5)) & 0xFF;
-                    memory.setRAMByte(0x837C, memory.getRAMByte(0x837C) | status);
+                    memory.setPADByte(0x837C, memory.getPADByte(0x837C) | status);
                     callback(true);
                 });
             },
             function() {
                 googleDrive.log.info("Failed opcode: " + opCode);
                 googleDrive.ram[pabAddr + 1] = (googleDrive.ram[pabAddr + 1] | (TI_FILE.ERROR_DEVICE_ERROR << 5)) & 0xFF;
-                memory.setRAMByte(0x837C, memory.getRAMByte(0x837C) | 0x20);
+                memory.setPADByte(0x837C, memory.getPADByte(0x837C) | 0x20);
                 callback(false);
             }
         );

@@ -459,6 +459,7 @@ TMS9918A.prototype = {
                         case 7:
                             this.fgColor = (this.registers[7] & 0xf0) >> 4;
                             this.bgColor = this.registers[7] & 0x0f;
+                            this.log.info("BG=" + this.bgColor.toHexByte() + ", FG=" + this.fgColor.toHexByte());
                             this.redrawBorder = true;
                             break;
                     }

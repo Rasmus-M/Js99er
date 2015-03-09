@@ -15,6 +15,7 @@ function Settings(persistent) {
     this.enableFlicker = false;
     this.enablePCKeyboard = false;
     this.enableGoogleDrive = false;
+    this.enableAMS = false;
     if (persistent && window.localStorage) {
         this.storage = window.localStorage;
         if (this.storage.getItem("enableSound") != null) {
@@ -37,6 +38,9 @@ function Settings(persistent) {
         }
         if (this.storage.getItem("enableGoogleDrive") != null) {
             this.enableGoogleDrive = this.storage.getItem("enableGoogleDrive") == "true";
+        }
+        if (this.storage.getItem("enableAMS") != null) {
+            this.enableAMS = this.storage.getItem("enableAMS") == "true";
         }
     }
 }
@@ -117,6 +121,17 @@ Settings.prototype =  {
         this.enableGoogleDrive = enabled;
         if (this.persistent && this.storage) {
             this.storage.setItem("enableGoogleDrive", enabled);
+        }
+    },
+
+    isAMSEnabled: function() {
+        return this.enableAMS;
+    },
+
+    setAMSEnabled: function(enabled) {
+        this.enableAMS = enabled;
+        if (this.persistent && this.storage) {
+            this.storage.setItem("enableAMS", enabled);
         }
     }
 };

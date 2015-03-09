@@ -12,6 +12,8 @@ function Log(id) {
 	this.bufferCount = 0;
 	this.bufferSize = 20;
 
+    this.msgMap = {};
+
     // Set default log scheme.
     this.print = function (object) { /* Do nothing. */ };
 
@@ -40,6 +42,17 @@ function Log(id) {
 					this.bufferCount++;
 				}
 				if (this.bufferCount >= this.bufferSize && this.buffer.length > 0) {
+                    var buffer = this.buffer;
+                    var framePre = this.framePre;
+                    window.setTimeout(
+                        function() {
+                            framePre.appendChild(document.createTextNode(buffer));
+                            framePre.scrollTop = framePre.scrollHeight;
+                        },
+                        10
+                    );
+                    this.buffer = "";
+                    this.bufferCount = 0;
 					this.framePre.appendChild(document.createTextNode(this.buffer));
 					this.framePre.scrollTop = this.framePre.scrollHeight;
                     // this.framePre.innerHTML = this.buffer;
@@ -120,7 +133,20 @@ Log.prototype.warn = function (message) {
  */
 Log.prototype.info = function (message) {
     if (Log.LEVEL_INFO >= this.minLevel) {
-        this.print(message);
+        var count = this.msgMap[message];
+        if (count == null) {
+            count = 1;
+        }
+        else {
+            count++;
+        }
+        this.msgMap[message] = count;
+        if (count < 64) {
+            this.print(message);
+        }
+        else if (count == 64 || (count & 255) == 0) {
+            this.print(message + " (suppressing most messages)");
+        }
     }
 };
 

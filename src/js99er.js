@@ -338,6 +338,16 @@
             ti994a.memory.set32KRAMEnabled(state);
         });
 
+        var enableAMS = $("#enableAMS");
+        enableAMS.bootstrapSwitch("state", settings.isAMSEnabled());
+        enableAMS.on('switchChange.bootstrapSwitch', function(event, state) {
+            if (state != settings.isAMSEnabled()) {
+                settings.setAMSEnabled(state);
+                ti994a.memory.setAMSEnabled(state);
+                $("#btnReset").click();
+            }
+        });
+
         var enableFlicker = $("#enableFlicker");
         enableFlicker.bootstrapSwitch("state", settings.isFlickerEnabled());
         enableFlicker.on('switchChange.bootstrapSwitch', function(event, state) {
@@ -703,7 +713,7 @@
         if (diskImageName && diskImageName.length > 0) {
             var diskImage = diskImages[diskImageName];
             if (diskImage) {
-                var imageFile = diskImage.getTIDiskImage();
+                var imageFile = diskImage.getBinaryImage();
                 var blob = new Blob([imageFile], { type: "application/octet-stream" });
                 saveAs(blob, diskImageName + ".dsk");
             }
@@ -773,12 +783,12 @@
                     if (memoryType == 0) {
                         // CPU
                         disassembler.setMemory(ti994a.memory);
-                        viewObj = disassembler.disassemble(pc, null, 19, null);
+                        viewObj = disassembler.disassemble(pc, null, 19, pc);
                     }
                     else {
                         // VDP
                         disassembler.setMemory(ti994a.vdp);
-                        viewObj = disassembler.disassemble(pc, null, 19, null);
+                        viewObj = disassembler.disassemble(pc, null, 19, pc);
                     }
                 }
                 else {

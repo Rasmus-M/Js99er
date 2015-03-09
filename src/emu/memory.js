@@ -23,12 +23,16 @@ function Memory(vdp, tms9919, tms5220, settings) {
     this.tms9919 = tms9919;
     this.tms5220 = tms5220;
 
+    this.enable32KRAM = settings && settings.is32KRAMEnabled();
+    this.enableAMS = settings && settings.isAMSEnabled();
+
     this.ram = new Uint8Array(0x10000);
     this.rom = new Uint8Array(SYSTEM.ROM);
     this.groms = [];
     for (var i = 0; i < Memory.GROM_BASES; i++) {
         this.groms[i] = new Uint8Array(0x10000);
     }
+    this.ams = this.enableAMS ? new AMS(1024) : null;
 
     this.loadGROM(SYSTEM.GROM, 0, 0);
     this.gromAddress = 0;
@@ -51,8 +55,6 @@ function Memory(vdp, tms9919, tms5220, settings) {
     }
 
     this.buildMemoryMap();
-
-    this.enable32KRAM = settings && settings.is32KRAMEnabled();
 
     this.log = Log.getLog();
     this.reset(false);
@@ -140,6 +142,9 @@ Memory.prototype = {
             this.multiGROMBases = false;
             this.cartImage = null;
         }
+        if (this.enableAMS) {
+            this.ams.reset();
+        }
     },
 
     toggleCartridgeRAM: function(addr, length, enabled) {
@@ -163,7 +168,7 @@ Memory.prototype = {
         }
         if (base > 0) {
             this.multiGROMBases = true;
-        };
+        }
     },
 
     setCartridgeImage: function(byteArray, inverted) {
@@ -181,7 +186,7 @@ Memory.prototype = {
         }
     },
 
-    togglePeripheralROM: function(romNo, enabled) {
+    setPeripheralROM: function(romNo, enabled) {
         // this.log.info("Toggle ROM " + romNo + " " + (enabled ? "on" : "off") + ".");
         if (romNo > 0 && romNo < this.peripheralROMs.length) {
             this.peripheralROMNumber = romNo;
@@ -201,12 +206,21 @@ Memory.prototype = {
 
     readRAM: function(addr, cpu) {
         cpu.addCycles(4);
-        return this.enable32KRAM ? (this.ram[addr] << 8) | this.ram[addr + 1] : 0;
+        if (this.enableAMS) {
+            return this.ams.readWord(addr);
+        }
+        else if (this.enable32KRAM) {
+            return (this.ram[addr] << 8) | this.ram[addr + 1];
+        }
+        return 0;
     },
 
     writeRAM: function(addr, w, cpu) {
         cpu.addCycles(4);
-        if (this.enable32KRAM) {
+        if (this.enableAMS) {
+            this.ams.writeWord(addr, w);
+        }
+        else if (this.enable32KRAM) {
             this.ram[addr] = w >> 8;
             this.ram[addr + 1] = w & 0xFF;
         }
@@ -214,7 +228,11 @@ Memory.prototype = {
 
     readPeripheralROM: function(addr, cpu) {
         cpu.addCycles(4);
-        if (this.peripheralROMEnabled) {
+        if (this.enableAMS && this.ams.hasRegisterAccess()) {
+            var w = this.ams.readRegister((addr & 0x1F) >> 1);
+            return ((w & 0xFF) << 8) | (w >> 8)
+        }
+        else if (this.peripheralROMEnabled) {
             var peripheralROM = this.peripheralROMs[this.peripheralROMNumber];
             if (peripheralROM != null) {
                 return peripheralROM[addr - 0x4000] << 8 | peripheralROM[addr + 1 - 0x4000];
@@ -225,12 +243,14 @@ Memory.prototype = {
 
     writePeripheralROM: function(addr, w, cpu) {
         cpu.addCycles(4);
+        if (this.enableAMS && this.ams.hasRegisterAccess()) {
+            this.ams.writeRegister((addr & 0x1F) >> 1, ((w & 0xFF) << 8) | (w >> 8));
+        }
     },
 
     readCartridgeROM: function(addr, cpu) {
         cpu.addCycles(4);
         return this.cartImage != null ? (this.cartImage[addr + this.cartAddrOffset] << 8) | this.cartImage[addr + this.cartAddrOffset + 1] : 0;
-
     },
 
     writeCartridgeROM: function(addr, w, cpu) {
@@ -365,12 +385,19 @@ Memory.prototype = {
         this.memoryMap[addr][1].call(this, addr, w, cpu);
     },
 
+    // Fast methods that doesn't produce wait states. For debugger etc.
+
     getByte: function(addr) {
         if (addr < 0x2000) {
             return this.rom[addr];
         }
         if (addr < 0x4000) {
-            return this.ram[addr];
+            if (this.enableAMS) {
+                return this.ams.getByte(addr);
+            }
+            else {
+                return this.ram[addr];
+            }
         }
         if (addr < 0x6000) {
             if (this.peripheralROMEnabled) {
@@ -392,7 +419,12 @@ Memory.prototype = {
             return 0;
         }
         if (addr < 0x10000) {
-            return this.ram[addr];
+            if (this.enableAMS) {
+                return this.ams.getByte(addr);
+            }
+            else {
+                return this.ram[addr];
+            }
         }
         return 0;
     },
@@ -402,7 +434,12 @@ Memory.prototype = {
             return (this.rom[addr] << 8) | this.rom[addr + 1];
         }
         if (addr < 0x4000) {
-            return this.ram[addr] << 8 | this.ram[addr + 1];
+            if (this.enableAMS) {
+                return this.ams.readWord(addr);
+            }
+            else {
+                return this.ram[addr] << 8 | this.ram[addr + 1];
+            }
         }
         if (addr < 0x6000) {
             if (this.peripheralROMEnabled) {
@@ -424,31 +461,39 @@ Memory.prototype = {
             return 0;
         }
         if (addr < 0x10000) {
-            return this.ram[addr] << 8 | this.ram[addr + 1];
+            if (this.enableAMS) {
+                return this.ams.readWord(addr);
+            }
+            else {
+                return this.ram[addr] << 8 | this.ram[addr + 1];
+            }
         }
         return 0;
     },
 
-    getRAMByte: function(addr) {
+    // For disk IO etc. that's not faithfully emulated
+
+    getPADByte: function(addr) {
         return this.ram[addr];
     },
 
-    getRAMWord: function(addr) {
+    getPADWord: function(addr) {
         return this.ram[addr] << 8 | this.ram[addr + 1];
     },
 
-    setRAMByte: function(addr, b) {
+    setPADByte: function(addr, b) {
         return this.ram[addr] = b;
     },
 
-    setRAMWord: function(addr, w) {
+    setPADWord: function(addr, w) {
         this.ram[addr] = w >> 8;
         this.ram[addr] = w & 0xFF;
     },
 
     getStatusString: function() {
-        return "GROM:" + this.gromAddress.toHexWord() + " (bank:" + ((this.gromAddress & 0xE000) >> 13) + ", addr:" + (this.gromAddress & 0x1FFF).toHexWord() + ") " +
-               (this.cartImage != null ? "CART: bank " + this.currentCartBank +" / 0-" + (this.cartBankCount - 1) : "");
+        return "GROM:" + this.gromAddress.toHexWord() + " (bank:" + ((this.gromAddress & 0xE000) >> 13) +
+            ", addr:" + (this.gromAddress & 0x1FFF).toHexWord() + ") " +
+           (this.cartImage != null ? "CART: bank " + this.currentCartBank +" / 0-" + (this.cartBankCount - 1) : "");
     },
 
     hexView: function(start, length, anchorAddr) {
@@ -476,5 +521,9 @@ Memory.prototype = {
 
     set32KRAMEnabled: function(enabled) {
         this.enable32KRAM = enabled;
+    },
+
+    setAMSEnabled: function(enabled) {
+        this.enableAMS = enabled;
     }
 };

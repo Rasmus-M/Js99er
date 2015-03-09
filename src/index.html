@@ -38,6 +38,7 @@
     <script src="emu/tms9919.js"></script>
     <script src="emu/tms5220.js"></script>
     <script src="emu/memory.js"></script>
+    <script src="emu/ams.js"></script>
     <script src="emu/cru.js"></script>
     <script src="emu/keyboard.js"></script>
     <script src="emu/ti994a.js"></script>
@@ -60,7 +61,7 @@
         <div class="row">
             <!-- Main pane -->
             <div class="col-lg-7 col-md-12">
-                <div id="title" class="panel panel-default"><span class="title">Js99'er</span> <span class="subtitle">TI-99/4A emulator written in JavaScript. Rasmus Moustgaard, 2014.</span></div>
+                <div id="title" class="panel panel-default"><span class="title">Js99'er</span> <span class="subtitle">TI-99/4A emulator written in JavaScript.</span></div>
                 <!-- TI-99/4A canvas -->
                 <canvas id="canvas" width="304" height="240"></canvas>
                 <!-- Main toolbar -->
@@ -295,6 +296,7 @@
                                     <p><input type="checkbox" id="enableSound"> Sound enabled</p>
                                     <p><input type="checkbox" id="enableSpeech"> Speech enabled</p>
                                     <p><input type="checkbox" id="enable32KRAM"> 32K RAM expansion enabled</p>
+                                    <p><input type="checkbox" id="enableAMS"> SAMS enabled</p>
                                     <p><input type="checkbox" id="enableF18A"> F18A enabled</p>
                                     <p><input type="checkbox" id="enableFlicker"> Sprite flicker enabled (9918A only)</p>
                                     <p><input type="checkbox" id="enablePCKeyboard"> PC keyboard enabled</p>

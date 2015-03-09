@@ -1668,7 +1668,7 @@ TMS9900.prototype = {
     getRegsString: function() {
         var s = "";
         for (var i = 0; i < 16; i++) {
-            s += "R" + i + ":" + (this.memory.getRAMWord(this.WP + 2 * i)).toHexWord() + " ";
+            s += "R" + i + ":" + (this.memory.getWord(this.WP + 2 * i)).toHexWord() + " ";
         }
         return s;
     },
@@ -1676,7 +1676,7 @@ TMS9900.prototype = {
     getRegsStringFormatted: function() {
         var s = "";
         for (var i = 0; i < 16; i++) {
-            s += "R" + i + (i < 10 ? " " : "") + ":" + (this.memory.getRAMWord(this.WP + 2 * i)).toHexWord() + (i % 4 == 3 ? "\n" : " ");
+            s += "R" + i + (i < 10 ? " " : "") + ":" + (this.memory.getWord(this.WP + 2 * i)).toHexWord() + (i % 4 == 3 ? "\n" : " ");
         }
         return s;
     },

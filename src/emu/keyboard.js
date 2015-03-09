@@ -612,7 +612,7 @@ Keyboard.prototype = {
         }
         if (capsLock != null) {
             // this.log.info("Caps Lock " + (capsLock ? "on" : "off"));
-            this.alphaLock = capsLock;
+            this.alphaLock = capsLock ^ this.pcKeyboardEnabled;
         }
         evt.preventDefault();
     },
@@ -780,6 +780,7 @@ Keyboard.prototype = {
     },
 
     isAlphaLockDown: function() {
+        // this.log.info("Alpha Lock " + this.alphaLock);
         return this.alphaLock;
     },
 

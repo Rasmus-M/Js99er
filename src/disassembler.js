@@ -30,6 +30,7 @@ var Disassembler = (function() {
         var ts, td, s, d, b, c, w, disp, imm, word;
         for (var i = 0; i < maxInstructions && this.addr < end; i++) {
             var addr = this.addr;
+            disassembly += (anchorAddr && anchorLine == null && addr >= anchorAddr) ? "\u27a8 " : "  ";
             var instr = this.memory.getWord(this.addr);
             var opcode = decoderTable[instr];
             if (opcode != null) {
@@ -143,7 +144,7 @@ var Disassembler = (function() {
             }
             this.addr += 2;
             disassembly += "\n";
-            if (anchorAddr && !anchorLine && addr >= anchorAddr) {
+            if (anchorAddr && anchorLine == null && addr >= anchorAddr) {
                 anchorLine = i;
             }
         }

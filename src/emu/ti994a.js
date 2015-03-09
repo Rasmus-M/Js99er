@@ -126,23 +126,24 @@ TI994A.prototype = {
     },
 
     frame: function() {
-        if (this.vdp.gpu && !this.vdp.gpu.isIdle() && this.cpuFlag) {
-            this.vdp.gpu.run(F18AGPU.FRAME_CYCLES);
+        var cpuSpeed = this.cpuSpeed;
+        if (this.vdp.gpu && !this.vdp.gpu.isIdle()) {
+            this.vdp.gpu.run(F18AGPU.FRAME_CYCLES * cpuSpeed);
             if (this.vdp.gpu.atBreakpoint()) {
                 if (this.onBreakpoint) {
                     this.onBreakpoint(this.vdp.gpu);
                 }
             }
+            cpuSpeed *= 0.5; // Reduce CPU cycles when GPU is running
         }
-        else if (!this.tms9900.isSuspended()) {
-            this.tms9900.run(TMS9900.FRAME_CYCLES * this.cpuSpeed);
+        if (!this.tms9900.isSuspended()) {
+            this.tms9900.run(TMS9900.FRAME_CYCLES * cpuSpeed);
             if (this.tms9900.atBreakpoint()) {
                 if (this.onBreakpoint) {
                     this.onBreakpoint(this.tms9900);
                 }
             }
         }
-        this.cpuFlag  = !this.cpuFlag;
         this.drawFrame();
         this.frameCount++;
     },

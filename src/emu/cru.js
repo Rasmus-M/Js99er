@@ -47,7 +47,19 @@ CRU.prototype = {
                 // Enable DSR ROM
                 var dsr = (addr >> 8) & 0xf; // 256
                 // this.log.info("DSR ROM " + dsr + " " + (bit ? "enabled" : "disabled") + ".");
-                this.memory.togglePeripheralROM(dsr, bit);
+                this.memory.setPeripheralROM(dsr, bit);
+            }
+            // AMS
+            if (addr >= 0x1e00 && addr < 0x1f00 && this.memory.enableAMS) {
+                var bitNo = (addr & 0x000e) >> 1;
+                if (bitNo == 0) {
+                    // Controls access to mapping registers
+                    this.memory.ams.setRegisterAccess(bit);
+                }
+                else if (bitNo == 1) {
+                    // Toggles between mapping mode and transparent mode
+                    this.memory.ams.setMode(bit ? AMS.MAPPING_MODE : AMS.TRANSPARENT_MODE);
+                }
             }
         }
         else {

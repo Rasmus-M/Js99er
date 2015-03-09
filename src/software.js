@@ -251,6 +251,11 @@ Software.programs = [
                 url: "software/rxb2012.json"
             },
             {
+                name: "Cortex Basic",
+                type: Software.TYPE_INVERTED_CART,
+                url: "software/cortexbasic.rpk"
+            },
+            {
                 name: "TurboForth",
                 type: Software.TYPE_CART,
                 url: "software/turboforth.rpk"
@@ -315,16 +320,6 @@ Software.programs = [
                 url: "software/demon-attack.json"
             },
             {
-                name: "512K Game cart",
-                type: Software.TYPE_CART,
-                url: "software/gamecart.json"
-            },
-            {
-                name: "512K Game cart 2",
-                type: Software.TYPE_CART,
-                url: "software/gamecart2.json"
-            },
-            {
                 name: "Road Hunter/TI Scramble/Titanium",
                 type: Software.TYPE_INVERTED_CART,
                 url: "software/scrolling-trilogy.json"
@@ -343,6 +338,21 @@ Software.programs = [
                 name: "Pitfall!",
                 type: Software.TYPE_INVERTED_CART,
                 url: "software/pitfall.json"
+            },
+            {
+                name: "Game cart 1 (512K)",
+                type: Software.TYPE_CART,
+                url: "software/gamecart.rpk"
+            },
+            {
+                name: "Game cart 2 (512K)",
+                type: Software.TYPE_CART,
+                url: "software/gamecart2.rpk"
+            },
+            {
+                name: "Game cart 3 (512K)",
+                type: Software.TYPE_CART,
+                url: "software/gamecart3.rpk"
             }
         ]
     },
@@ -402,6 +412,11 @@ Software.programs = [
                 name: "Another scrolling demo",
                 type: Software.TYPE_MEMORY_DUMP,
                 url: "software/platform2.json"
+            },
+            {
+                name: "Animated hat demo",
+                type: Software.TYPE_CART,
+                url: "software/hat.rpk"
             }
         ]
     },
@@ -421,16 +436,6 @@ Software.programs = [
                 name: "F18A bitmap demo",
                 type: Software.TYPE_MEMORY_DUMP,
                 url: "software/bitmap.json"
-            },
-            {
-                name: "F18A scroll v. 1.6",
-                type: Software.TYPE_MEMORY_DUMP,
-                url: "software/f18ascrollv16.json"
-            },
-            {
-                name: "F18A scroll 'Rasmus'",
-                type: Software.TYPE_MEMORY_DUMP,
-                url: "software/f18a-titanium-scroll.json"
             },
             {
                 name: "GPU image rotation",
@@ -472,7 +477,6 @@ Software.programs = [
                 type: Software.TYPE_MEMORY_DUMP,
                 url: "software/2plane.json"
             }
-
         ]
     },
     {
