@@ -51,13 +51,18 @@ var Disassembler = (function() {
                     case 2:
                         // Jump and CRU bit
                         disp = (instr & 0x00ff);
-                        if ((disp & 0x80) != 0) {
-                            disp = 128 - (disp & 0x7f);
-                            disp = this.addr + 2 - 2 * disp;
-                        } else {
-                            disp = this.addr + 2 + 2 * disp;
+                        if (opcode.id !== "TB" && opcode.id !== "SBO" && opcode.id !== "SBZ") {
+                            if ((disp & 0x80) != 0) {
+                                disp = 128 - (disp & 0x7f);
+                                disp = this.addr + 2 - 2 * disp;
+                            } else {
+                                disp = this.addr + 2 + 2 * disp;
+                            }
+                            src = disp.toHexWord();
                         }
-                        src = disp.toHexWord();
+                        else {
+                            src = (disp & 0x80) == 0 ? disp : disp - 256;
+                        }
                         break;
                     case 3:
                         // Logical

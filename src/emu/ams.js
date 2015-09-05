@@ -81,6 +81,14 @@ var AMS = (function() {
         return 0;
     };
 
+    AMS.prototype.setByte = function(addr, b) {
+        var regNo = (addr & 0xF000) >> 12;
+        if (this.transparentMap[regNo] != null) {
+            var asmAddr = ((this.map[regNo] & (this.pages - 1)) << 12) | (addr & 0x0FFF);
+            this.ram[asmAddr] = b;
+        }
+    };
+
     return AMS;
 })();
 

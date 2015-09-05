@@ -246,9 +246,9 @@ Software.programs = [
                 url: "software/ea2.json"
             },
             {
-                name: "RXB 2012",
+                name: "RXB 2015",
                 type: Software.TYPE_CART,
-                url: "software/rxb2012.json"
+                url: "software/RXB2015.rpk"
             },
             {
                 name: "Cortex Basic",
@@ -271,9 +271,9 @@ Software.programs = [
                 url: "software/ti-workshop.json"
             },
             {
-                name: "Extended Basic 2.7 Suite",
-                type: Software.TYPE_INVERTED_CART,
-                url: "software/xb27suite.json"
+                name: "XB 2.7 Suite",
+                type: Software.TYPE_CART,
+                url: "software/xb27suite2.json"
             }
         ]
     },
@@ -333,6 +333,11 @@ Software.programs = [
                 name: "Sabre Wulf",
                 type: Software.TYPE_INVERTED_CART,
                 url: "software/sabrewulf.rpk"
+            },
+            {
+                name: "Jet Set Willy",
+                type: Software.TYPE_INVERTED_CART,
+                url: "software/jsw.rpk"
             },
             {
                 name: "Pitfall!",
@@ -471,11 +476,6 @@ Software.programs = [
                 name: "Position attributes demo",
                 type: Software.TYPE_MEMORY_DUMP,
                 url: "software/posattr.json"
-            },
-            {
-                name: "Two plane scrolling demo",
-                type: Software.TYPE_MEMORY_DUMP,
-                url: "software/2plane.json"
             }
         ]
     },

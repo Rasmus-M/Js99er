@@ -35,6 +35,7 @@ function TMS9900(memory, cru, diskDrives, googleDrives) {
 
     // Counters
     this.cycles = 0;
+    this.cruCycles = 0;
 
     // Constants
     this.SRC             = 0;
@@ -66,6 +67,7 @@ function TMS9900(memory, cru, diskDrives, googleDrives) {
     // Misc
     this.suspended = false;
     this.breakpoint = null;
+    this.illegalCount = 0;
     this.log = Log.getLog();
 }
 
@@ -83,11 +85,13 @@ TMS9900.prototype = {
         this.B = 0;
         this.nPostInc = [0, 0];
         this.cycles = 0;
+        this.cruCycles = 0;
+        this.illegalCount = 0;
 
         // Reset
         this.WP = this.readMemoryWord(0x0000);
         this.PC = this.readMemoryWord(0x0002);
-        this.log.info("PC reset to " + this.PC.toHexWord())
+        this.log.info("PC reset to " + this.PC.toHexWord());
 
         this.suspended = false;
     },
@@ -137,6 +141,7 @@ TMS9900.prototype = {
     run: function(cyclesToRun) {
         var startPC = this.PC;
         var startCycles = this.cycles;
+        // this.cruCycles = 0;
         while (this.cycles - startCycles < cyclesToRun && !this.suspended) {
             // Handle breakpoint
             var atBreakpoint = this.atBreakpoint();
@@ -178,6 +183,11 @@ TMS9900.prototype = {
                 this.inctPC();
                 this.addCycles(this.execute(instruction));
             }
+            // if (this.cruCycles > 64) {
+            //     var decr = this.cruCycles >> 6;
+            //     this.cruCycles -= (decr << 6);
+            //     this.cru.decrementCounter(decr);
+            // }
         }
     },
 
@@ -195,7 +205,10 @@ TMS9900.prototype = {
             return cycles;
         }
         else {
-            this.log.info(((this.PC - 2) & 0xFFFF).toHexWord() + " " + instruction.toHexWord() + ": Illegal");
+            if (this.illegalCount < 256) {
+                this.log.info(((this.PC - 2) & 0xFFFF).toHexWord() + " " + instruction.toHexWord() + ": Illegal" + (this.illegalCount == 255 ? " (suppressing further messages)" : ""));
+            }
+            this.illegalCount++;
             return 10;
         }
     },
@@ -205,21 +218,18 @@ TMS9900.prototype = {
     },
 
     setPC: function(value) {
-        this.PC = value;
+        this.PC = value & 0xFFFE;
+        if ((this.PC & 0xfc00) == 0x8000) {
+            this.PC |= 0x300;
+        }
     },
 
     inctPC: function() {
-        this.PC = (this.PC + 2) & 0xFFFF;
-        if ((this.PC & 0xfc00) == 0x8000) {
-            this.PC |= 0x300;
-        }
+        this.setPC(this.PC + 2);
     },
 
     addPC: function(value) {
-        this.PC = (this.PC + value) & 0xFFFF;
-        if ((this.PC & 0xfc00) == 0x8000) {
-            this.PC |= 0x300;
-        }
+        this.setPC(this.PC + value)
     },
 
     getWP: function() {
@@ -227,7 +237,7 @@ TMS9900.prototype = {
     },
 
     setWP: function(value) {
-        this.WP = value;
+        this.WP = value & 0xFFFE;
     },
 
     getST: function() {
@@ -240,6 +250,7 @@ TMS9900.prototype = {
 
     addCycles: function(value) {
         this.cycles += value;
+        // this.cruCycles += value;
     },
 
     decodeOperands: function(opcode, instr) {
@@ -452,8 +463,8 @@ TMS9900.prototype = {
         this.writeMemoryWord(newWP + 30, this.ST);	// ST in new R15
 
         // Load the correct workspace, and perform a branch and link to the address
-        this.WP = newWP;
-        this.PC = newPC;
+        this.setWP(newWP);
+        this.setPC(newPC);
 
         return 22;
     },
@@ -539,7 +550,7 @@ TMS9900.prototype = {
     // Load Workspace Pointer Immediate: LWPI imm
     // changes the Workspace Pointer
     lwpi: function() {
-        this.WP = this.S;
+        this.setWP(this.S);
         return 10;
     },
 
@@ -566,8 +577,8 @@ TMS9900.prototype = {
     // The matching return for BLWP, see BLWP for description
     rtwp: function() {
         this.ST = this.readMemoryWord(this.WP + 30); // R15
-        this.PC = this.readMemoryWord(this.WP + 28); // R14
-        this.WP = this.readMemoryWord(this.WP + 26); // R13
+        this.setPC(this.readMemoryWord(this.WP + 28)); // R14
+        this.setWP(this.readMemoryWord(this.WP + 26)); // R13
         return 14;
     },
 
@@ -598,11 +609,11 @@ TMS9900.prototype = {
     // Return is performed with RTWP
     blwp: function() {
         var x1 = this.WP;
-        this.WP = this.readMemoryWord(this.S);
+        this.setWP(this.readMemoryWord(this.S));
         this.writeMemoryWord(this.WP + 26, x1);
         this.writeMemoryWord(this.WP + 28, this.PC);
         this.writeMemoryWord(this.WP + 30, this.ST);
-        this.PC = this.readMemoryWord(this.S + 2);
+        this.setPC(this.readMemoryWord(this.S + 2));
         this.postIncrement(this.SRC);
 
         // skip_interrupt=1;
@@ -613,7 +624,7 @@ TMS9900.prototype = {
     // Branch: B src
     // Unconditional absolute branch
     b: function() {
-        this.PC = this.S;
+        this.setPC(this.S);
         this.postIncrement(this.SRC);
         return 8;
     },
@@ -745,7 +756,7 @@ TMS9900.prototype = {
         // A return is simply B *R11. Some assemblers define RT as this.
 
         this.writeMemoryWord(this.WP + 22, this.PC);
-        this.PC = this.S;
+        this.setPC(this.S);
         this.postIncrement(this.SRC);
 
         return 12;
@@ -908,7 +919,7 @@ TMS9900.prototype = {
     // (unconditional)
     jmp: function() {
         if (this.flagX != 0) {
-            this.PC = this.flagX;	// Update offset - it's relative to the X, not the opcode
+            this.setPC(this.flagX);	// Update offset - it's relative to the X, not the opcode
         }
         if ((this.D & 0x80) != 0) {
             this.D = 128 - (this.D & 0x7f);
@@ -924,7 +935,7 @@ TMS9900.prototype = {
     jlt: function() {
         if (((!this.getAGT()) && (!this.getEQ())) != 0) {
             if (this.flagX != 0) {
-                this.PC = this.flagX;	// Update offset - it's relative to the X, not the opcode
+                this.setPC(this.flagX);	// Update offset - it's relative to the X, not the opcode
             }
 
             if ((this.D & 0x80) != 0) {
@@ -944,7 +955,7 @@ TMS9900.prototype = {
     jle: function() {
         if ((this.getLGT() == 0) || (this.getEQ() != 0)) {
             if (this.flagX != 0) {
-                this.PC = this.flagX;	// Update offset - it's relative to the X, not the opcode
+                this.setPC(this.flagX);	// Update offset - it's relative to the X, not the opcode
             }
 
             if ((this.D & 0x80) != 0) {
@@ -966,7 +977,7 @@ TMS9900.prototype = {
     jeq: function() {
         if (this.getEQ() != 0) {
             if (this.flagX != 0) {
-                this.PC = this.flagX;	// Update offset - it's relative to the X, not the opcode
+                this.setPC(this.flagX);	// Update offset - it's relative to the X, not the opcode
             }
 
             if ((this.D & 0x80) != 0) {
@@ -985,7 +996,7 @@ TMS9900.prototype = {
     jhe: function() {
         if ((this.getLGT() != 0) || (this.getEQ() != 0)) {
             if (this.flagX != 0) {
-                this.PC = this.flagX;	// Update offset - it's relative to the X, not the opcode
+                this.setPC(this.flagX);	// Update offset - it's relative to the X, not the opcode
             }
 
             if ((this.D & 0x80) != 0) {
@@ -1004,7 +1015,7 @@ TMS9900.prototype = {
     jgt: function() {
         if (this.getAGT() != 0) {
             if (this.flagX != 0) {
-                this.PC = this.flagX;	// Update offset - it's relative to the X, not the opcode
+                this.setPC(this.flagX);	// Update offset - it's relative to the X, not the opcode
             }
 
             if ((this.D & 0x80) != 0) {
@@ -1023,7 +1034,7 @@ TMS9900.prototype = {
     jne: function() {
         if (this.getEQ() == 0) {
             if (this.flagX != 0) {
-                this.PC = this.flagX;	// Update offset - it's relative to the X, not the opcode
+                this.setPC(this.flagX);	// Update offset - it's relative to the X, not the opcode
             }
             if ((this.D & 0x80) != 0) {
                 this.D = 128 - (this.D & 0x7f);
@@ -1042,7 +1053,7 @@ TMS9900.prototype = {
     jnc: function() {
         if (this.getC() == 0) {
             if (this.flagX != 0) {
-                this.PC = this.flagX;	// Update offset - it's relative to the X, not the opcode
+                this.setPC(this.flagX);	// Update offset - it's relative to the X, not the opcode
             }
 
             if ((this.D & 0x80) != 0) {
@@ -1062,7 +1073,7 @@ TMS9900.prototype = {
     joc: function() {
         if (this.getC() != 0) {
             if (this.flagX != 0) {
-                this.PC = this.flagX;	// Update offset - it's relative to the X, not the opcode
+                this.setPC(this.flagX);	// Update offset - it's relative to the X, not the opcode
             }
 
             if ((this.D & 0x80) != 0) {
@@ -1082,7 +1093,7 @@ TMS9900.prototype = {
     jno: function() {
         if (this.getOV() == 0) {
             if (this.flagX != 0) {
-                this.PC = this.flagX;	// Update offset - it's relative to the X, not the opcode
+                this.setPC(this.flagX);	// Update offset - it's relative to the X, not the opcode
             }
 
             if ((this.D & 0x80) != 0) {
@@ -1101,7 +1112,7 @@ TMS9900.prototype = {
     jl: function() {
         if ((this.getLGT() == 0) && (this.getEQ() == 0)) {
             if (this.flagX != 0) {
-                this.PC = this.flagX;	// Update offset - it's relative to the X, not the opcode
+                this.setPC(this.flagX);	// Update offset - it's relative to the X, not the opcode
             }
 
             if ((this.D & 0x80) != 0) {
@@ -1122,7 +1133,7 @@ TMS9900.prototype = {
         if ((this.getLGT() != 0) && (this.getEQ() == 0))
         {
             if (this.flagX != 0) {
-                this.PC = this.flagX;	// Update offset - it's relative to the X, not the opcode
+                this.setPC(this.flagX);	// Update offset - it's relative to the X, not the opcode
             }
 
             if ((this.D & 0x80) != 0) {
@@ -1141,7 +1152,7 @@ TMS9900.prototype = {
     jop: function() {
         if (this.getOP() != 0) {
             if (this.flagX != 0) {
-                this.PC = this.flagX;	// Update offset - it's relative to the X, not the opcode
+                this.setPC(this.flagX);	// Update offset - it's relative to the X, not the opcode
             }
 
             if ((this.D & 0x80) != 0) {
@@ -1260,13 +1271,13 @@ TMS9900.prototype = {
         this.D &= 0xf;
 
         var x1 = this.WP;
-        this.WP = this.readMemoryWord(0x0040 + (this.D << 2));
+        this.setWP(this.readMemoryWord(0x0040 + (this.D << 2)));
         this.writeMemoryWord(this.WP + 22, this.S);
         this.postIncrement(this.SRC);
         this.writeMemoryWord(this.WP + 26, x1);
         this.writeMemoryWord(this.WP + 28, this.PC);
         this.writeMemoryWord(this.WP + 30, this.ST);
-        this.PC = this.readMemoryWord(0x0042 + (this.D << 2));
+        this.setPC(this.readMemoryWord(0x0042 + (this.D << 2)));
         this.setX();
 
         // skip_interrupt=1;

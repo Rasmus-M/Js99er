@@ -7,22 +7,23 @@
  "use strict";
  
 Database.NAME = "js99er";
-Database.VERSION = 1;
+Database.VERSION = 2;
 Database.DISK_DRIVES_STORE = "diskDrives";
 Database.DISK_IMAGES_STORE = "diskImages";
- 
-function Database() {
+Database.BINARY_FILE_STORE = "binaryFiles";
+
+function Database(callback) {
 
 	this.db = null;
     this.supported = false;
 	this.log = Log.getLog();
 	
-	this.supported = this.open();
+	this.supported = this.open(callback);
 }
 
 Database.prototype = {
 
-	open: function() {
+	open: function(callback) {
         var that = this;
         if (window.indexedDB) {
             var request = indexedDB.open(Database.NAME, Database.VERSION);
@@ -36,26 +37,29 @@ Database.prototype = {
                     that.log.error(e.value);
                 };
 
-                if (db.objectStoreNames.contains(Database.DISK_DRIVES_STORE)) {
-                    db.deleteObjectStore(Database.DISK_DRIVES_STORE);
+                if (!db.objectStoreNames.contains(Database.DISK_DRIVES_STORE)) {
+                    db.createObjectStore(Database.DISK_DRIVES_STORE, { keyPath: "name" });
                 }
-                if (db.objectStoreNames.contains(Database.DISK_IMAGES_STORE)) {
-                    db.deleteObjectStore(Database.DISK_IMAGES_STORE);
+                if (!db.objectStoreNames.contains(Database.DISK_IMAGES_STORE)) {
+                    db.createObjectStore(Database.DISK_IMAGES_STORE, { keyPath: "name" });
                 }
-
-                db.createObjectStore(Database.DISK_DRIVES_STORE, { keyPath: "name" });
-                db.createObjectStore(Database.DISK_IMAGES_STORE, { keyPath: "name" });
+                if (db.objectStoreNames.contains(Database.BINARY_FILE_STORE)) {
+                    db.deleteObjectStore(Database.BINARY_FILE_STORE);
+                }
+                db.createObjectStore(Database.BINARY_FILE_STORE, { keyPath: "name" });
             };
 
             request.onsuccess = function(e) {
                 that.log.info("Database opened OK.");
                 that.db = e.target.result;
+                if (callback) callback(true);
             };
 
             request.onerror = function(e) {
                 this.log.info("Database could not be opened.");
                 that.log.error(e.value);
                 that.db = null;
+                if (callback) callback(false);
             };
 
             return true;
@@ -246,6 +250,59 @@ Database.prototype = {
             };
 
             cursorRequest.onerror = function(e) {
+                that.log.error(e.value);
+                if (callback) callback(false);
+            };
+        }
+        else {
+            if (callback) callback(false);
+        }
+    },
+
+    getBinaryFile: function(name, callback) {
+        if (this.db != null && name != null) {
+            var that = this;
+
+            var trans = this.db.transaction([Database.BINARY_FILE_STORE], "readonly");
+            var store = trans.objectStore(Database.BINARY_FILE_STORE);
+
+
+            var request = store.get(name);
+
+            request.onsuccess = function(e) {
+                var obj = e.target.result;
+                if (obj) {
+                    if (callback) callback(obj.binaryFile);
+                }
+                else {
+                    if (callback) callback(false);
+                }
+            };
+
+            request.onerror = function(e) {
+                that.log.error(e.value);
+                if (callback) callback(false);
+            };
+        }
+        else {
+            if (callback) callback(false);
+        }
+    },
+
+    putBinaryFile: function(name, binaryFile, callback) {
+        if (this.db != null) {
+            var that = this;
+
+            var trans = this.db.transaction([Database.BINARY_FILE_STORE], "readwrite");
+            var store = trans.objectStore(Database.BINARY_FILE_STORE);
+
+            var request = store.put({name: name, binaryFile: binaryFile});
+
+            request.onsuccess = function(e) {
+                if (callback) callback(true);
+            };
+
+            request.onerror = function(e) {
                 that.log.error(e.value);
                 if (callback) callback(false);
             };

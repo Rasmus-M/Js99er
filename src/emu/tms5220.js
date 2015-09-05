@@ -419,6 +419,10 @@ TMS5220.prototype = {
 
     ***********************************************************************************************/
 
+    setTMS9900: function(tms9900) {
+        this.tms9900 = tms9900;
+    },
+
     reset: function() {
         this.device_reset();
     },
@@ -558,6 +562,10 @@ TMS5220.prototype = {
         }
         /* Note that TS being unset will also generate an interrupt when a STOP
          frame is encountered; this is handled in the sample generator code and not here */
+
+        if (this.m_speak_external && this.tms9900) {
+            this.tms9900.setSuspended(this.m_fifo_count == TMS5220.FIFO_SIZE);
+        }
     },
 
     /**********************************************************************************************

@@ -110,7 +110,6 @@ function F18A(canvas, cru, tms9919) {
     this.statusRegister = null;
     this.palette = null;
 
-    this.latchByte = null;
     this.latch = null;
     this.prefetchByte = null;
     this.addressIncrement = null;
@@ -179,6 +178,11 @@ function F18A(canvas, cru, tms9919) {
     this.scanLines = null;
     this.gpuHsyncTrigger = null;
     this.gpuVsyncTrigger = null;
+    this.spritePlaneOffset = null;
+    this.tilePlaneOffset = null;
+    this.counterElapsed = null;
+    this.counterStart = null;
+    this.counterSnap = null;
 
     this.sprites = null;
     this.collision = null;
@@ -211,7 +215,7 @@ F18A.prototype = {
     reset: function () {
 
         var i;
-        for (i = 0; i < this.ram.length; i++) {
+        for (i = 0; i < 0x4000; i++) {
             this.ram[i] = 0;
         }
         for (i = 0; i < this.registers.length; i++) {
@@ -229,7 +233,6 @@ F18A.prototype = {
             ];
         }
 
-        this.latchByte = 0;
         this.prefetchByte = 0;
         this.latch = false;
         this.addressIncrement = 1;
@@ -298,6 +301,11 @@ F18A.prototype = {
         this.scanLines = F18A.SCANLINES_JUMPER;
         this.gpuHsyncTrigger = false;
         this.gpuVsyncTrigger = false;
+        this.spritePlaneOffset = 0x800;
+        this.tilePlaneOffset = 0x800;
+        this.counterElapsed = 0;
+        this.counterStart = this.getTime();
+        this.counterSnap = 0;
         this.resetRegs();
 
         this.sprites = [];
@@ -382,7 +390,7 @@ F18A.prototype = {
                     this.drawScanLine(y);
                     if (this.gpuHsyncTrigger) {
                         this.currentScanline = y;
-                        this.runGPU(this.gpu.getPC());
+                        this.runGPU(this.gpu.getPC(), true);
                     }
                 }
                 this.canvasContext.putImageData(this.imagedata, this.leftBorder, this.topBorder);
@@ -406,7 +414,7 @@ F18A.prototype = {
         }
         if (this.gpuVsyncTrigger) {
             this.currentScanline = y;
-            this.runGPU(this.gpu.getPC());
+            this.runGPU(this.gpu.getPC(), true);
         }
         this.frameCounter++;
     },
@@ -414,7 +422,7 @@ F18A.prototype = {
     fillCanvas: function(color) {
         // this.log.info("Width: " + this.canvas.width + ", Height: " + this.canvas.height);
         this.canvasContext.fillStyle = 'rgba(' + this.palette[color].join(',') + ',1.0)';
-        this.canvasContext.fillRect(0, 0, this.canvas.width, this.canvas.height - 1); // In Chrome the image sometimes turns white if we don't subtract 1
+        this.canvasContext.fillRect(0, 0, this.canvas.width, this.canvas.height); // TODO: In Chrome the image sometimes turns white if we don't subtract 1
     },
 
     prepareSprites: function() {
@@ -477,8 +485,8 @@ F18A.prototype = {
                         for (var x = 0; x < spriteWidth; x += 8) {
                             var spritePatternAddr = patternAddr + dy + (x << 1);
                             var spritePatternByte0 = this.ram[spritePatternAddr];
-                            var spritePatternByte1 = this.ram[spritePatternAddr + 0x0800];
-                            var spritePatternByte2 = this.ram[spritePatternAddr + 0x1000];
+                            var spritePatternByte1 = this.ram[spritePatternAddr + this.spritePlaneOffset];
+                            var spritePatternByte2 = this.ram[spritePatternAddr + (this.spritePlaneOffset << 1)];
                             var spriteBit = 0x80;
                             var spriteBitShift2 = 7;
                             for (var spriteBitShift1 = 0; spriteBitShift1 < 8; spriteBitShift1++) {
@@ -710,14 +718,14 @@ F18A.prototype = {
                             case F18A.COLOR_MODE_ECM_2:
                                 tileColor =
                                     ((patternByte & bit) >> (7 - bitShift)) |
-                                    (((this.ram[patternAddr + 0x0800] & bit) >> (7 - bitShift)) << 1);
+                                    (((this.ram[patternAddr + this.tilePlaneOffset] & bit) >> (7 - bitShift)) << 1);
                                 tilePaletteBaseIndex = ((tileAttributeByte & 0x0f) << 2);
                                 break;
                             case F18A.COLOR_MODE_ECM_3:
                                 tileColor =
                                     ((patternByte & bit) >> (7 - bitShift)) |
-                                    (((this.ram[patternAddr + 0x0800] & bit) >> (7 - bitShift)) << 1) |
-                                    (((this.ram[patternAddr + 0x1000] & bit) >> (7 - bitShift)) << 2);
+                                    (((this.ram[patternAddr + this.tilePlaneOffset] & bit) >> (7 - bitShift)) << 1) |
+                                    (((this.ram[patternAddr + (this.tilePlaneOffset << 1)] & bit) >> (7 - bitShift)) << 2);
                                 tilePaletteBaseIndex = ((tileAttributeByte & 0x0e) << 2);
                                 break;
                         }
@@ -783,14 +791,14 @@ F18A.prototype = {
                                 case F18A.COLOR_MODE_ECM_2:
                                     tileColor =
                                         ((patternByte & bit) >> (7 - bitShift)) |
-                                        (((this.ram[patternAddr + 0x0800] & bit) >> (7 - bitShift)) << 1);
+                                        (((this.ram[patternAddr + this.tilePlaneOffset] & bit) >> (7 - bitShift)) << 1);
                                     tilePaletteBaseIndex = ((tileAttributeByte & 0x0f) << 2);
                                     break;
                                 case F18A.COLOR_MODE_ECM_3:
                                     tileColor =
                                         ((patternByte & bit) >> (7 - bitShift)) |
-                                        (((this.ram[patternAddr + 0x0800] & bit) >> (7 - bitShift)) << 1) |
-                                        (((this.ram[patternAddr + 0x1000] & bit) >> (7 - bitShift)) << 2);
+                                        (((this.ram[patternAddr + this.tilePlaneOffset] & bit) >> (7 - bitShift)) << 1) |
+                                        (((this.ram[patternAddr + (this.tilePlaneOffset << 1)] & bit) >> (7 - bitShift)) << 2);
                                     tilePaletteBaseIndex = ((tileAttributeByte & 0x0e) << 2);
                                     break;
                             }
@@ -915,14 +923,14 @@ F18A.prototype = {
                             case F18A.COLOR_MODE_ECM_2:
                                 tileColor2 =
                                     ((patternByte2 & bit2) >> (7 - bitShift2)) |
-                                    (((this.ram[patternAddr2 + 0x0800] & bit2) >> (7 - bitShift2)) << 1);
+                                    (((this.ram[patternAddr2 + this.tilePlaneOffset] & bit2) >> (7 - bitShift2)) << 1);
                                 tilePaletteBaseIndex2 = ((tileAttributeByte2 & 0x0f) << 2);
                                 break;
                             case F18A.COLOR_MODE_ECM_3:
                                 tileColor2 =
                                     ((patternByte2 & bit2) >> (7 - bitShift2)) |
-                                    (((this.ram[patternAddr2 + 0x0800] & bit2) >> (7 - bitShift2)) << 1) |
-                                    (((this.ram[patternAddr2 + 0x1000] & bit2) >> (7 - bitShift2)) << 2);
+                                    (((this.ram[patternAddr2 + this.tilePlaneOffset] & bit2) >> (7 - bitShift2)) << 1) |
+                                    (((this.ram[patternAddr2 + (this.tilePlaneOffset << 1)] & bit2) >> (7 - bitShift2)) << 2);
                                 tilePaletteBaseIndex2 = ((tileAttributeByte2 & 0x0e) << 2);
                                 break;
                         }
@@ -983,14 +991,14 @@ F18A.prototype = {
                                 case F18A.COLOR_MODE_ECM_2:
                                     tileColor2 =
                                         ((patternByte2 & bit2) >> (7 - bitShift2)) |
-                                        (((this.ram[patternAddr2 + 0x0800] & bit2) >> (7 - bitShift2)) << 1);
+                                        (((this.ram[patternAddr2 + this.tilePlaneOffset] & bit2) >> (7 - bitShift2)) << 1);
                                     tilePaletteBaseIndex2 = ((tileAttributeByte2 & 0x0f) << 2);
                                     break;
                                 case F18A.COLOR_MODE_ECM_3:
                                     tileColor2 =
                                         ((patternByte2 & bit2) >> (7 - bitShift2)) |
-                                        (((this.ram[patternAddr2 + 0x0800] & bit2) >> (7 - bitShift2)) << 1) |
-                                        (((this.ram[patternAddr2 + 0x1000] & bit2) >> (7 - bitShift2)) << 2);
+                                        (((this.ram[patternAddr2 + this.tilePlaneOffset] & bit2) >> (7 - bitShift2)) << 1) |
+                                        (((this.ram[patternAddr2 + (this.tilePlaneOffset << 1)] & bit2) >> (7 - bitShift2)) << 2);
                                     tilePaletteBaseIndex2 = ((tileAttributeByte2 & 0x0e) << 2);
                                     break;
                             }
@@ -1036,8 +1044,7 @@ F18A.prototype = {
 
     writeAddress: function (i) {
         if (!this.latch) {
-            this.latchByte = i;
-            this.latch = !this.latch;
+            this.addressRegister = (this.addressRegister & 0xFF00) | i;
         }
         else {
             var cmd = (i & 0xc0) >> 6;
@@ -1045,7 +1052,7 @@ F18A.prototype = {
             switch (cmd) {
                 // Set read address
                 case 0:
-                    this.addressRegister = (msb << 8) + this.latchByte;
+                    this.addressRegister = (msb << 8) | (this.addressRegister & 0x00FF);
                     this.prefetchByte = this.ram[this.addressRegister];
                     this.addressRegister += this.addressIncrement;
                     this.addressRegister &= 0x3FFF;
@@ -1053,21 +1060,22 @@ F18A.prototype = {
                     break;
                 // Set write address
                 case 1:
-                    this.addressRegister = (msb << 8) + this.latchByte;
+                    this.addressRegister =  (msb << 8) | (this.addressRegister & 0x00FF);
                     break;
                 // Write register
                 case 2:
+                case 3:
                     var reg = msb;
                     if (this.unlocked || reg < 8 || reg == 57) {
-                        this.writeRegister(reg, this.latchByte);
+                        this.writeRegister(reg, this.addressRegister & 0x00FF);
                     }
                     else {
-                        this.log.info("Write " + this.latchByte.toHexByte() + " to F18A register " + reg + " (" + reg.toHexByte() + ") without unlocking.");
+                        this.log.info("Write " + (this.addressRegister & 0x00FF).toHexByte() + " to F18A register " + reg + " (" + reg.toHexByte() + ") without unlocking.");
                     }
                     break;
             }
-            this.latch = !this.latch;
         }
+        this.latch = !this.latch;
     },
 
     writeRegister: function(reg, value) {
@@ -1131,10 +1139,39 @@ F18A.prototype = {
             case 11:
                 this.colorTable2 = this.registers[11] << 6;
                 break;
-            // Status register select
+            // Status register select / counter control
             case 15:
                 this.statusRegisterNo = this.registers[15] & 0x0f;
                 this.log.info("F18A status register " + this.statusRegisterNo + " selected.");
+                var wasRunning = (oldValue & 0x10) != 0;
+                var running = (this.registers[15] & 0x10) != 0;
+                if (wasRunning && !running) {
+                    // Stop
+                    this.counterElapsed += (this.getTime() - this.counterStart);
+                }
+                else if (!wasRunning && running) {
+                    // Start
+                    this.counterStart = this.getTime();
+                }
+                if ((this.registers[15] & 0x20) != 0) {
+                    // Snapshot
+                    if (running) {
+                        // Started
+                        this.counterSnap = (this.getTime() - this.counterStart); // + this.counterElapsed;
+                    }
+                    else {
+                        // Stopped
+                        this.counterSnap = this.counterElapsed;
+                    }
+                    this.registers[15] &= 0xdf; // Clear trigger bit
+                }
+                if ((this.registers[15] & 0x40) != 0) {
+                    // Reset
+                    this.counterElapsed = 0;
+                    this.counterStart = this.getTime();
+                    this.counterSnap = 0;
+                    this.registers[15] &= 0xbf; // Clear trigger bit
+                }
                 break;
             // Horz interrupt scan line, 0 to disable
             case 19:
@@ -1171,6 +1208,10 @@ F18A.prototype = {
                 this.vPageSize1 = (this.registers[29] & 0x01) << 11;
                 this.hPageSize2 = (this.registers[29] & 0x20) << 5;
                 this.vPageSize2 = (this.registers[29] & 0x10) << 7;
+                this.spritePlaneOffset = 0x100 << (3 - ((this.registers[29] & 0xC0) >> 6));
+                this.log.info("Sprite plane offset: " + this.spritePlaneOffset.toHexWord());
+                this.tilePlaneOffset = 0x100 << (3 - ((this.registers[29] & 0x0C) >> 2));
+                this.log.info("Tile plane offset: " + this.tilePlaneOffset.toHexWord());
                 break;
             // Max displayable sprites on a scanline
             // Setting this to 0 restores the jumper value (4 or 32). Here assumed to be 32.
@@ -1261,6 +1302,7 @@ F18A.prototype = {
                 if ((this.registers[50] & 0x80) != 0) {
                     this.resetRegs();
                     this.unlocked = false;
+                    this.updateMode(this.registers[0], this.registers[1]);
                     return;
                 }
                 this.gpuHsyncTrigger = (this.registers[50] & 0x40) != 0;
@@ -1296,13 +1338,15 @@ F18A.prototype = {
             case 55:
                 if (this.gpuAddressLatch) {
                     this.gpuAddressLatch = false;
-                    this.gpu.reset();
+                    this.gpu.intReset();
                     this.runGPU(this.registers[54] << 8 | this.registers[55]);
                 }
                 break;
             case 56:
                 if ((this.registers[56] & 1) != 0) {
-                    this.runGPU(this.gpu.getPC());
+                    if (this.gpu.isIdle()) {
+                        this.runGPU(this.gpu.getPC());
+                    }
                 }
                 else {
                     this.gpu.setIdle(true);
@@ -1321,6 +1365,7 @@ F18A.prototype = {
                     this.unlocked = false;
                     this.log.info("F18A locked");
                 }
+                this.updateMode(this.registers[0], this.registers[1]);
                 break;
             case 58:
                 var gromClock = this.registers[58] & 0x0F;
@@ -1344,7 +1389,7 @@ F18A.prototype = {
         return this.registers[reg];
     },
 
-    runGPU: function(gpuAddress) {
+    runGPU: function(gpuAddress, internal) {
         this.log.info("F18A GPU triggered at " + gpuAddress.toHexWord());
         this.gpu.setPC(gpuAddress); // Set the PC, which also triggers the GPU
         if (this.gpu.atBreakpoint()) {
@@ -1398,7 +1443,7 @@ F18A.prototype = {
             this.colorTable = this.registers[3] << 6;
             this.charPatternTable = (this.registers[4] & 0x7) << 11;
         }
-        this.nameTable = (this.registers[2] & (this.screenMode != F18A.MODE_TEXT_80 ? 0xf: 0xc)) << 10;
+        this.nameTable = (this.registers[2] & (this.screenMode != F18A.MODE_TEXT_80 || this.unlocked ? 0xf : 0xc)) << 10;
         this.spriteAttributeTable = (this.registers[5] & 0x7f) << 7;
         this.spritePatternTable = (this.registers[6] & 0x7) << 11;
         if (oldMode != this.screenMode) {
@@ -1474,10 +1519,34 @@ F18A.prototype = {
                 return 0xe0;
             case 2:
                 // GPU status
-                return (this.gpu.isIdle() ? 0 : 0x80) | this.ram[0xB000];
+                return (this.gpu.isIdle() ? 0 : 0x80) | this.ram[0xb000];
             case 3:
                 // Current scanline
                 return this.getCurrentScanline();
+            case 4:
+                // Counter nanos LSB
+                return (Math.floor((this.counterSnap * 1000000) / 10) * 10 % 1000) & 0x00ff;
+            case 5:
+                // Counter nanos MSB
+                return ((Math.floor((this.counterSnap * 1000000) / 10) * 10 % 1000) & 0x0300) >> 8;
+            case 6:
+                // Counter micros LSB
+                return ((this.counterSnap * 1000) % 1000) & 0x00ff;
+            case 7:
+                // Counter micros MSB
+                return (((this.counterSnap * 1000) % 1000) & 0x0300) >> 8;
+            case 8:
+                // Counter millis LSB
+                return (this.counterSnap % 1000) & 0x00ff;
+            case 9:
+                // Counter millis MSB
+                return ((this.counterSnap % 1000) & 0x0300) >> 8;
+            case 10:
+                // Counter seconds LSB
+                return (this.counterSnap / 1000) & 0x00ff;
+            case 11:
+                // Counter seconds MSB
+                return ((this.counterSnap / 1000) & 0xff00) >> 8;
             case 14:
                 // Version
                 return F18A.VERSION;
@@ -1485,6 +1554,7 @@ F18A.prototype = {
                 // Status register number
                 return this.registers[15];
         }
+        this.latch = false; // According to Matthew
     },
 
     readData: function() {
@@ -1504,7 +1574,7 @@ F18A.prototype = {
         }
         else {
             if (window.performance) {
-                var now = window.performance.now();
+                var now = this.getTime();
                 if ((now - this.lastTime) > 0.04) {
                     this.fakeScanline++;
                     this.lastTime = now;
@@ -1594,5 +1664,10 @@ F18A.prototype = {
             }
         }
         return 0;
+    },
+
+    getTime: function() {
+        return window.performance ? window.performance.now() : (new Date()).getTime();
     }
+
 };

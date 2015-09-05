@@ -52,7 +52,6 @@ function TMS9918A(canvas, cru, enableFlicker) {
         [255, 255, 255]
     ];
 
-    this.latchByte = null;
     this.latch = null;
     this.prefetchByte = null;
 
@@ -98,7 +97,6 @@ TMS9918A.prototype = {
         this.addressRegister = 0;
         this.statusRegister = 0;
 
-        this.latchByte = 0;
         this.prefetchByte = 0;
         this.latch = false;
 
@@ -395,33 +393,33 @@ TMS9918A.prototype = {
 
     writeAddress: function(i) {
         if (!this.latch) {
-            this.latchByte = i;
-            this.latch = !this.latch;
+            this.addressRegister = (this.addressRegister & 0xFF00) | i;
         }
         else {
             switch ((i & 0xc0) >> 6) {
                 // Set read address
                 case 0:
-                    this.addressRegister = (i & 0x3f) * 256 + this.latchByte;
+                    this.addressRegister = ((i & 0x3f) << 8) | (this.addressRegister & 0x00FF);
                     this.prefetchByte = this.ram[this.addressRegister++];
-                    this.addressRegister %= 16384;
+                    this.addressRegister &= 0x3FFF;
                     break;
                 // Set write address
                 case 1:
-                    this.addressRegister = (i & 0x3f) * 256 + this.latchByte;
+                    this.addressRegister = ((i & 0x3f) << 8) | (this.addressRegister & 0x00FF);
                     break;
                 // Write register
                 case 2:
-                    this.registers[i & 0x7] = this.latchByte;
+                case 3:
+                    this.registers[i & 0x7] = this.addressRegister & 0x00FF;
                     switch (i & 0x7) {
                         // Mode
                         case 0:
-                            this.updateMode(this.latchByte, this.registers[1]);
+                            this.updateMode(this.registers[0], this.registers[1]);
                             break;
                         case 1:
                             this.displayOn = (this.registers[1] & 0x40) != 0;
                             this.interruptsOn = (this.registers[1] & 0x20) != 0;
-                            this.updateMode(this.registers[0], this.latchByte);
+                            this.updateMode(this.registers[0], this.registers[1]);
                             break;
                         // Name table
                         case 2:
@@ -459,7 +457,7 @@ TMS9918A.prototype = {
                         case 7:
                             this.fgColor = (this.registers[7] & 0xf0) >> 4;
                             this.bgColor = this.registers[7] & 0x0f;
-                            this.log.info("BG=" + this.bgColor.toHexByte() + ", FG=" + this.fgColor.toHexByte());
+                            // this.log.info("BG=" + this.bgColor.toHexByte() + ", FG=" + this.fgColor.toHexByte());
                             this.redrawBorder = true;
                             break;
                     }
@@ -468,9 +466,9 @@ TMS9918A.prototype = {
                     // this.log.info("Pattern table: " + this.charPatternTable.toHexWord());
                     break;
             }
-            this.latch = !this.latch;
             this.redrawRequired = true;
         }
+        this.latch = !this.latch;
     },
 
     updateMode: function(reg0, reg1) {
@@ -530,6 +528,7 @@ TMS9918A.prototype = {
         var i = this.statusRegister;
         this.statusRegister = 0x1F;
         this.cru.writeBit(2, true);
+        this.latch = false;
         return i;
     },
 

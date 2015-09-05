@@ -14,24 +14,31 @@
 
 F18AGPU.FRAME_CYCLES = 500000;
 
+F18AGPU.PRELOAD = [
+    "020F47FE100D4036405A409440B440FAFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF0CA0411C034004C1D0603F000971C0214006069010F7C0203F02C0603F04C0A0",
+    "3F06D0E03F011305D010DC40060216FD1003DC70060216FD045B0D0B06A040B40F0BC1C7131604C0D02060040A30C0C004C102020400CC01060216FD04C0D020",
+    "415106C00A30A0030CA041AED8204151B000045BD820411A3F00020041D6C8003F0202004006C8003F0402004010C8003F06045B04C7D0203F011313C0204118",
+    "06000CA041520204000502053F02020641428DB51603060416FC1009060016F11009C0203F020CA04152804014030CA0419A0547D807B000045B0D0B06A040B4",
+    "0F0BC1C71304C0203F0C0CA041AE045B050000000000000000000000020041100201411502020B0003A032023230323032303600020200063631060216FD03C0",
+    "0C0020202020202020202020000000000000880041181A03C06041180C000D000A4002010B00A020411617010581A0604114020341420202001003A0320106C1",
+    "3201320006C0320036003633060216FD03C00F00C06041180C0002003F000201414202020008CC31060216FD0C000201414CD0A0415006C2D0A0414F02030B00",
+    "03A0320332313231323136013630060216FD03C00C000340"
+];
+
 function F18AGPU(f18a) {
     this.f18a = f18a;
     this.vdpRAM = f18a.getRAM();
 
     this.cpuIdle = true;
     this.WP = 0xF000; // Place workspace in an unused part of the memory space
+    for (var i = 0; i < 32; i++) {
+        this.vdpRAM[this.WP + i] = 0;
+    }
 
     // Internal registers
     this.PC = 0;
     this.ST = 0;
     this.flagX = 0;
-
-    // DMA
-    this.dmaSrc = 0;
-    this.dmaDst = 0;
-    this.dmaLength = 0;
-    this.dmaSrcStep = 0;
-    this.dmaDstStep = 0;
 
     // Operands
     this.Ts = 0;
@@ -73,17 +80,35 @@ function F18AGPU(f18a) {
 
     // Misc
     this.breakpoint = null;
+    this.illegalCount = 0;
     this.log = Log.getLog();
+
+    // Flash RAM
+    var that = this;
+    this.flash = new F18AFlash(function(restored) {
+        that.flashLoaded = restored;
+        that.reset();
+    });
 }
 
 F18AGPU.prototype = {
 
     reset: function() {
-        this.cpuIdle = true;
-        this.PC = 0;
-        for (var i = 0; i < 32; i++) {
-            this.vdpRAM[this.WP + i] = 0;
+        this.intReset();
+        this.flash.reset();
+        // Load and execute GPU code
+        if (this.flashLoaded) {
+            var preload = this.hexArrayToBin(F18AGPU.PRELOAD);
+            for (var a = 0; a < preload.length; a++) {
+                this.vdpRAM[0x4000 + a] = preload[a];
+            }
+            this.setPC(0x4000);
         }
+    },
+
+    intReset: function() {
+        this.cpuIdle = true;
+        this.PC = 0x4000;
         this.ST = 0x01C0;
         this.flagX = 0;
         this.Ts = 0;
@@ -94,6 +119,7 @@ F18AGPU.prototype = {
         this.nPostInc = [0, 0];
         this.cycles = 0;
         this.cyclesRemaining = 0;
+        this.illegalCount = 0;
     },
 
     // Build the word status lookup table
@@ -171,12 +197,15 @@ F18AGPU.prototype = {
                 cycles += cycles2;
             }
             else {
-                this.log.info(((this.PC - 2) & 0xFFFF).toHexWord() + ": " + instruction.toHexWord() + " Not implemented");
+                this.log.info(((this.PC - 2) & 0xFFFF).toHexWord() + " " + instruction.toHexWord() + " " + opcode.id + ": GPU Not implemented");
             }
             return cycles;
         }
         else {
-            this.log.info(((this.PC - 2) & 0xFFFF).toHexWord() + ": " + instruction.toHexWord() + " Illegal");
+            if (this.illegalCount < 256) {
+                this.log.info(((this.PC - 2) & 0xFFFF).toHexWord() + " " + instruction.toHexWord() + ": GPU Illegal" + (this.illegalCount == 255 ? " (suppressing further messages)" : ""));
+            }
+            this.illegalCount++;
             return 10;
         }
     },
@@ -410,7 +439,8 @@ F18AGPU.prototype = {
         }
         // PRAM
         else if (addr < 0x6000) {
-            var color = this.f18a.palette[(addr & 0x7F) >> 1];
+            var colNo = (addr & 0x7F) >> 1;
+            var color = this.f18a.palette[colNo];
             if ((addr & 1) == 0) {
                 // MSB
                 color[0] = (b & 0x0F) * 17;
@@ -421,6 +451,9 @@ F18AGPU.prototype = {
                 color[2] = (b & 0x0F) * 17;
             }
             this.f18a.redrawRequired = true;
+            if (colNo = this.f18a.bgColor) {
+                this.f18a.redrawBorder = true;
+            }
         }
         // VREG >6000->603F
         else if (addr < 0x7000) {
@@ -430,65 +463,40 @@ F18AGPU.prototype = {
         else if (addr < 0x8000) {
             //  Read only
         }
+        // DMA
         else if (addr < 0x9000) {
-            // DMA
-            switch (addr & 0xF) {
-                // 8xx0 - MSB src
-                case 0:
-                    this.dmaSrc = (this.dmaSrc & 0x00FF) | (b << 8);
-                    break;
-                // 8xx1 - LSB src
-                case 1:
-                    this.dmaSrc = (this.dmaSrc & 0xFF00) | b;
-                    break;
-                // 8xx2 - MSB dst
-                case 2:
-                    this.dmaDst = (this.dmaDst & 0x00FF) | (b << 8);
-                    break;
-                // 8xx3 - LSB dst
-                case 3:
-                    this.dmaDst = (this.dmaDst & 0xFF00) | b;
-                    break;
-                // 8xx4 - MSB length
-                case 4:
-                    this.dmaLength = (this.dmaLength & 0x00FF) | (b << 8);
-                    break;
-                // 8xx5 - LSB length
-                case 5:
-                    this.dmaLength = (this.dmaLength & 0xFF00) | b;
-                    break;
-                // 8xx6 - MSB src step, signed 8.8
-                case 6:
-                    this.dmaSrcStep = (this.dmaSrcStep & 0x00FF) | (b << 8);
-                    break;
-                // 8xx7 - LSB src step, signed 8.8
-                case 7:
-                    this.dmaSrcStep = (this.dmaSrcStep & 0xFF00) | b;
-                    break;
-                // 8xx8 - MSB dst step, signed 8.8
-                case 8:
-                    this.dmaDstStep = (this.dmaDstStep & 0x00FF) | (b << 8);
-                    break;
-                // 8xx9 - LSB dst step, signed 8.8
-                case 9:
-                    this.dmaDstStep = (this.dmaDstStep & 0xFF00) | b;
-                    break;
-                // 8xxA - trigger DMA by writing to this address
-                case 10:
-                    var src = this.dmaSrc;
-                    var dst = this.dmaDst;
-                    // Steps are fixed 8.8 format - convert to floating point
-                    var srcStep = this.dmaSrcStep / 256;
-                    var dstStep = this.dmaDstStep / 256;
-                    this.log.debug("DMA triggered src=" + src.toHexWord() + " dst=" + dst.toHexWord() + " length=" + this.dmaLength.toHexWord());
-                    for (var length = this.dmaLength; length > 0; length--) {
-                        this.vdpRAM[Math.floor(dst)] = this.vdpRAM[Math.floor(src)];
-                        src += srcStep;
-                        dst += dstStep;
+            if ((addr & 0xF) == 8) {
+                // Trigger DMA
+                var src = (this.vdpRAM[0x8000] << 8) | this.vdpRAM[0x8001];
+                var dst = (this.vdpRAM[0x8002] << 8) | this.vdpRAM[0x8003];
+                var width = this.vdpRAM[0x8004];
+                var height = this.vdpRAM[0x8005];
+                var stride = this.vdpRAM[0x8006];
+                var dir = (this.vdpRAM[0x8007] & 0x02) == 0 ? 1 : -1;
+                var diff = dir * (stride - width);
+                var copy = (this.vdpRAM[0x8007] & 0x01) == 0;
+                this.log.debug("DMA triggered src=" + src.toHexWord() + " dst=" + dst.toHexWord() + " width=" + width.toHexByte() + " height=" + height.toHexByte());
+                var srcByte = this.vdpRAM[src];
+                for (var y = 0; y < height; y++) {
+                    for (var x = 0; x < width; x++) {
+                        if (copy) {
+                            this.vdpRAM[dst] = this.vdpRAM[src];
+                            src += dir;
+                        }
+                        else {
+                            this.vdpRAM[dst] = srcByte;
+                        }
+                        dst += dir;
                     }
-                    this.addCycles(length); // ?
-                    this.f18a.redrawRequired = true;
-                    break;
+                    src += copy ? diff : 0;
+                    dst += diff;
+                }
+                this.addCycles(width * height); // ?
+                this.f18a.redrawRequired = true;
+            }
+            else {
+                // Setup
+                this.vdpRAM[addr & 0x800F] = b;
             }
         }
         // Unused
@@ -684,17 +692,15 @@ F18AGPU.prototype = {
         return 14;
     },
 
-    // This will set A0-A2 to 101 and pulse CRUCLK
+    // This is the SPI_EN instruction of the F18A GPU
     ckon: function() {
-        // Not implemented
-        this.log.info("SPI EN - Enable line to SPI flash ROM");
+        this.flash.enable();
         return 10;
     },
 
-    // This will set A0-A2 to 110 and pulse CRUCLK
+    // This is the SPI_DS instruction of the F18A GPU
     ckof: function() {
-        // Not implemented
-        this.log.info("SPI DS - Disable line to SPI flash ROM");
+        this.flash.disable();
         return 10;
     },
 
@@ -1424,23 +1430,17 @@ F18AGPU.prototype = {
         return 10;
     },
 
-    // LoaD CRu - LDCR src, dst
-    // Writes dst bits serially out to the CRU registers
-    // The CRU is the 9901 Communication chip, tightly tied into the 9900.
-    // It's serially accessed and has 4096 single bit IO registers.
-    // It's stupid and thinks 0 is true and 1 is false.
-    // All addresses are offsets from the value in R12, which is divided by 2
+    // This is the SPI_OUT instruction of the F18A GPU
     ldcr: function() {
-        var x1 = this.readMemoryByte(this.S);
-        this.log.info("Write byte to SPI: " + x1.toHexByte());
+        this.flash.writeByte(this.readMemoryByte(this.S));
+        this.postIncrement(this.SRC);
         return 10;
     },
 
-    // STore CRU: STCR src, dst
-    // Stores dst bits from the CRU into src
+    // This is the SPI_IN instruction of the F18A GPU
     stcr: function() {
-        this.log.info("Read byte from SPI");
-        this.writeMemoryByte(this.S, 0);
+        this.writeMemoryByte(this.S, this.flash.readByte());
+        this.postIncrement(this.SRC);
         return 10;
     },
 
@@ -1847,5 +1847,17 @@ F18AGPU.prototype = {
 
     atBreakpoint: function() {
         return this.breakpoint && this.PC == this.breakpoint;
+    },
+
+    hexArrayToBin: function(hexArray) {
+        var binArray = [];
+        var n = 0;
+        for (var i = 0; i < hexArray.length; i++) {
+            var row = hexArray[i];
+            for (var j = 0; j < row.length; j += 2) {
+                binArray[n++] = parseInt(row.substr(j, 2), 16);
+            }
+        }
+        return binArray;
     }
 };

@@ -31,6 +31,7 @@
                 if (window.applicationCache.status == window.applicationCache.UPDATEREADY) {
                     // Browser downloaded a new app cache.
                     if (confirm("A new version of Js99'er is available. Download it?")) {
+                        window.applicationCache.swapCache();
                         window.location.reload();
                     }
                 } else {
@@ -42,6 +43,7 @@
         // Init
 
         log = Log.getLog();
+        log.info("Welcome to Js99'er");
         settings = new Settings(true);
         diskImages = {
             FLOPPY1: new DiskImage("FLOPPY1"),
@@ -123,7 +125,8 @@
         });
 
         $("#btnScreenshot").on("click", function() {
-            this.href = document.getElementById("canvas").toDataURL();
+            // this.href = document.getElementById("canvas").toDataURL();
+           ti994a.keyboard.simulateKeyPresses("KEYBOARD");
         });
 
         $("#btnLeft").on("mousedown touchstart", function() { ti994a.keyboard.simulateKeyDown(37); }).on("mouseup touchend", function() { ti994a.keyboard.simulateKeyUp(37); });
@@ -502,6 +505,15 @@
                     }, function (message) {
                         log.error(message);
                     });
+                }
+                else if (extension != null && extension.toLowerCase() == "obj") {
+                    var reader = new FileReader();
+                    reader.onload = function() {
+                        var objLoader = new ObjLoader();
+                        objLoader.loadObjFile(this.result);
+                        ti994a.loadSoftware(objLoader.getSoftware());
+                    };
+                    reader.readAsText(file);
                 }
                 else {
                     loadTIFile(file.name, file);

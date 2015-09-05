@@ -6,6 +6,15 @@
 
 'use strict';
 
+String.prototype.trimSpace = function() {
+    var s = this;
+    var n = s.length - 1;
+    while (n >= 0 && s.charCodeAt(n) == 32) {
+        n--;
+    }
+    return n >= 0 ? s.substr(0, n + 1) : "";
+};
+
 String.prototype.padl = function(ch, len) {
     var s = this;
     while (s.length < len) {

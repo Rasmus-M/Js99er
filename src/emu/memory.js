@@ -127,7 +127,7 @@ Memory.prototype = {
         for (i = 0; i < this.ram.length; i++) {
             // Don't erase cartridge RAM for Mini Memory etc.
             if (!keepCart || i >= 0x2000 && i < 0x4000 || i >= 0xa000 && i < 0x10000) {
-                this.ram[i] = 0;
+                this.ram[i] = 0; // i & 0xFF;
             }
         }
         if (!keepCart) {
@@ -143,7 +143,12 @@ Memory.prototype = {
             this.cartImage = null;
         }
         if (this.enableAMS) {
-            this.ams.reset();
+            if (this.ams) {
+                this.ams.reset();
+            }
+            else {
+                this.ams = new AMS(1024);
+            }
         }
     },
 
@@ -156,7 +161,12 @@ Memory.prototype = {
 
     loadRAM: function(addr, byteArray) {
         for (var i = 0; i < byteArray.length; i++) {
-            this.ram[addr + i] = byteArray[i] & 0xFF;
+            if (this.enableAMS) {
+                this.ams.setByte(addr + i, byteArray[i]);
+            }
+            else {
+                this.ram[addr + i] = byteArray[i];
+            }
         }
     },
 

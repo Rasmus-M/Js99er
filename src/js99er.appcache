@@ -1,5 +1,5 @@
 CACHE MANIFEST
-#2015-03-09 build 4.5
+#2015-09-03 build 5.0.4
 
 CACHE:
 index.html
@@ -9,17 +9,20 @@ software.js
 database.js
 settings.js
 disassembler.js
+objLoader.js
 log.js
 util.js
 emu/ti994a.js
 emu/cru.js
 emu/f18a.js
 emu/f18agpu.js
+emu/f18aflash.js
 emu/disk.js
 emu/googledrive.js
 emu/keyboard.js
 emu/memory.js
-emu/decoder.js
+emu/memory.js
+emu/ams.js
 emu/tms5220.js
 emu/tms9900.js
 emu/tms9918a.js
@@ -29,7 +32,6 @@ lib/bootstrap-multilevel-dropdown.js
 lib/bootstrap-select.min.js
 lib/bootstrap-switch.min.js
 lib/bootstrap.min.js
-lib/google-client.js
 lib/imageMapResizer.js
 lib/fileSaver.js
 lib/jquery-1.11.0.min.js
@@ -50,13 +52,10 @@ fonts/glyphicons-halflings-regular.svg
 fonts/glyphicons-halflings-regular.ttf
 fonts/glyphicons-halflings-regular.woff
 images/keyboard.jpg
+images/icon.png
 software/system.js
 software/editor-assembler.json
 software/xb.json
 
 NETWORK:
 *
-
-
-
-

@@ -74,8 +74,11 @@ body {
     height:433px;
 }
 
-#keyboard {
+#keyboard, #strip {
     width: 100%;
+}
+
+#strip {
     margin-top: 14px;
 }
 

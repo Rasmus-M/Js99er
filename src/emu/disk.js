@@ -1078,7 +1078,7 @@ DiskImage.prototype = {
             // Flags
             n = this.writeByte(data, n, (file.getRecordType() << 7) | (file.getDatatype() << 1) | file.getFileType());
             // #Rec/sect
-            n = this.writeByte(data, n, file.getFileType() == TI_FILE.FILE_TYPE_DATA && file.getRecordLength() > 0 ? Math.floor(256 / file.getRecordLength()) : 0);
+            n = this.writeByte(data, n, file.getFileType() == TI_FILE.FILE_TYPE_DATA && file.getRecordLength() > 0 ? Math.floor(256 / (file.getRecordLength() + (file.getRecordType() == TI_FILE.RECORD_TYPE_VARIABLE ? 1 : 0))) : 0);
             // EOF offset
             n = this.writeByte(data, n, file.getEOFOffset());
             // Record length
@@ -1215,7 +1215,7 @@ DiskImage.prototype = {
             // Status flags
             n = this.writeByte(dskImg, n, (file.getRecordType() << 7) | (file.getDatatype() << 1) | file.getFileType());
             // Records per sector
-            n = this.writeByte(dskImg, n, file.getFileType() == TI_FILE.FILE_TYPE_DATA ? Math.floor(256 / file.getRecordLength()) : 0);
+            n = this.writeByte(dskImg, n, file.getFileType() == TI_FILE.FILE_TYPE_DATA ? Math.floor(256 / (file.getRecordLength() + (file.getRecordType() == TI_FILE.RECORD_TYPE_VARIABLE ? 1 : 0))) : 0);
             // Sectors allocated
             n = this.writeWord(dskImg, n, file.getSectorCount());
             // End of file offset

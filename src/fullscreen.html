@@ -17,12 +17,12 @@
     <script src="lib/bootstrap-select.min.js"></script>
     <script src="lib/bootstrap-switch.min.js"></script>
     <script src="lib/bootstrap-multilevel-dropdown.js"></script>
-    <script src="lib/google-client.js"></script>
     <script src="lib/imageMapResizer.js"></script>
     <script src="lib/fileSaver.js"></script>
     <script src="lib/zip/zip.js"></script>
     <script src="lib/zip/zip-ext.js"></script>
     <script>zip.workerScriptsPath = "lib/zip/";</script>
+    <script src="https://apis.google.com/js/client.js"></script>
     <!-- Software -->
     <script src="software/system.js"></script>
     <script src="software.js"></script>
@@ -34,6 +34,7 @@
     <script src="emu/tms9918a.js"></script>
     <script src="emu/f18a.js"></script>
     <script src="emu/f18agpu.js"></script>
+    <script src="emu/f18aflash.js"></script>
     <script src="emu/sn76489.js"></script>
     <script src="emu/tms9919.js"></script>
     <script src="emu/tms5220.js"></script>
@@ -188,6 +189,7 @@
         <!-- Keyboard pane -->
         <div class="tab-pane fade" id="keyboardPane">
             <div class="panel panel-default" id="keyboardPanel" style="position:relative">
+                <img src="images/strip.jpg" id="strip">
                 <img src="images/keyboard.jpg" usemap="#keyboardMap" name="Keyboard" id="keyboard" alt="TI-99/4A keyboard" border="0">
                 <map name="keyboardMap">
                     <area shape="RECT" coords="3, 1, 39, 37" alt="1" id="key1">

@@ -15,6 +15,7 @@ function Keyboard(pcKeyboardEnabled) {
 }
 
 Keyboard.KEYPRESS_DURATION = 100;
+Keyboard.EMULATE_JOYSTICK_2 = false;
 
 Keyboard.prototype = {
 
@@ -57,12 +58,21 @@ Keyboard.prototype = {
                 self.keyEvent2(evt, false);
             });
         }
+//        $(document).on("paste", function(evt) {
+//            var clipText = evt.originalEvent.clipboardData.getData('text/plain');
+//            self.removeListeners();
+//            window.setTimeout(function() {
+//                self.simulateKeyPresses(clipText);
+//                self.attachListeners();
+//            }, 200)
+//        })
     },
 
     removeListeners: function() {
         $(document).off("keyup");
         $(document).off("keypress");
         $(document).off("keydown");
+        $(document).off("paste");
     },
 
     setPCKeyboardEnabled: function(enabled) {
@@ -233,9 +243,11 @@ Keyboard.prototype = {
             // Column 6
             case 9:  // Tab -> J1 Fire
                 this.columns[6][3] = down;
+                if (Keyboard.EMULATE_JOYSTICK_2) this.columns[7][3] = down;
                 break;
             case 37:  // Left arrow -> J1 Left
                 this.columns[6][4] = down;
+                if (Keyboard.EMULATE_JOYSTICK_2) this.columns[7][4] = down;
                 if (this.joystickActive == 0) {
                     // Left arrow
                     this.columns[0][7] = down; // Fctn
@@ -244,6 +256,7 @@ Keyboard.prototype = {
                 break;
             case 39:  // Right arrow -> J1 Right
                 this.columns[6][5] = down;
+                if (Keyboard.EMULATE_JOYSTICK_2) this.columns[7][5] = down;
                 if (this.joystickActive == 0) {
                     // Right arrow
                     this.columns[0][7] = down; // Fctn
@@ -252,6 +265,7 @@ Keyboard.prototype = {
                 break;
             case 40:  // Down arrow -> J1 Down
                 this.columns[6][6] = down;
+                if (Keyboard.EMULATE_JOYSTICK_2) this.columns[7][6] = down;
                 if (this.joystickActive == 0) {
                     // Down arrow
                     this.columns[0][7] = down; // Fctn
@@ -260,6 +274,7 @@ Keyboard.prototype = {
                 break;
             case 38:  // Up arrow -> J1 Up
                 this.columns[6][7] = down;
+                if (Keyboard.EMULATE_JOYSTICK_2) this.columns[7][7] = down;
                 if (this.joystickActive == 0) {
                     // Up arrow
                     this.columns[0][7] = down; // Fctn
@@ -300,8 +315,8 @@ Keyboard.prototype = {
             default:
                 return; // Browser should handle key event
         }
-        // Allow Ctrl + Shift + I (Developer console) or Ctrl + C (copy)
-        if (!(this.columns[0][8] && this.columns[0][9] && this.columns[2][5]) && !(this.columns[0][9] && this.columns[2][10])) {
+        // Allow Ctrl + Shift + I (Developer console), Ctrl + C (copy) or Ctrl + V (paste)
+        if (!(this.columns[0][8] && this.columns[0][9] && this.columns[2][5]) && !(this.columns[0][9] && this.columns[2][10]) && !(this.columns[0][9] && this.columns[3][10])) {
             // Else prevent normal browser handling
             evt.preventDefault();
         }
@@ -648,9 +663,11 @@ Keyboard.prototype = {
                 break;
             case 9:  // Tab -> J1 Fire
                 this.columns[6][3] = down;
+                if (Keyboard.EMULATE_JOYSTICK_2) this.columns[7][3] = down;
                 break;
             case 37:  // Left arrow -> J1 Left
                 this.columns[6][4] = down;
+                if (Keyboard.EMULATE_JOYSTICK_2) this.columns[7][4] = down;
                 if (this.joystickActive == 0) {
                     // Left arrow
                     this.columns[0][7] = down; // Fctn
@@ -659,6 +676,7 @@ Keyboard.prototype = {
                 break;
             case 39:  // Right arrow -> J1 Right
                 this.columns[6][5] = down;
+                if (Keyboard.EMULATE_JOYSTICK_2) this.columns[7][5] = down;
                 if (this.joystickActive == 0) {
                     // Right arrow
                     this.columns[0][7] = down; // Fctn
@@ -667,6 +685,7 @@ Keyboard.prototype = {
                 break;
             case 40:  // Down arrow -> J1 Down
                 this.columns[6][6] = down;
+                if (Keyboard.EMULATE_JOYSTICK_2) this.columns[7][6] = down;
                 if (this.joystickActive == 0) {
                     // Down arrow
                     this.columns[0][7] = down; // Fctn
@@ -675,6 +694,7 @@ Keyboard.prototype = {
                 break;
             case 38:  // Up arrow -> J1 Up
                 this.columns[6][7] = down;
+                if (Keyboard.EMULATE_JOYSTICK_2) this.columns[7][7] = down;
                 if (this.joystickActive == 0) {
                     // Up arrow
                     this.columns[0][7] = down; // Fctn
@@ -757,15 +777,15 @@ Keyboard.prototype = {
                 }
                 return; // Browser should handle key event
         }
-        // Allow Ctrl + Shift + I (Developer console) or Ctrl + C (copy)
-        if (!(this.columns[0][8] && this.columns[0][9] && this.columns[2][5]) && !(this.columns[0][9] && this.columns[2][10])) {
+        // Allow Ctrl + Shift + I (Developer console), Ctrl + C (copy) or Ctrl + V (paste
+        if (!(this.columns[0][8] && this.columns[0][9] && this.columns[2][5]) && !(this.columns[0][9] && this.columns[2][10]) && !(this.columns[0][9] && this.columns[3][10])) {
             // Else prevent normal browser handling
             evt.preventDefault();
         }
     },
 
     isKeyDown: function(col, addr) {
-        if (col == 6 && this.joystickActive == 0) {
+        if ((col == 6 || col == 7) && this.joystickActive == 0) {
             this.joystickActive = 128;
             this.columns[0][7] = false;  // Fctn
             this.columns[1][8] = false;  // S
@@ -787,31 +807,31 @@ Keyboard.prototype = {
     simulateKeyPresses: function(keyString) {
         if (keyString.length > 0) {
             var pause = keyString.charAt(0) == "§";
-            if (!pause) {
-                this.simulateKeyPress(keyString.charCodeAt(0));
-            }
             var that = this;
-            window.setTimeout(function() {
-                that.simulateKeyPresses(keyString.substr(1));
-            }, pause ? 1000 : 2 * Keyboard.KEYPRESS_DURATION);
+            if (!pause) {
+                var charCode = keyString.charCodeAt(0);
+                this.simulateKeyPress(charCode > 96 ? charCode - 32 : charCode, function() {
+                    window.setTimeout(function() {
+                        that.simulateKeyPresses(keyString.substr(1));
+                    }, Keyboard.KEYPRESS_DURATION);
+                });
+            }
+            else {
+                window.setTimeout(function () {
+                    that.simulateKeyPresses(keyString.substr(1));
+                }, 1000);
+            }
         }
     },
 
-    simulateKeyPress: function(keyCode) {
+    simulateKeyPress: function(keyCode, callback) {
         this.log.info(keyCode);
-        this.keyEvent({keyCode: keyCode, preventDefault: function() {}}, true);
+        this.simulateKeyDown(keyCode);
         var that = this;
         window.setTimeout(function() {
-            that.keyEvent({keyCode: keyCode, preventDefault: function() {}}, false);
+            that.simulateKeyUp(keyCode);
+            if (callback) callback();
         }, Keyboard.KEYPRESS_DURATION);
-    },
-
-    simulateKeyDown: function(keyCode) {
-        this.keyEvent({keyCode: keyCode, preventDefault: function() {}}, true);
-    },
-
-    simulateKeyUp: function(keyCode) {
-        this.keyEvent({keyCode: keyCode, preventDefault: function() {}}, false);
     },
 
     virtualKeyPress: function(keyCode) {
@@ -840,5 +860,22 @@ Keyboard.prototype = {
 
     virtualKeyUp: function(keyCode) {
         this.simulateKeyUp(keyCode);
+    },
+
+    simulateKeyDown: function(keyCode) {
+        this.keyEvent({keyCode: keyCode, preventDefault: function() {}}, true);
+    },
+
+    simulateKeyUp: function(keyCode) {
+        this.keyEvent({keyCode: keyCode, preventDefault: function() {}}, false);
+    },
+
+    simulateKeyDown2: function(keyCode) {
+        this.keyEvent2({keyCode: keyCode, preventDefault: function() {}}, true);
+        this.keyPressEvent({keyCode: keyCode, preventDefault: function() {}});
+    },
+
+    simulateKeyUp2: function(keyCode) {
+        this.keyEvent2({keyCode: keyCode, preventDefault: function() {}}, false);
     }
 };

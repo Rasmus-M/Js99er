@@ -9,6 +9,11 @@
 function CRU(keyboard) {
     this.keyboard = keyboard;
     this.cru = [];
+    this.timerMode = false;
+    this.clockRegister = 0;
+    this.readRegister = 0;
+    this.decrementer = 0;
+    this.interrupt = false;
     this.log = Log.getLog();
     this.reset();
 }
@@ -35,11 +40,24 @@ CRU.prototype = {
                 return !(this.keyboard.isKeyDown(col, addr));
             }
         }
+        // Timer
+        if (this.timerMode) {
+            if (addr == 0) {
+                return this.timerMode;
+            }
+            else if (addr > 0 && addr < 15) {
+                return this.readRegister & (1 << (addr - 1)) != 0;
+            }
+            else if (addr == 15) {
+                var tmp = this.interrupt;
+                this.interrupt = false;
+                return tmp;
+            }
+        }
         return this.cru[addr];
     },
 
     writeBit: function(addr, bit) {
-
         if (addr >= 0x800) {
             // DSR space
             addr <<= 1; // Convert to R12 space i.e. >= >1000
@@ -63,6 +81,38 @@ CRU.prototype = {
             }
         }
         else {
+            // Timer
+            if (addr == 0) {
+                if (this.timerMode && !bit) {
+                    // Leave timer mode
+                    if (this.clockRegister > 0) {
+                        this.decrementer = this.clockRegister;
+                        // this.log.debug("Timer started at " + this.decrementer);
+                    }
+                }
+                this.timerMode = bit;
+            }
+            else if (this.timerMode) {
+                if (addr > 0 && addr < 15) {
+                    if (bit) {
+                        this.clockRegister |= (bit << (addr - 1));
+                    }
+                    else {
+                        this.clockRegister &= ~(bit << (addr - 1));
+                    }
+                    this.decrementer = this.clockRegister;
+                }
+                else if (addr == 15 && !bit) {
+                    this.log.info("Reset 9901");
+                    this.timerMode = false;
+                    this.clockRegister = 0;
+                    this.readRegister = 0;
+                }
+                else if (addr >= 16) {
+                    this.timerMode = false;
+                    this.cru[0] = false;
+                }
+            }
             this.cru[addr] = bit;
         }
     },
@@ -73,5 +123,18 @@ CRU.prototype = {
 
     isVDPInterrupt: function() {
         return !this.cru[2];
+    },
+
+    decrementCounter: function(value) {
+        if (this.decrementer > 0) {
+            this.decrementer -= value;
+            if (this.decrementer < 1) {
+                this.interrupt = true;
+                this.decrementer = this.clockRegister;
+            }
+            if (!this.timerMode) {
+                this.readRegister = this.decrementer;
+            }
+        }
     }
 };
