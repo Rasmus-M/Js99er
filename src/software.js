@@ -208,7 +208,7 @@ Software.prototype = {
                 }
             });
         }, function(message) {
-            onError(message);
+            if (onError) onError(message);
         });
     },
 
@@ -225,7 +225,7 @@ Software.prototype = {
             onSuccess(cart);
         };
         reader.onerror = function() {
-            onError(this.error.name);
+            if (onError) onError(this.error.name);
         };
         reader.readAsArrayBuffer(file);
 
