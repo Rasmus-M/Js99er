@@ -65,6 +65,7 @@ function TMS9918A(canvas, cru, enableFlicker) {
     this.spritePatternTable = null;
     this.colorTableMask = null;
     this.patternTableMask = null;
+    this.ramMask = null;
     this.fgColor = null;
     this.bgColor = null;
 
@@ -110,6 +111,7 @@ TMS9918A.prototype = {
         this.spritePatternTable = 0;
         this.colorTableMask = 0x3FFF;
         this.patternTableMask = 0x3FFF;
+        this.ramMask = 0x3FFF;
         this.fgColor = 0;
         this.bgColor = 0;
 
@@ -147,10 +149,7 @@ TMS9918A.prototype = {
             }
             this.redrawRequired = false;
         }
-        this.statusRegister |= 0x80;
-        if (this.interruptsOn) {
-            this.cru.writeBit(2, false);
-        }
+        this.statusRegister = 0x80;
         if (this.collision) {
             this.statusRegister |= 0x20;
         }
@@ -158,6 +157,9 @@ TMS9918A.prototype = {
             this.statusRegister |= 0x40;
         }
         this.statusRegister |= this.fifthSpriteIndex;
+        if (this.interruptsOn) {
+            this.cru.writeBit(2, false);
+        }
     },
 
     fillCanvas: function() {
@@ -168,48 +170,50 @@ TMS9918A.prototype = {
     drawTiles: function() {
         var imageData = this.imagedata.data;
         var ram = this.ram;
-        if (this.screenMode != TMS9918A.MODE_MULTICOLOR) {
+        var ramMask = this.ramMask;
+        var screenMode = this.screenMode;
+        if (screenMode != TMS9918A.MODE_MULTICOLOR) {
             // Text, graphics and bitmap modes
-            var screenColumns = this.screenMode == TMS9918A.MODE_TEXT ? 40 : 32;
-            var charPixelWidth = this.screenMode == TMS9918A.MODE_TEXT ? 6 : 8;
-            var nameTableLength = this.screenMode == TMS9918A.MODE_TEXT ? 960 : 768;
-            var hMargin = this.screenMode == TMS9918A.MODE_TEXT ? 8 : 0;
+            var screenColumns = screenMode == TMS9918A.MODE_TEXT ? 40 : 32;
+            var charPixelWidth = screenMode == TMS9918A.MODE_TEXT ? 6 : 8;
+            var nameTableLength = screenMode == TMS9918A.MODE_TEXT ? 960 : 768;
+            var hMargin = screenMode == TMS9918A.MODE_TEXT ? 8 : 0;
             var ch, row, charNo, imageDataAddr, color;
             for (ch = 0; ch < nameTableLength; ch++) {
                 row = Math.floor(ch / screenColumns);
                 imageDataAddr = (hMargin + (ch % screenColumns) * charPixelWidth + (row << 11)) << 2;
-                var charSetOffset = this.screenMode == TMS9918A.MODE_BITMAP ? ((ch >> 8) << 11) : 0;
-                charNo = ram[this.nameTable + ch];
+                var charSetOffset = screenMode == TMS9918A.MODE_BITMAP ? ((ch >> 8) << 11) : 0;
+                charNo = ram[(this.nameTable + ch) & this.ramMask];
                 var patternAddr = this.charPatternTable + ((charSetOffset + (charNo << 3)) & this.patternTableMask);
-                var colorAddr = this.screenMode == TMS9918A.MODE_BITMAP ? this.colorTable + ((charSetOffset + (charNo << 3)) & this.colorTableMask) : this.colorTable + (charNo >> 3);
+                var colorAddr = screenMode == TMS9918A.MODE_BITMAP ? this.colorTable + ((charSetOffset + (charNo << 3)) & this.colorTableMask) : this.colorTable + (charNo >> 3);
                 for (var charRow = 0; charRow < 8; charRow++) {
-                    var charByte = ram[patternAddr + charRow];
+                    var charByte = ram[(patternAddr + charRow) & ramMask];
                     for (var pix = 0; pix < charPixelWidth; pix++) {
                         color = 0;
                         if (((charByte & (0x80 >> pix)) != 0)) {
                             // Pixel set
-                            switch (this.screenMode) {
+                            switch (screenMode) {
                                 case TMS9918A.MODE_TEXT:
                                     color = this.fgColor;
                                     break;
                                 case TMS9918A.MODE_GRAPHICS:
-                                    color = (ram[colorAddr] & 0xf0) >>> 4;
+                                    color = (ram[colorAddr & ramMask] & 0xf0) >>> 4;
                                     break;
                                 case TMS9918A.MODE_BITMAP:
-                                    color = ((ram[colorAddr + charRow] & 0xf0) >>> 4);
+                                    color = ((ram[(colorAddr + charRow) & ramMask] & 0xf0) >>> 4);
                                     break;
                             }
                         } else {
                             // Pixel not set
-                            switch (this.screenMode) {
+                            switch (screenMode) {
                                 case TMS9918A.MODE_TEXT:
                                     color = this.bgColor;
                                     break;
                                 case TMS9918A.MODE_GRAPHICS:
-                                    color = ram[colorAddr] & 0xf;
+                                    color = ram[colorAddr & ramMask] & 0xf;
                                     break;
                                 case TMS9918A.MODE_BITMAP:
-                                    color = ram[colorAddr + charRow] & 0xf;
+                                    color = ram[(colorAddr + charRow) & ramMask] & 0xf;
                                     break;
                             }
                         }
@@ -225,7 +229,7 @@ TMS9918A.prototype = {
                     imageDataAddr += (256 - charPixelWidth) << 2;
                 }
             }
-            if (this.screenMode == TMS9918A.MODE_TEXT) {
+            if (screenMode == TMS9918A.MODE_TEXT) {
                 imageDataAddr = 0;
                 var rgbBGColor = this.palette[this.bgColor];
                 for (var y = 0; y < 192; y++) {
@@ -417,6 +421,7 @@ TMS9918A.prototype = {
                             this.updateMode(this.registers[0], this.registers[1]);
                             break;
                         case 1:
+                            this.ramMask = (this.registers[1] & 0x80) != 0 ? 0x3FFF : 0x1FFF;
                             this.displayOn = (this.registers[1] & 0x40) != 0;
                             this.interruptsOn = (this.registers[1] & 0x20) != 0;
                             this.updateMode(this.registers[0], this.registers[1]);
@@ -507,20 +512,20 @@ TMS9918A.prototype = {
 
     updateTableMasks: function() {
         if (this.screenMode == TMS9918A.MODE_BITMAP) {
-            this.colorTableMask = ((this.registers[3] & 0x7F) << 6) | 0x3F;
-            this.patternTableMask  = ((this.registers[4] & 0x03) << 11) | (this.colorTableMask & 0x7FF);
+            this.colorTableMask = ((this.registers[3] & 0x7F) << 6) | 0x3F; // 000CCCCCCC111111
+            this.patternTableMask  = ((this.registers[4] & 0x03) << 11) | (this.colorTableMask & 0x7FF); // 000PPCCCCC111111
             // this.log.info("colorTableMask:" + this.colorTableMask);
             // this.log.info("patternTableMask:" + this.patternTableMask);
         }
         else {
-            this.colorTableMask = 0x3FFF;
-            this.patternTableMask = 0x3FFF;
+            this.colorTableMask = this.ramMask;
+            this.patternTableMask = this.ramMask;
         }
     },
 
     writeData: function(i) {
         this.ram[this.addressRegister++] = i;
-        this.addressRegister %= 16384;
+        this.addressRegister &= this.ramMask;
         this.redrawRequired = true;
     },
 
@@ -535,7 +540,7 @@ TMS9918A.prototype = {
     readData: function() {
         var i = this.prefetchByte;
         this.prefetchByte = this.ram[this.addressRegister++];
-        this.addressRegister &= 0x3FFF;
+        this.addressRegister &= this.ramMask;
         return i;
     },
 
@@ -545,7 +550,7 @@ TMS9918A.prototype = {
 
     colorTableSize: function() {
         if (this.screenMode == TMS9918A.MODE_BITMAP) {
-            return Math.min(this.patternTableMask + 1, 0x1800);
+            return Math.min(this.colorTableMask + 1, 0x1800);
         }
         else {
             return 0x20;
@@ -554,7 +559,7 @@ TMS9918A.prototype = {
 
     patternTableSize: function() {
         if (this.screenMode == TMS9918A.MODE_BITMAP) {
-            return Math.min(this.colorTableMask + 1, 0x1800);
+            return Math.min(this.patternTableMask + 1, 0x1800);
         }
         else {
             return 0x800;

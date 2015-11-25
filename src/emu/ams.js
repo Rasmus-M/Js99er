@@ -38,7 +38,7 @@ var AMS = (function() {
     };
 
     AMS.prototype.setMode = function(mode) {
-        this.log.info("AMS " + (mode ? " mapping " : "transparent") + " mode set");
+        this.log.info("AMS " + (mode == AMS.MAPPING_MODE ? "mapping" : "transparent") + " mode set");
         this.map = mode == AMS.TRANSPARENT_MODE ? this.transparentMap : this.registerMap;
 
     };
@@ -57,8 +57,8 @@ var AMS = (function() {
     AMS.prototype.readWord = function(addr) {
         var regNo = (addr & 0xF000) >> 12;
         if (this.transparentMap[regNo] != null) {
-            var asmAddr = ((this.map[regNo] & (this.pages - 1)) << 12) | (addr & 0x0FFF);
-            return this.ram[asmAddr] << 8 | this.ram[asmAddr + 1];
+            var amsAddr = ((this.map[regNo] & (this.pages - 1)) << 12) | (addr & 0x0FFF);
+            return this.ram[amsAddr] << 8 | this.ram[amsAddr + 1];
         }
         return 0;
     };
@@ -66,17 +66,17 @@ var AMS = (function() {
     AMS.prototype.writeWord = function(addr, w) {
         var regNo = (addr & 0xF000) >> 12;
         if (this.transparentMap[regNo] != null) {
-            var asmAddr = ((this.map[regNo] & (this.pages - 1)) << 12) | (addr & 0x0FFF);
-            this.ram[asmAddr] = (w & 0xFF00) >> 8;
-            this.ram[asmAddr + 1] = w & 0xFF;
+            var amsAddr = ((this.map[regNo] & (this.pages - 1)) << 12) | (addr & 0x0FFF);
+            this.ram[amsAddr] = (w & 0xFF00) >> 8;
+            this.ram[amsAddr + 1] = w & 0xFF;
         }
     };
 
     AMS.prototype.getByte = function(addr) {
         var page = this.map[(addr & 0xF000) >> 12];
         if (page != null) {
-            var asmAddr = (page & (this.pages - 1)) << 12 | (addr & 0x0FFF);
-            return this.ram[asmAddr];
+            var amsAddr = (page & (this.pages - 1)) << 12 | (addr & 0x0FFF);
+            return this.ram[amsAddr];
         }
         return 0;
     };
@@ -84,8 +84,8 @@ var AMS = (function() {
     AMS.prototype.setByte = function(addr, b) {
         var regNo = (addr & 0xF000) >> 12;
         if (this.transparentMap[regNo] != null) {
-            var asmAddr = ((this.map[regNo] & (this.pages - 1)) << 12) | (addr & 0x0FFF);
-            this.ram[asmAddr] = b;
+            var amsAddr = ((this.map[regNo] & (this.pages - 1)) << 12) | (addr & 0x0FFF);
+            this.ram[amsAddr] = b;
         }
     };
 

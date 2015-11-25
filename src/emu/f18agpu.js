@@ -1364,6 +1364,7 @@ F18AGPU.prototype = {
         this.D = this.WP + (this.D << 1);
         var x1 = this.readMemoryWord(this.S);
         var x2 = this.readMemoryWord(this.D);
+        var pixOffset;
         var addr = 0;
         if ((x2 & 0x8000) != 0) {
             // calculate BM2 address:
@@ -1382,15 +1383,14 @@ F18AGPU.prototype = {
         } else {
             // Calculate bitmap layer address
             // this.log.info("Plot(" + ((x1 & 0xFF00) >> 8) + ", " + (x1 & 0x00FF) + ")");
-            addr =
-                this.f18a.bitmapBaseAddr +
-                ((((x1 & 0xFF00) >> 8) + (x1 & 0x00FF) * this.f18a.bitmapWidth) >> 2);
+            pixOffset = ((x1 & 0xFF00) >> 8) + (x1 & 0x00FF) * this.f18a.bitmapWidth;
+            addr = this.f18a.bitmapBaseAddr + (pixOffset >> 2);
         }
 
         // Only parse the other bits if M and A are zero
         if ((x2 & 0xc000) == 0) {
             var pixByte = this.readMemoryByte(addr);	    // Get the byte
-            var bitShift = (x1 & 0x0300) >> 7;
+            var bitShift = (pixOffset & 0x0003) << 1;
             var mask = 0xC0 >> bitShift;
             var pix = (pixByte & mask) >> (6 - bitShift);
             var write = (x2 & 0x0400) == 0;		            // Whether to write

@@ -169,7 +169,7 @@ TI994A.prototype = {
     },
 
     drawFrame: function() {
-        if (window.requestAnimationFrame) {
+        if (false && window.requestAnimationFrame) {
             var that = this;
             requestAnimationFrame(function (timestamp) {
                 that.vdp.drawFrame(timestamp);
@@ -177,8 +177,8 @@ TI994A.prototype = {
             });
         }
         else {
-            that.vdp.drawFrame(new Date().getTime());
-            that.fpsFrameCount++;
+            this.vdp.drawFrame(window.performance ? window.performance.now() : new Date().getTime());
+            this.fpsFrameCount++;
         }
     },
 

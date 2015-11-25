@@ -210,6 +210,25 @@ Software.prototype = {
         }, function(message) {
             onError(message);
         });
+    },
+
+    loadBinModuleFromFile: function(file, onSuccess, onError) {
+        var baseFileName = file.name.split('.')[0];
+        var inverted = baseFileName && baseFileName.charAt(baseFileName.length - 1) == "3";
+        var reader = new FileReader();
+        reader.onload = function() {
+            var byteArray = new Uint8Array(this.result);
+            var cart = {
+                type: inverted ? Software.TYPE_INVERTED_CART : Software.TYPE_CART,
+                rom: byteArray
+            };
+            onSuccess(cart);
+        };
+        reader.onerror = function() {
+            onError(this.error.name);
+        };
+        reader.readAsArrayBuffer(file);
+
     }
 };
 
@@ -333,6 +352,11 @@ Software.programs = [
                 name: "Sabre Wulf",
                 type: Software.TYPE_INVERTED_CART,
                 url: "software/sabrewulf.rpk"
+            },
+            {
+                name: "Sports",
+                type: Software.TYPE_INVERTED_CART,
+                url: "software/sports.rpk"
             },
             {
                 name: "Jet Set Willy",

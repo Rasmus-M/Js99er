@@ -638,7 +638,7 @@ F18A.prototype = {
             var bitmapX2 = this.bitmapX + this.bitmapWidth;
             var bitmapY1 = y - this.bitmapY;
             var bitmapY2 = this.bitmapY + this.bitmapHeight;
-            var bitmapOffset = bitmapY1 * this.bitmapWidth;
+            var bitmapYOffset = bitmapY1 * this.bitmapWidth;
         }
         // Prepare values for Tile layer 2
         var rowOffset2, nameTableBaseAddr2, lineOffset2;
@@ -827,16 +827,17 @@ F18A.prototype = {
                 var bmpX = this.screenMode != F18A.MODE_TEXT_80 ? x : x >> 1;
                 if (bmpX >= this.bitmapX && bmpX < bitmapX2 && y >= this.bitmapY && y < bitmapY2) {
                     var bitmapX1 = x - this.bitmapX;
-                    var bitmapByte = this.ram[this.bitmapBaseAddr + ((bitmapX1 + bitmapOffset) >> 2)];
+                    var bitmapPixelOffset = bitmapX1 + bitmapYOffset;
+                    var bitmapByte = this.ram[this.bitmapBaseAddr + (bitmapPixelOffset >> 2)];
                     var bitmapBitShift,bitmapColor;
                     if (this.bitmapFat) {
                         // 16 color bitmap with fat pixels
-                        bitmapBitShift = (2 - (bitmapX1 & 2)) << 1;
+                        bitmapBitShift = (2 - (bitmapPixelOffset & 2)) << 1;
                         bitmapColor = (bitmapByte >> bitmapBitShift) & 0x0F;
                     }
                     else {
                         // 4 color bitmap
-                        bitmapBitShift = (3 - (bitmapX1 & 3)) << 1;
+                        bitmapBitShift = (3 - (bitmapPixelOffset & 3)) << 1;
                         bitmapColor = (bitmapByte >> bitmapBitShift) & 0x03;
                     }
                     if ((bitmapColor > 0 || !this.bitmapTransparent) && (color == this.bgColor || this.bitmapPriority)) {
@@ -1579,6 +1580,9 @@ F18A.prototype = {
                     this.fakeScanline++;
                     this.lastTime = now;
                 }
+                else {
+                    console.log(now - this.lastTime);
+                }
             }
             else {
                 this.fakeScanline++;
@@ -1592,7 +1596,7 @@ F18A.prototype = {
 
     colorTableSize: function() {
         if (this.screenMode == F18A.MODE_BITMAP) {
-            return Math.min(this.patternTableMask + 1, 0x1800);
+            return Math.min(this.colorTableMask + 1, 0x1800);
         }
         else {
             return 0x20;
@@ -1601,7 +1605,7 @@ F18A.prototype = {
 
     patternTableSize: function() {
         if (this.screenMode == F18A.MODE_BITMAP) {
-            return Math.min(this.colorTableMask + 1, 0x1800);
+            return Math.min(this.patternTableMask + 1, 0x1800);
         }
         else {
             return 0x800;

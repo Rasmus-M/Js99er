@@ -1,8 +1,9 @@
 CACHE MANIFEST
-#2015-09-03 build 5.0.4
+#Version 5.1.4, 16 November 2015
 
 CACHE:
 index.html
+manifest.json
 js99er.js
 sound.js
 software.js
@@ -12,6 +13,7 @@ disassembler.js
 objLoader.js
 log.js
 util.js
+icon.png
 emu/ti994a.js
 emu/cru.js
 emu/f18a.js
@@ -52,7 +54,9 @@ fonts/glyphicons-halflings-regular.svg
 fonts/glyphicons-halflings-regular.ttf
 fonts/glyphicons-halflings-regular.woff
 images/keyboard.jpg
-images/icon.png
+images/icon-32.png
+images/icon-64.png
+images/icon-192.png
 software/system.js
 software/editor-assembler.json
 software/xb.json

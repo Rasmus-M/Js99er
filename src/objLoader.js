@@ -26,7 +26,7 @@ var ObjLoader = (function () {
         var line = "";
         if (this.pos < this.file.length) {
             var char = this.file.charAt(this.pos);
-            while (char != '\n'&& char != '\r' && this.pos < this.file.length) {
+            while (char != '\n'&& char != '\r' && this.pos < this.file.length && line.length < 80) {
                 line += char;
                 this.pos++;
                 if (this.pos < this.file.length) {
@@ -39,6 +39,7 @@ var ObjLoader = (function () {
                     char = this.file.charAt(this.pos);
                 }
             }
+            console.log(line);
             return line;
         }
         else {

@@ -43,7 +43,9 @@
         // Init
 
         log = Log.getLog();
-        log.info("Welcome to Js99'er");
+        log.info("Welcome to JS99'er");
+        log.info("Version 5.1.4, 16 November 2015");
+        log.info("");
         settings = new Settings(true);
         diskImages = {
             FLOPPY1: new DiskImage("FLOPPY1"),
@@ -125,8 +127,7 @@
         });
 
         $("#btnScreenshot").on("click", function() {
-            // this.href = document.getElementById("canvas").toDataURL();
-           ti994a.keyboard.simulateKeyPresses("KEYBOARD");
+            this.href = document.getElementById("canvas").toDataURL();
         });
 
         $("#btnLeft").on("mousedown touchstart", function() { ti994a.keyboard.simulateKeyDown(37); }).on("mouseup touchend", function() { ti994a.keyboard.simulateKeyUp(37); });
@@ -147,18 +148,31 @@
                 return;
             }
             var extension = file.name.split('.').pop();
-            if (extension != null && extension.toLowerCase() != "rpk" && extension.toLowerCase() != "zip") {
+            extension = extension ? extension.toLowerCase() : "";
+            if (extension != null && extension != "rpk" && extension != "zip" && extension != "bin") {
                 log.error("File name extension '" + extension + "' not supported.");
                 return;
             }
-            software.loadRPKModuleFromFile(file,
-                function(cart) {
-                    ti994a.loadSoftware(cart);
-                },
-                function(message) {
-                    log.error(message);
-                }
-            )
+            if (extension == "bin") {
+                software.loadBinModuleFromFile(file,
+                    function (cart) {
+                        ti994a.loadSoftware(cart);
+                    },
+                    function (message) {
+                        log.error(message);
+                    }
+                )
+            }
+            else {
+                software.loadRPKModuleFromFile(file,
+                    function (cart) {
+                        ti994a.loadSoftware(cart);
+                    },
+                    function (message) {
+                        log.error(message);
+                    }
+                )
+            }
         }).on("click", function() {
 			$(this).val("");
 		});
@@ -507,11 +521,15 @@
                     });
                 }
                 else if (extension != null && extension.toLowerCase() == "obj") {
+                    log.info("Loading object file.");
                     var reader = new FileReader();
                     reader.onload = function() {
                         var objLoader = new ObjLoader();
                         objLoader.loadObjFile(this.result);
                         ti994a.loadSoftware(objLoader.getSoftware());
+                    };
+                    reader.onerror = function() {
+                        alert(this.error.name);
                     };
                     reader.readAsText(file);
                 }
@@ -543,6 +561,9 @@
                     diskImage.loadTIFile(filename, fileBuffer, false);
                 }
             }
+        };
+        reader.onerror = function() {
+            alert(this.error.name);
         };
         reader.readAsArrayBuffer(file);
     }
