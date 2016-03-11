@@ -1,8 +1,9 @@
 CACHE MANIFEST
-#Version 5.1.4, 16 November 2015
+#Version 5.2.3, 11 March 2016
 
 CACHE:
 index.html
+fullscreen.html
 manifest.json
 js99er.js
 sound.js

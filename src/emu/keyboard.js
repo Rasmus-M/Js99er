@@ -19,6 +19,8 @@ Keyboard.EMULATE_JOYSTICK_2 = false;
 
 Keyboard.prototype = {
 
+    // TODO: Fctn (Alt) + S,D,X,E does not work with PC keyboard enabled
+
     reset: function() {
 
         for (var col = 0; col < 8; col++) {
@@ -35,6 +37,9 @@ Keyboard.prototype = {
         this.attachListeners();
 
         this.alphaLock = true;
+
+        this.pasteBuffer = null;
+        this.pasteIndex = 0;
     },
 
     attachListeners : function() {
@@ -58,14 +63,10 @@ Keyboard.prototype = {
                 self.keyEvent2(evt, false);
             });
         }
-//        $(document).on("paste", function(evt) {
-//            var clipText = evt.originalEvent.clipboardData.getData('text/plain');
-//            self.removeListeners();
-//            window.setTimeout(function() {
-//                self.simulateKeyPresses(clipText);
-//                self.attachListeners();
-//            }, 200)
-//        })
+        $(document).on("paste", function(evt) {
+            self.pasteBuffer = "\n" + evt.originalEvent.clipboardData.getData('text/plain') + "\n";
+            self.pasteIndex = 0;
+        });
     },
 
     removeListeners: function() {
@@ -697,6 +698,7 @@ Keyboard.prototype = {
                 if (Keyboard.EMULATE_JOYSTICK_2) this.columns[7][7] = down;
                 if (this.joystickActive == 0) {
                     // Up arrow
+                    this.simulateKeyPress()
                     this.columns[0][7] = down; // Fctn
                     this.columns[2][9] = down; // E
                 }
@@ -785,17 +787,14 @@ Keyboard.prototype = {
     },
 
     isKeyDown: function(col, addr) {
-        if ((col == 6 || col == 7) && this.joystickActive == 0) {
+        // This is necessary in order for the Joystick in Donkey Kong to work
+        if ((col == 6 || col == 7)) {
             this.joystickActive = 128;
-            this.columns[0][7] = false;  // Fctn
-            this.columns[1][8] = false;  // S
-            this.columns[2][8] = false;  // D
-            this.columns[1][10] = false; // X
-            this.columns[2][9] = false;  // E
         }
         else if (this.joystickActive > 0) {
             this.joystickActive--;
         }
+        //
         return this.columns[col][addr];
     },
 
@@ -804,7 +803,7 @@ Keyboard.prototype = {
         return this.alphaLock;
     },
 
-    simulateKeyPresses: function(keyString) {
+    simulateKeyPresses: function(keyString, callback) {
         if (keyString.length > 0) {
             var pause = keyString.charAt(0) == "§";
             var that = this;
@@ -812,20 +811,23 @@ Keyboard.prototype = {
                 var charCode = keyString.charCodeAt(0);
                 this.simulateKeyPress(charCode > 96 ? charCode - 32 : charCode, function() {
                     window.setTimeout(function() {
-                        that.simulateKeyPresses(keyString.substr(1));
+                        that.simulateKeyPresses(keyString.substr(1), callback);
                     }, Keyboard.KEYPRESS_DURATION);
                 });
             }
             else {
                 window.setTimeout(function () {
-                    that.simulateKeyPresses(keyString.substr(1));
+                    that.simulateKeyPresses(keyString.substr(1), callback);
                 }, 1000);
             }
+        }
+        else if (callback) {
+            callback();
         }
     },
 
     simulateKeyPress: function(keyCode, callback) {
-        this.log.info(keyCode);
+        // this.log.info(keyCode);
         this.simulateKeyDown(keyCode);
         var that = this;
         window.setTimeout(function() {
@@ -834,6 +836,7 @@ Keyboard.prototype = {
         }, Keyboard.KEYPRESS_DURATION);
     },
 
+    // Keypress from the virtual keyboard
     virtualKeyPress: function(keyCode) {
         this.virtualKeyDown(keyCode);
         if (keyCode != 16 && keyCode != 17 && keyCode != 18) {
@@ -877,5 +880,22 @@ Keyboard.prototype = {
 
     simulateKeyUp2: function(keyCode) {
         this.keyEvent2({keyCode: keyCode, preventDefault: function() {}}, false);
+    },
+
+    getPasteCharCode: function() {
+        var charCode = -1;
+        while (charCode == -1 && this.pasteBuffer && this.pasteBuffer.length > this.pasteIndex) {
+            var tmpCharCode = this.pasteBuffer.charCodeAt(this.pasteIndex++);
+            if (tmpCharCode >= 32 && tmpCharCode <= 127) {
+                charCode = tmpCharCode;
+            }
+            else if (tmpCharCode == 10) {
+                charCode = 13;
+            }
+        }
+        if (this.pasteBuffer && this.pasteIndex == this.pasteBuffer.length) {
+            this.pasteBuffer = null;
+        }
+        return charCode;
     }
 };

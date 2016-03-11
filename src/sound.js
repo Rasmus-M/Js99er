@@ -2,6 +2,7 @@
  * js99'er - TI-99/4A emulator written in JavaScript
  *
  * Created 2014 by Rasmus Moustgaard <rasmus.moustgaard@gmail.com>
+ *
  */
 
 'use strict';
@@ -27,6 +28,7 @@ function Sound(enabled, psgDev, speechDev) {
 		this.bufferSize = 1024;
         var that = this;
         if (psgDev != null) {
+            psgDev.setSampleRate(this.sampleRate);
             this.buffer1 = new Int8Array(this.bufferSize);
             this.scriptProcessor1 = Sound.audioContext.createScriptProcessor(this.bufferSize, 0, 1);
             this.scriptProcessor1.onaudioprocess = function(event) { that.onAudioProcess1(event); };

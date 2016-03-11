@@ -302,7 +302,7 @@ TMS9918A.prototype = {
         for (var spriteIndex = 0; spriteIndex < 32 && !endMarkerFound; spriteIndex++) {
             var y0 = ram[addr];
             if (y0 != 0xD0) {
-                if (y0 < 0xC0 || y0 > 0xD0) {
+                if (y0 < 0xBF || y0 > 0xD0) {
                     if (y0 > 0xD0) {
                         y0 = y0 - 256;
                     }

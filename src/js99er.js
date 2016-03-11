@@ -30,7 +30,7 @@
             window.applicationCache.addEventListener('updateready', function (e) {
                 if (window.applicationCache.status == window.applicationCache.UPDATEREADY) {
                     // Browser downloaded a new app cache.
-                    if (confirm("A new version of Js99'er is available. Download it?")) {
+                    if (confirm("A new version of JS99'er is available. Would you like to download it?")) {
                         window.applicationCache.swapCache();
                         window.location.reload();
                     }
@@ -44,7 +44,8 @@
 
         log = Log.getLog();
         log.info("Welcome to JS99'er");
-        log.info("Version 5.1.4, 16 November 2015");
+        log.info("Version 5.2.3, 11 March 2016");
+        log.info(" - Added jumpstart cartridge");
         log.info("");
         settings = new Settings(true);
         diskImages = {

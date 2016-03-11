@@ -28,7 +28,7 @@ function TI994A(canvas, diskImages, settings, onBreakpoint) {
     this.setGoogleDrive(settings);
     this.tms5220 = new TMS5220(settings.isSpeechEnabled());
     this.memory = new Memory(this.vdp, this.tms9919, this.tms5220, settings);
-    this.tms9900 = new TMS9900(this.memory, this.cru, this.diskDrives, this.googleDrives);
+    this.tms9900 = new TMS9900(this.memory, this.cru, this.keyboard, this.diskDrives, this.googleDrives);
     this.cru.setMemory(this.memory);
     this.tms5220.setTMS9900(this.tms9900);
 

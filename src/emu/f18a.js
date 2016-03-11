@@ -9,7 +9,7 @@
 
 'use strict';
 
-F18A.VERSION = 0x16;
+F18A.VERSION = 0x17;
 
 F18A.MAX_SCANLINE_SPRITES_JUMPER = true;
 F18A.SCANLINES_JUMPER = false;
@@ -443,12 +443,12 @@ F18A.prototype = {
             if (parentSpriteAttrAddr != null) {
                 spriteY = (spriteY + this.ram[parentSpriteAttrAddr]) & 0xFF;
             }
+            if (!this.realSpriteYCoord) {
+                spriteY++;
+            }
             if (spriteY < outOfScreenY || spriteY > negativeScreenY) {
                 if (spriteY > negativeScreenY) {
                     spriteY -= 256;
-                }
-                if (!this.realSpriteYCoord) {
-                    spriteY++;
                 }
                 var spriteAttr = this.ram[spriteAttrAddr + 3];
                 var spriteX = this.ram[spriteAttrAddr + 1];
@@ -557,6 +557,7 @@ F18A.prototype = {
                     }
                 }
                 else if (grid.length > 0) {
+                    baseColor = spriteAttr & 0x0F;
                     empty = false;
                 }
                 if (!empty) {
@@ -848,7 +849,7 @@ F18A.prototype = {
             }
             // Sprite layer
             var spriteColor = null;
-            if ((this.unlocked || (this.screenMode != F18A.MODE_TEXT && this.screenMode != F18A.MODE_TEXT_80)) && (!tilePriority || color == this.bgColor)) {
+            if ((this.unlocked || (this.screenMode != F18A.MODE_TEXT && this.screenMode != F18A.MODE_TEXT_80)) && (!tilePriority || transparentColor0 && color == 0)) {
                 var spritePaletteBaseIndex = 0;
                 var dy = 0;
                 for (var spr = 0; spr < this.sprites.length && (spriteColor == null || !this.collision); spr++) {

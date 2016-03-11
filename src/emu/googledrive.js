@@ -253,17 +253,19 @@ GoogleDrive.prototype = {
                                         }
                                     }.bind(this));
                                 }
-                                // else if (operationMode == TI_FILE.OPERATION_MODE_INPUT) {
-                                //     // Catalog
-                                //     file = this.createCatalogFile();
-                                //     this.catalogFile = file;
-                                //     if (recordLength == 0) {
-                                //         recordLength = 38;
-                                //         this.ram[pabAddr + 4] = recordLength;
-                                //     }
-                                // file.open(operationMode, accessType);
-                                // callback(0, 0);
-                                // }
+                                else if (operationMode == TI_FILE.OPERATION_MODE_INPUT) {
+                                    // Catalog
+                                    this.getFileContents(parent, function (files) {
+                                        file = this.createCatalogFile(files);
+                                        this.catalogFile = file;
+                                        if (recordLength == 0) {
+                                            recordLength = 38;
+                                            this.ram[pabAddr + 4] = recordLength;
+                                        }
+                                        file.open(operationMode, accessType);
+                                        callback(0, 0);
+                                     }.bind(this));
+                                }
                                 else {
                                     callback(0, TI_FILE.ERROR_ILLEGAL_OPERATION);
                                 }
@@ -276,7 +278,7 @@ GoogleDrive.prototype = {
                                 if (file != null) {
                                     if (file.getFileType() == TI_FILE.FILE_TYPE_DATA) {
                                         if (file.getOperationMode() == operationMode) {
-                                            // Save file is it's a write
+                                            // Save file if it's a write
                                             if (file.getOperationMode() != TI_FILE.OPERATION_MODE_INPUT) {
                                                 file.close();
                                                 this.log.info("Saving to Google Drive");
@@ -572,6 +574,106 @@ GoogleDrive.prototype = {
         }.bind(this));
     },
 
+    createCatalogFile: function(files) {
+        var catFile = new DiskFile("CATALOG", TI_FILE.FILE_TYPE_DATA, TI_FILE.RECORD_TYPE_FIXED, 38, TI_FILE.DATATYPE_INTERNAL);
+        catFile.open(TI_FILE.OPERATION_MODE_OUTPUT, TI_FILE.ACCESS_TYPE_SEQUENTIAL);
+        var data = [];
+        var n = 0;
+        n = this.writeAsString(data, n, this.diskImage.getName());
+        n = this.writeAsFloat(data, n, 0);
+        n = this.writeAsFloat(data, n, 1440); // Number of sectors on disk
+        n = this.writeAsFloat(data, n, 1311); // Number of free sectors;
+        catFile.putRecord(new FixedRecord(data, 38));
+        for (var i = 0; i < files.length; i++) {
+            var fileName = files[i].name;
+            var file = this.diskImage.loadTIFile(fileName, files[i].data, true);
+            var type = 0;
+            if (file.getFileType() == TI_FILE.FILE_TYPE_PROGRAM) {
+                type = 5;
+            }
+            else {
+                type = 1; // DF
+                if (file.getDatatype() == TI_FILE.DATATYPE_INTERNAL) {
+                    type += 2;
+                }
+                if (file.getRecordType() == TI_FILE.RECORD_TYPE_VARIABLE) {
+                    type += 1;
+                }
+            }
+            n = 0;
+            n = this.writeAsString(data, n, fileName);
+            n = this.writeAsFloat(data, n, type);
+            n = this.writeAsFloat(data, n, file.getSectorCount());
+            n = this.writeAsFloat(data, n, file.getRecordLength());
+            catFile.putRecord(new FixedRecord(data, 38));
+        }
+        n = 0;
+        n = this.writeAsString(data, n, "");
+        n = this.writeAsFloat(data, n, 0);
+        n = this.writeAsFloat(data, n, 0);
+        n = this.writeAsFloat(data, n, 0);
+        catFile.putRecord(new FixedRecord(data, 38));
+        catFile.close();
+        // this.log.info(catFile.toString());
+        return catFile;
+    },
+
+    writeAsString: function(data, n, str) {
+        data[n++] = str.length;
+        for (var i = 0; i < str.length; i++) {
+            data[n++] = str.charCodeAt(i);
+        }
+        return n;
+    },
+
+    // Translated from Classic99
+    writeAsFloat: function(data, n, val) {
+        var word = [0, 0];
+        // First write a size byte of 8
+        data[n++] = 8;
+        // Translation of the TICC code, we can do better later ;)
+        // Basically, we get the exponent and two bytes, and the rest are zeros
+        var tmp = val;
+        if (val < 0) {
+            val = -val;
+        }
+        if (val >= 100) {
+            word[0] = Math.floor(val / 100) | 0x4100; // 0x41 is the 100s counter, not sure how this works with 10,000, maybe it doesn't?
+            word[1] = Math.floor(val % 100);
+        }
+        else {
+            if (val == 0) {
+                word[0] = 0;
+            }
+            else {
+                word[0] = val | 0x4000;
+            }
+            word[1] = 0;
+        }
+        if (tmp < 0) {
+            word[0] = ((~word[0]) + 1) & 0xFFFF;
+        }
+        data[n++] = (word[0] >>> 8) & 0xff;
+        data[n++] = word[0] & 0xff;
+        data[n++] = word[1] & 0xff;
+        // and five zeros
+        for (var i = 0; i < 5; i++) {
+            data[n++] = 0;
+        }
+        return n;
+    },
+
+    getFiles: function(parent, callback) {
+        var request = gapi.client.request({
+            'path': '/drive/v2/files',
+            'method': 'GET',
+            'params': {'q': "mimeType != 'application/vnd.google-apps.folder' and '" + parent + "' in parents and trashed = false"}
+        });
+        request.execute(function(result) {
+            callback(result.items)
+        });
+    },
+
     findFile: function(fileName, parent, callback) {
         var request = gapi.client.request({
             'path': '/drive/v2/files',
@@ -594,6 +696,28 @@ GoogleDrive.prototype = {
             'method': 'GET'
         });
         request.execute(callback);
+    },
+
+    getFileContents: function(parent, callback) {
+        var that = this;
+        var files = [];
+        this.getFiles(parent, function(items) {
+            _getFileContents(items, function () {
+                callback(files);
+            })
+        });
+        function _getFileContents(items, callback) {
+            if (items.length) {
+                var item = items.shift();
+                that.getFileContent(item.id, function(data) {
+                    files.push({id: item.id, name: item.title, data: data});
+                    _getFileContents(items, callback);
+                })
+            }
+            else {
+                callback();
+            }
+        }
     },
 
     getFileContent: function(fileId, callback) {

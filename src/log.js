@@ -144,7 +144,7 @@ Log.prototype.info = function (message) {
         if (count < 64) {
             this.print(message);
         }
-        else if (count == 64 || (count & 255) == 0) {
+        else if (count == 64 || (count & 1023) == 0) {
             this.print(message + " (suppressing most messages)");
         }
     }

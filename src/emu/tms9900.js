@@ -13,9 +13,10 @@
 
 TMS9900.FRAME_CYCLES = 50000;
 
-function TMS9900(memory, cru, diskDrives, googleDrives) {
+function TMS9900(memory, cru, keyboard, diskDrives, googleDrives) {
     this.memory = memory;
     this.cru = cru;
+    this.keyboard = keyboard;
     this.diskDrives = diskDrives;
     this.googleDrives = googleDrives;
 
@@ -94,6 +95,7 @@ TMS9900.prototype = {
         this.log.info("PC reset to " + this.PC.toHexWord());
 
         this.suspended = false;
+        this.pasteToggle = false;
     },
 
     // Build the word status lookup table
@@ -141,6 +143,8 @@ TMS9900.prototype = {
     run: function(cyclesToRun) {
         var startPC = this.PC;
         var startCycles = this.cycles;
+        var countStartPC = -1; // 0xA086;
+        var countEndPC = -1; // 0xA0DA;
         // this.cruCycles = 0;
         while (this.cycles - startCycles < cyclesToRun && !this.suspended) {
             // Handle breakpoint
@@ -172,6 +176,29 @@ TMS9900.prototype = {
                             break;
                     }
                 }
+                // Keyboard pasting hook
+                else if (this.PC == 0x478) {
+                    // MOVB R0,@>8375
+                    if (!this.pasteToggle) {
+                        var charCode = this.keyboard.getPasteCharCode();
+                        if (charCode != -1) {
+                            var keyboardDevice = this.memory.getPADByte(0x8374);
+                            if (keyboardDevice == 0 || keyboardDevice == 5) {
+                                this.writeMemoryByte(this.WP, charCode); // Set R0
+                                this.writeMemoryByte(this.WP + 12, this.memory.getPADByte(0x837c) | 0x20); // Set R6 (status byte)
+                                // Detect Extended BASIC
+                                if (this.memory.groms && this.memory.groms.length) {
+                                    var grom = this.memory.groms[0];
+                                    if (grom[0x6343] == 0x45 && grom[0x6344] == 0x58 && grom[0x6345] == 0x54) {
+                                        this.memory.setPADByte(0x835F, 0x5d); // Max length for BASIC continuously set
+                                    }
+                                }
+                            }
+                            this.memory.setPADByte(0x837c, this.memory.getPADByte(0x837c) | 0x20);
+                        }
+                    }
+                    this.pasteToggle = !this.pasteToggle;
+                }
                 // Execute interrupt routine
                 var interruptLevel = this.getInterruptLevel();
                 if (interruptLevel > 1 && this.cru.isVDPInterrupt()) {
@@ -182,6 +209,16 @@ TMS9900.prototype = {
                 var instruction = this.readMemoryWord(this.PC);
                 this.inctPC();
                 this.addCycles(this.execute(instruction));
+            }
+            if (this.PC == countStartPC) {
+                this.countStart = this.cycles;
+            }
+            else if (this.PC == countEndPC) {
+                var count = this.cycles - this.countStart;
+                if (!this.maxCount || count > this.maxCount) {
+                    this.maxCount = count;
+                }
+                this.log.info("Cycle count: " + count + " max: " + this.maxCount);
             }
             // if (this.cruCycles > 64) {
             //     var decr = this.cruCycles >> 6;

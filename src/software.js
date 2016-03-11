@@ -40,6 +40,9 @@ Software.prototype = {
                         if (program.url.substr(program.url.length - 3).toLowerCase() == "rpk") {
                             this.loadRPKModuleFromURL(program.url, onReady, function(msg) { log.error(msg); });
                         }
+                        else if (program.url.substr(program.url.length - 3).toLowerCase() == "bin") {
+                            this.loadBinModuleFromURL(program.url, onReady, function(msg) { log.error(msg); });
+                        }
                         else {
                             this.loadProgram(program.url, program, function(prg) {
                                 program.url = null; // Mark as loaded
@@ -212,6 +215,24 @@ Software.prototype = {
         });
     },
 
+    loadBinModuleFromURL: function(url, onSuccess, onError) {
+        console.log(url);
+        var baseFileName = url.split('.')[0];
+        var inverted = baseFileName && baseFileName.charAt(baseFileName.length - 1) == "3";
+        var xhr = new XMLHttpRequest();
+        xhr.open('GET', url, true);
+        xhr.responseType = 'arraybuffer';
+        xhr.onload = function(e) {
+            var byteArray = new Uint8Array(this.response);
+            var cart = {
+                type: inverted ? Software.TYPE_INVERTED_CART : Software.TYPE_CART,
+                rom: byteArray
+            };
+            onSuccess(cart);
+        };
+        xhr.send();
+    },
+
     loadBinModuleFromFile: function(file, onSuccess, onError) {
         var baseFileName = file.name.split('.')[0];
         var inverted = baseFileName && baseFileName.charAt(baseFileName.length - 1) == "3";
@@ -228,7 +249,6 @@ Software.prototype = {
             if (onError) onError(this.error.name);
         };
         reader.readAsArrayBuffer(file);
-
     }
 };
 
@@ -275,6 +295,11 @@ Software.programs = [
                 url: "software/cortexbasic.rpk"
             },
             {
+                name: "Cortex Basic 80",
+                type: Software.TYPE_INVERTED_CART,
+                url: "software/cortex_basic_80.rpk"
+            },
+            {
                 name: "TurboForth",
                 type: Software.TYPE_CART,
                 url: "software/turboforth.rpk"
@@ -282,7 +307,7 @@ Software.programs = [
             {
                 name: "fbForth",
                 type: Software.TYPE_INVERTED_CART,
-                url: "software/fbForth200.json"
+                url: "software/fbForth200.rpk"
             },
             {
                 name: "TI Workshop",
@@ -293,6 +318,11 @@ Software.programs = [
                 name: "XB 2.7 Suite",
                 type: Software.TYPE_CART,
                 url: "software/xb27suite2.json"
+            },
+            {
+                name: "Jumpstart for xas99",
+                type: Software.TYPE_CART,
+                url: "software/jumpstart.rpk"
             }
         ]
     },
@@ -334,11 +364,6 @@ Software.programs = [
                 url: "software/qbert.json"
             },
             {
-                name: "Demon Attack",
-                type: Software.TYPE_CART,
-                url: "software/demon-attack.json"
-            },
-            {
                 name: "Road Hunter/TI Scramble/Titanium",
                 type: Software.TYPE_INVERTED_CART,
                 url: "software/scrolling-trilogy.json"
@@ -364,6 +389,21 @@ Software.programs = [
                 url: "software/jsw.rpk"
             },
             {
+                name: "Bouncy",
+                type: Software.TYPE_INVERTED_CART,
+                url: "software/bouncy.rpk"
+            },
+            {
+                name: "Rasmus 8-in-1 game cart",
+                type: Software.TYPE_CART,
+                url: "software/rasmus-8in1-cart.rpk"
+            },
+            {
+                name: "JetPac",
+                type: Software.TYPE_INVERTED_CART,
+                url: "software/JetPac3.bin"
+            },
+            {
                 name: "Pitfall!",
                 type: Software.TYPE_INVERTED_CART,
                 url: "software/pitfall.json"
@@ -382,7 +422,12 @@ Software.programs = [
                 name: "Game cart 3 (512K)",
                 type: Software.TYPE_CART,
                 url: "software/gamecart3.rpk"
-            }
+            },
+            {
+                name: "Atarisoft compilation",
+                type: Software.TYPE_CART,
+                url: "software/atarisoft-multicart.rpk"
+            },
         ]
     },
     {
@@ -500,6 +545,11 @@ Software.programs = [
                 name: "Position attributes demo",
                 type: Software.TYPE_MEMORY_DUMP,
                 url: "software/posattr.json"
+            },
+            {
+                name: "TI-99 Mario Bros",
+                type: Software.TYPE_INVERTED_CART,
+                url: "software/Mario3.bin"
             }
         ]
     },
