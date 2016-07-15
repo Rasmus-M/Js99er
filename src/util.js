@@ -6,7 +6,7 @@
 
 'use strict';
 
-String.prototype.trimSpace = function() {
+String.prototype.trimSpace = function () {
     var s = this;
     var n = s.length - 1;
     while (n >= 0 && s.charCodeAt(n) == 32) {
@@ -15,7 +15,7 @@ String.prototype.trimSpace = function() {
     return n >= 0 ? s.substr(0, n + 1) : "";
 };
 
-String.prototype.padl = function(ch, len) {
+String.prototype.padl = function (ch, len) {
     var s = this;
     while (s.length < len) {
         s = ch + s;
@@ -23,7 +23,7 @@ String.prototype.padl = function(ch, len) {
     return s;
 };
 
-String.prototype.padr = function(ch, len) {
+String.prototype.padr = function (ch, len) {
     var s = this;
     while (s.length < len) {
         s = s + ch;
@@ -31,7 +31,7 @@ String.prototype.padr = function(ch, len) {
     return s;
 };
 
-String.prototype.parseHexWord = function() {
+String.prototype.parseHexWord = function () {
     var val = this;
     if (val != null) {
         val = val.trim();
@@ -46,7 +46,7 @@ String.prototype.parseHexWord = function() {
     return null;
 };
 
-Number.prototype.toHexWord = function() {
+Number.prototype.toHexWord = function () {
     var s = this.toString(16).toUpperCase();
     while (s.length < 4) {
         s = "0" + s;
@@ -54,7 +54,7 @@ Number.prototype.toHexWord = function() {
     return ">" + s;
 };
 
-Number.prototype.toHexByte = function() {
+Number.prototype.toHexByte = function () {
     var s = this.toString(16).toUpperCase();
     if (s.length == 1) {
         s = "0" + s;
@@ -62,7 +62,7 @@ Number.prototype.toHexByte = function() {
     return ">" + s;
 };
 
-Number.prototype.toHexByteShort = function() {
+Number.prototype.toHexByteShort = function () {
     var s = this.toString(16).toUpperCase();
     if (s.length == 1) {
         s = "0" + s;

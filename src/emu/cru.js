@@ -20,7 +20,7 @@ function CRU(keyboard) {
 
 CRU.prototype = {
 
-    reset: function() {
+    reset: function () {
         for (var i = 0; i < 4096; i++) {
             this.cru[i] = true;
         }
@@ -28,7 +28,7 @@ CRU.prototype = {
         this.cru[25] = false; // Output to cassette mike jack
     },
 
-    readBit: function(addr) {
+    readBit: function (addr) {
         // Keyboard
         if (addr >= 3 && addr <= 10) {
             var col = (this.cru[18] ? 1 : 0) | (this.cru[19] ? 2 : 0) | (this.cru[20] ? 4 : 0);
@@ -57,7 +57,7 @@ CRU.prototype = {
         return this.cru[addr];
     },
 
-    writeBit: function(addr, bit) {
+    writeBit: function (addr, bit) {
         if (addr >= 0x800) {
             // DSR space
             addr <<= 1; // Convert to R12 space i.e. >= >1000
@@ -117,15 +117,15 @@ CRU.prototype = {
         }
     },
 
-    setMemory: function(memory) {
+    setMemory: function (memory) {
         this.memory = memory;
     },
 
-    isVDPInterrupt: function() {
+    isVDPInterrupt: function () {
         return !this.cru[2];
     },
 
-    decrementCounter: function(value) {
+    decrementCounter: function (value) {
         if (this.decrementer > 0) {
             this.decrementer -= value;
             if (this.decrementer < 1) {

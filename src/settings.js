@@ -16,6 +16,7 @@ function Settings(persistent) {
     this.enablePCKeyboard = false;
     this.enableGoogleDrive = false;
     this.enableAMS = false;
+    this.enablePixelated = false;
     if (persistent && window.localStorage) {
         this.storage = window.localStorage;
         if (this.storage.getItem("enableSound") != null) {
@@ -42,96 +43,110 @@ function Settings(persistent) {
         if (this.storage.getItem("enableAMS") != null) {
             this.enableAMS = this.storage.getItem("enableAMS") == "true";
         }
+        if (this.storage.getItem("enablePixelated") != null) {
+            this.enablePixelated = this.storage.getItem("enablePixelated") == "true";
+        }
     }
 }
 
 Settings.prototype =  {
 
-    isSoundEnabled: function() {
+    isSoundEnabled: function () {
         return this.enableSound;
     },
 
-    setSoundEnabled: function(enabled) {
+    setSoundEnabled: function (enabled) {
         this.enableSound = enabled;
         if (this.persistent && this.storage) {
             this.storage.setItem("enableSound", enabled);
         }
     },
 
-    isSpeechEnabled: function() {
+    isSpeechEnabled: function () {
         return this.enableSpeech;
     },
 
-    setSpeechEnabled: function(enabled) {
+    setSpeechEnabled: function (enabled) {
         this.enableSpeech = enabled;
         if (this.persistent && this.storage) {
             this.storage.setItem("enableSpeech", enabled);
         }
     },
 
-    is32KRAMEnabled: function() {
+    is32KRAMEnabled: function () {
         return this.enable32KRAM;
     },
 
-    set32KRAMEnabled: function(enabled) {
+    set32KRAMEnabled: function (enabled) {
         this.enable32KRAM = enabled;
         if (this.persistent && this.storage) {
             this.storage.setItem("enable32KRAM", enabled);
         }
     },
 
-    isF18AEnabled: function() {
+    isF18AEnabled: function () {
         return this.enableF18A;
     },
 
-    setF18AEnabled: function(enabled) {
+    setF18AEnabled: function (enabled) {
         this.enableF18A = enabled;
         if (this.persistent && this.storage) {
             this.storage.setItem("enableF18A", enabled);
         }
     },
 
-    isFlickerEnabled: function() {
+    isFlickerEnabled: function () {
         return this.enableFlicker;
     },
 
-    setFlickerEnabled: function(enabled) {
+    setFlickerEnabled: function (enabled) {
         this.enableFlicker = enabled;
         if (this.persistent && this.storage) {
             this.storage.setItem("enableFlicker", enabled);
         }
     },
 
-    isPCKeyboardEnabled: function() {
+    isPCKeyboardEnabled: function () {
         return this.enablePCKeyboard;
     },
 
-    setPCKeyboardEnabled: function(enabled) {
+    setPCKeyboardEnabled: function (enabled) {
         this.enablePCKeyboard = enabled;
         if (this.persistent && this.storage) {
             this.storage.setItem("enablePCKeyboard", enabled);
         }
     },
 
-    isGoogleDriveEnabled: function() {
+    isGoogleDriveEnabled: function () {
         return this.enableGoogleDrive;
     },
 
-    setGoogleDriveEnabled: function(enabled) {
+    setGoogleDriveEnabled: function (enabled) {
         this.enableGoogleDrive = enabled;
         if (this.persistent && this.storage) {
             this.storage.setItem("enableGoogleDrive", enabled);
         }
     },
 
-    isAMSEnabled: function() {
+    isAMSEnabled: function () {
         return this.enableAMS;
     },
 
-    setAMSEnabled: function(enabled) {
+    setAMSEnabled: function (enabled) {
         this.enableAMS = enabled;
         if (this.persistent && this.storage) {
             this.storage.setItem("enableAMS", enabled);
+        }
+    },
+
+    isPixelatedEnabled: function () {
+        return this.enablePixelated;
+    },
+
+    setPixelatedEnabled: function (enabled) {
+        this.enablePixelated = enabled;
+        if (this.persistent && this.storage) {
+            this.storage.setItem("enablePixelated", enabled);
         }
     }
 };

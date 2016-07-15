@@ -9,6 +9,7 @@
 TI994A.FRAMES_TO_RUN = Number.MAX_VALUE;
 TI994A.FRAME_MS = 16.66;
 TI994A.FPS_MS = 4000;
+TI994A.FRAMES_PER_SCANLINE = 183;
 
 function TI994A(canvas, diskImages, settings, onBreakpoint) {
     this.canvas = canvas;
@@ -45,7 +46,7 @@ function TI994A(canvas, diskImages, settings, onBreakpoint) {
 
 TI994A.prototype = {
 
-    setVDP: function(settings) {
+    setVDP: function (settings) {
         if (settings && settings.isF18AEnabled()) {
             this.vdp = new F18A(this.canvas, this.cru, this.tms9919);
         }
@@ -67,7 +68,7 @@ TI994A.prototype = {
         }
     },
 
-    setGoogleDrive: function(settings) {
+    setGoogleDrive: function (settings) {
         if (settings && settings.isGoogleDriveEnabled()) {
             var vdpRAM = this.vdp.getRAM();
             this.googleDrives = [
@@ -81,11 +82,11 @@ TI994A.prototype = {
         }
     },
 
-    isRunning: function() {
+    isRunning: function () {
         return this.running;
     },
 
-    reset: function(keepCart) {
+    reset: function (keepCart) {
         this.vdp.reset();
         this.tms9919.reset();
         this.tms5220.reset();
@@ -97,15 +98,16 @@ TI994A.prototype = {
         this.cpuSpeed = 1;
     },
 
-    start: function(fast) {
+    start: function (fast) {
         if (!this.isRunning()) {
             this.cpuSpeed = fast ? 2 : 1;
             this.log.info("Start");
             this.tms9900.setSuspended(false);
             var self = this;
             this.frameInterval = setInterval(
-                function() {
+                function () {
                     if (self.frameCount < TI994A.FRAMES_TO_RUN) {
+                        // self.frame();
                         self.frame();
                     }
                     else {
@@ -117,7 +119,7 @@ TI994A.prototype = {
             this.resetFps();
             this.printFps();
             this.fpsInterval = setInterval(
-                function() {
+                function () {
                     self.printFps();
                 },
                 TI994A.FPS_MS
@@ -126,7 +128,16 @@ TI994A.prototype = {
         this.running = true;
     },
 
-    frame: function() {
+    frame: function () {
+        if (this.vdp.gpu) {
+            this.frameFullScreen();
+        }
+        else {
+            this.frameScanline();
+        }
+    },
+
+    frameFullScreen: function () {
         var cpuSpeed = this.cpuSpeed;
         if (this.vdp.gpu && !this.vdp.gpu.isIdle()) {
             this.vdp.gpu.run(F18AGPU.FRAME_CYCLES * cpuSpeed);
@@ -150,17 +161,44 @@ TI994A.prototype = {
         this.frameCount++;
     },
 
-    step: function() {
+    frameScanline: function () {
+        var cpuSpeed = this.cpuSpeed;
+        if (!this.tms9900.isSuspended()) {
+            this.tms9900.run(TI994A.FRAMES_PER_SCANLINE * cpuSpeed * 22);
+            if (this.tms9900.atBreakpoint() && this.onBreakpoint) {
+                this.onBreakpoint(this.tms9900);
+                return;
+            }
+        }
+        for (var y = 0; y < 240; y++) {
+            if (!this.tms9900.isSuspended()) {
+                this.tms9900.run(TI994A.FRAMES_PER_SCANLINE * cpuSpeed);
+                if (this.tms9900.atBreakpoint() && this.onBreakpoint) {
+                    this.onBreakpoint(this.tms9900);
+                    return;
+                }
+            }
+            this.vdp.drawScanline(y);
+        }
+        this.vdp.updateCanvas();
+        this.cru.decrementCounter(781);
+        this.fpsFrameCount++;
+        this.frameCount++;
+    },
+
+    step: function () {
         if (this.vdp.gpu && !this.vdp.gpu.isIdle()) {
             this.vdp.gpu.run(1);
         }
         else {
             this.tms9900.run(1);
         }
-        this.drawFrame();
+        if (this.vdp.gpu) {
+            this.drawFrame();
+        }
     },
 
-    stop: function() {
+    stop: function () {
         this.log.info("Stop");
         clearInterval(this.frameInterval);
         clearInterval(this.fpsInterval);
@@ -168,7 +206,7 @@ TI994A.prototype = {
         this.running = false;
     },
 
-    drawFrame: function() {
+    drawFrame: function () {
         if (false && window.requestAnimationFrame) {
             var that = this;
             requestAnimationFrame(function (timestamp) {
@@ -182,12 +220,12 @@ TI994A.prototype = {
         }
     },
 
-    resetFps: function() {
+    resetFps: function () {
         this.lastFpsTime = null;
         this.fpsFrameCount = 0;
     },
 
-    printFps: function() {
+    printFps: function () {
         var now = +new Date();
         var s = 'Frame ' + this.frameCount + ' running';
         if (this.lastFpsTime) {
@@ -202,7 +240,7 @@ TI994A.prototype = {
         this.lastFpsTime = now;
     },
 
-    getPC: function() {
+    getPC: function () {
         if (this.vdp.gpu && !this.vdp.gpu.isIdle()) {
             return this.vdp.gpu.getPC();
         }
@@ -211,7 +249,7 @@ TI994A.prototype = {
         }
     },
 
-    getStatusString: function() {
+    getStatusString: function () {
         return (
             this.vdp.gpu && !this.vdp.gpu.isIdle() ?
                 this.vdp.gpu.getInternalRegsString() + " F18A GPU\n" + this.vdp.gpu.getRegsStringFormatted() :
@@ -219,11 +257,11 @@ TI994A.prototype = {
         ) + this.vdp.getRegsString() + "\n" + this.memory.getStatusString();
     },
 
-    getDiskDrives: function() {
+    getDiskDrives: function () {
         return this.diskDrives;
     },
 
-    loadSoftware: function(sw) {
+    loadSoftware: function (sw) {
         var wasRunning = this.isRunning();
         if (wasRunning) {
             this.stop();
@@ -256,7 +294,7 @@ TI994A.prototype = {
         if (sw.keyPresses) {
             var that = this;
             window.setTimeout(
-                function() {
+                function () {
                     that.keyboard.simulateKeyPresses(sw.keyPresses);
                 },
                 1000

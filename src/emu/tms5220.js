@@ -419,29 +419,29 @@ TMS5220.prototype = {
 
     ***********************************************************************************************/
 
-    setTMS9900: function(tms9900) {
+    setTMS9900: function (tms9900) {
         this.tms9900 = tms9900;
     },
 
-    reset: function() {
+    reset: function () {
         this.device_reset();
     },
 
-    writeSpeechData: function(b) {
+    writeSpeechData: function (b) {
         if (this.enabled) {
             this.data_write(b);
         }
     },
 
-    readSpeechData: function() {
+    readSpeechData: function () {
         return this.enabled ? this.status_read() : 0;
     },
 
-    setSpeechEnabled: function(enabled) {
+    setSpeechEnabled: function (enabled) {
         this.enabled = enabled;
     },
 
-    update: function(buffer, length) {
+    update: function (buffer, length) {
         this.process(buffer, length);
     },
 
@@ -628,7 +628,7 @@ TMS5220.prototype = {
 
      ***********************************************************************************************/
 
-    ready_read: function() {
+    ready_read: function () {
         return ((this.m_fifo_count < TMS5220.FIFO_SIZE) || (!this.m_speak_external)) && this.m_io_ready;
     },
 
@@ -1066,7 +1066,7 @@ TMS5220.prototype = {
 
      ***********************************************************************************************/
 
-    process_command: function(cmd) {
+    process_command: function (cmd) {
         /* parse the command */
         switch (cmd & 0x70) {
             case 0x10 : /* read byte */
@@ -1347,7 +1347,7 @@ TMS5220.prototype = {
     /*
      Read 'count' bits serially from speech ROM
     */
-    rom_read: function(count) {
+    rom_read: function (count) {
         var val;
 
         if (this.m_load_pointer != 0) {   /* first read after load address is ignored */
@@ -1384,7 +1384,7 @@ TMS5220.prototype = {
     /*
      Write an address nibble to speech ROM
      */
-    rom_load_address: function(data)
+    rom_load_address: function (data)
     {
         /* tms5220 data sheet says that if we load only one 4-bit nibble, it won't work.
          This code does not care about this. */
@@ -1397,7 +1397,7 @@ TMS5220.prototype = {
     /*
      Perform a read and branch command
      */
-    rom_read_and_branch: function()
+    rom_read_and_branch: function ()
     {
         /* tms5220 data sheet says that if more than one speech ROM (tms6100) is present,
          there is a bus contention.  This code does not care about this. */

@@ -85,7 +85,7 @@ function F18AGPU(f18a) {
 
     // Flash RAM
     var that = this;
-    this.flash = new F18AFlash(function(restored) {
+    this.flash = new F18AFlash(function (restored) {
         that.flashLoaded = restored;
         that.reset();
     });
@@ -93,7 +93,7 @@ function F18AGPU(f18a) {
 
 F18AGPU.prototype = {
 
-    reset: function() {
+    reset: function () {
         this.intReset();
         this.flash.reset();
         // Load and execute GPU code
@@ -106,7 +106,7 @@ F18AGPU.prototype = {
         }
     },
 
-    intReset: function() {
+    intReset: function () {
         this.cpuIdle = true;
         this.PC = 0x4000;
         this.ST = 0x01C0;
@@ -123,7 +123,7 @@ F18AGPU.prototype = {
     },
 
     // Build the word status lookup table
-    buildWStatusLookupTable: function() {
+    buildWStatusLookupTable: function () {
         var wStatusLookup = [];
         for (var i = 0; i < 0x10000; i++) {
             wStatusLookup[i] = 0;
@@ -142,7 +142,7 @@ F18AGPU.prototype = {
     },
 
     // Build the byte status lookup table
-    buildBStatusLookupTable: function() {
+    buildBStatusLookupTable: function () {
         var bStatusLookup = [];
         for (var i = 0; i < 0x100; i++) {
             var x = (i & 0xFF);
@@ -164,7 +164,7 @@ F18AGPU.prototype = {
         return bStatusLookup;
     },
 
-    run: function(cyclesToRun) {
+    run: function (cyclesToRun) {
         var startPC = this.PC;
         var startCycles = this.cycles;
         while (!this.cpuIdle && this.cycles - startCycles < cyclesToRun) {
@@ -172,6 +172,7 @@ F18AGPU.prototype = {
             var atBreakpoint = this.atBreakpoint();
             if (atBreakpoint) {
                 this.log.info("At breakpoint " + this.breakpoint.toHexWord());
+                this.log.info(this.getRegsStringFormatted());
                 this.cyclesRemaining = cyclesToRun - (this.cycles - startCycles);
                 cyclesToRun = -1;
             }
@@ -184,11 +185,11 @@ F18AGPU.prototype = {
         }
     },
 
-    resume: function() {
+    resume: function () {
         this.run(this.cyclesRemaining);
     },
 
-    execute: function(instruction) {
+    execute: function (instruction) {
         var opcode = this.decoderTable[instruction];
         if (opcode != null) {
             var cycles = this.decodeOperands(opcode, instruction);
@@ -210,41 +211,41 @@ F18AGPU.prototype = {
         }
     },
 
-    isIdle: function() {
+    isIdle: function () {
         return this.cpuIdle;
     },
 
-    setIdle: function(idle) {
+    setIdle: function (idle) {
         this.cpuIdle = idle;
     },
 
-    getPC: function() {
+    getPC: function () {
         return this.PC;
     },
 
-    setPC: function(value) {
+    setPC: function (value) {
         this.PC = value;
         this.setIdle(false);
         this.run(F18AGPU.FRAME_CYCLES);
     },
 
-    inctPC: function() {
+    inctPC: function () {
         this.PC = (this.PC + 2) & 0xFFFF;
     },
 
-    addPC: function(value) {
+    addPC: function (value) {
         this.PC = (this.PC + value) & 0xFFFF;
     },
 
-    getST: function() {
+    getST: function () {
         return this.ST;
     },
 
-    addCycles: function(value) {
+    addCycles: function (value) {
         this.cycles += value;
     },
 
-    decodeOperands: function(opcode, instr) {
+    decodeOperands: function (opcode, instr) {
         var cycles = 0;
         switch (opcode.format) {
             case 1:
@@ -324,7 +325,7 @@ F18AGPU.prototype = {
     // '4' in order to skip unneeded processing of the Destination address
     //////////////////////////////////////////////////////////////////////////
 
-    fixS: function() {
+    fixS: function () {
         var cycles = 0;
         var temp, t2;
         // source type
@@ -364,7 +365,7 @@ F18AGPU.prototype = {
         return cycles;
     },
 
-    fixD: function() {
+    fixD: function () {
         var cycles = 0;
         var temp, t2;
         // destination type
@@ -404,7 +405,7 @@ F18AGPU.prototype = {
         }
     },
 
-    postIncrement: function(nWhich) {
+    postIncrement: function (nWhich) {
         if (this.nPostInc[nWhich]) {
             var i = this.nPostInc[nWhich] & 0xf;
             var t2 = this.WP + (i << 1);
@@ -418,12 +419,12 @@ F18AGPU.prototype = {
         }
     },
 
-    writeMemoryWord: function(addr, w) {
+    writeMemoryWord: function (addr, w) {
         this.writeMemoryByte(addr, (w & 0xFF00) >> 8);
         this.writeMemoryByte(addr + 1, w & 0x00FF);
     },
 
-    writeMemoryByte: function(addr, b) {
+    writeMemoryByte: function (addr, b) {
         // GPU register
         if (addr >= this.WP) {
             this.vdpRAM[addr] = b;
@@ -451,7 +452,7 @@ F18AGPU.prototype = {
                 color[2] = (b & 0x0F) * 17;
             }
             this.f18a.redrawRequired = true;
-            if (colNo = this.f18a.bgColor) {
+            if (colNo == this.f18a.bgColor) {
                 this.f18a.redrawBorder = true;
             }
         }
@@ -513,11 +514,11 @@ F18AGPU.prototype = {
         }
     },
 
-    readMemoryWord: function(addr) {
+    readMemoryWord: function (addr) {
         return (this.readMemoryByte(addr) << 8) | this.readMemoryByte(addr + 1);
     },
 
-    readMemoryByte: function(addr) {
+    readMemoryByte: function (addr) {
         // GPU register
         if (addr >= this.WP) {
             return this.vdpRAM[addr];
@@ -579,7 +580,7 @@ F18AGPU.prototype = {
     },
 
     // Load Immediate: LI src, imm
-    li: function() {
+    li: function () {
         this.writeMemoryWord(this.D, this.S);
         this.resetLGT_AGT_EQ();
         this.ST |= this.wStatusLookup[this.S] & this.maskLGT_AGT_EQ;
@@ -587,7 +588,7 @@ F18AGPU.prototype = {
     },
 
     // Add Immediate: AI src, imm
-    ai: function() {
+    ai: function () {
         var x1 = this.readMemoryWord(this.D);
 
         var x3 = (x1 + this.S) & 0xFFFF;
@@ -603,7 +604,7 @@ F18AGPU.prototype = {
     },
 
     // AND Immediate: ANDI src, imm
-    andi: function() {
+    andi: function () {
         var x1 = this.readMemoryWord(this.D);
         var x2 = x1 & this.S;
         this.writeMemoryWord(this.D, x2);
@@ -615,7 +616,7 @@ F18AGPU.prototype = {
     },
 
     // OR Immediate: ORI src, imm
-    ori: function() {
+    ori: function () {
         var x1 = this.readMemoryWord(this.D);
         var x2 = x1 | this.S;
         this.writeMemoryWord(this.D, x2);
@@ -627,7 +628,7 @@ F18AGPU.prototype = {
     },
 
     // Compare Immediate: CI src, imm
-    ci: function() {
+    ci: function () {
         var x3 = this.readMemoryWord(this.D);
 
         this.resetLGT_AGT_EQ();
@@ -644,41 +645,41 @@ F18AGPU.prototype = {
 
     // STore Workspace Pointer: STWP src
     // Copy the workspace pointer to memory
-    stwp: function() {
+    stwp: function () {
         // Not implemented
         return null;
     },
 
     // STore STatus: STST src
     // Copy the status register to memory
-    stst: function() {
+    stst: function () {
         this.writeMemoryWord(this.D, this.ST);
         return 8;
     },
 
     // Load Workspace Pointer Immediate: LWPI imm
     // changes the Workspace Pointer
-    lwpi: function() {
+    lwpi: function () {
         // Not implemented
         return null;
     },
 
     // Load Interrupt Mask Immediate: LIMI imm
     // Sets the CPU interrupt mask
-    limi: function() {
+    limi: function () {
         return null;
         // Not implemented
     },
 
     // This sets A0-A2 to 010, and pulses CRUCLK until an interrupt is received.
-    idle: function() {
+    idle: function () {
         this.setIdle(true);
         return 10;
     },
 
     // This will set A0-A2 to 011 and pulse CRUCLK (so not emulated)
     // However, it does have an effect, it zeros the interrupt mask
-    rset: function() {
+    rset: function () {
         // Not implemented
         return null;
     },
@@ -686,26 +687,26 @@ F18AGPU.prototype = {
     // ReTurn with Workspace Pointer: RTWP
     // The matching return for BLWP, see BLWP for description
     // F18A Modified, does not use R13, only performs R14->PC, R15->status flags
-    rtwp: function() {
+    rtwp: function () {
         this.ST = this.readMemoryWord(this.WP + 30); // R15
         this.PC = this.readMemoryWord(this.WP + 28); // R14
         return 14;
     },
 
     // This is the SPI_EN instruction of the F18A GPU
-    ckon: function() {
+    ckon: function () {
         this.flash.enable();
         return 10;
     },
 
     // This is the SPI_DS instruction of the F18A GPU
-    ckof: function() {
+    ckof: function () {
         this.flash.disable();
         return 10;
     },
 
     // This will set A0-A2 to 111 and pulse CRUCLK
-    lrex: function() {
+    lrex: function () {
         // Not implemented
         return null;
     },
@@ -717,14 +718,14 @@ F18AGPU.prototype = {
     // Program Counter (return address), and Status register are
     // stored in the new R13, R14 and R15, respectively
     // Return is performed with RTWP
-    blwp: function() {
+    blwp: function () {
         // Not implemented
         return null;
     },
 
     // Branch: B src
     // Unconditional absolute branch
-    b: function() {
+    b: function () {
         this.PC = this.S;
         this.postIncrement(this.SRC);
         return 8;
@@ -732,7 +733,7 @@ F18AGPU.prototype = {
 
     // eXecute: X src
     // The argument is interpreted as an instruction and executed
-    x: function() {
+    x: function () {
         if (this.flagX != 0) {
             this.log.info("Recursive X instruction!");
         }
@@ -751,14 +752,14 @@ F18AGPU.prototype = {
 
     // CLeaR: CLR src
     // sets word to 0
-    clr: function() {
+    clr: function () {
         this.writeMemoryWord(this.S, 0);
         this.postIncrement(this.SRC);
         return 10;
     },
 
     // NEGate: NEG src
-    neg: function() {
+    neg: function () {
         var x1 = this.readMemoryWord(this.S);
 
         x1 = ((~x1) + 1) & 0xFFFF;
@@ -772,7 +773,7 @@ F18AGPU.prototype = {
     },
 
     // INVert: INV src
-    inv: function() {
+    inv: function () {
         var x1 = this.readMemoryWord(this.S);
         x1 = (~x1) & 0xFFFF;
         this.writeMemoryWord(this.S, x1);
@@ -785,7 +786,7 @@ F18AGPU.prototype = {
     },
 
     // INCrement: INC src
-    inc: function() {
+    inc: function () {
         var x1 = this.readMemoryWord(this.S);
 
         x1 = (x1 + 1) & 0xFFFF;
@@ -799,7 +800,7 @@ F18AGPU.prototype = {
     },
 
     // INCrement by Two: INCT src
-    inct: function() {
+    inct: function () {
         var x1 = this.readMemoryWord(this.S);
 
         x1 = (x1 + 2) & 0xFFFF;
@@ -816,7 +817,7 @@ F18AGPU.prototype = {
     },
 
     // DECrement: DEC src
-    dec: function() {
+    dec: function () {
         var x1 = this.readMemoryWord(this.S);
 
         x1 = (x1 - 1) & 0xFFFF;
@@ -833,7 +834,7 @@ F18AGPU.prototype = {
     },
 
     // DECrement by Two: DECT src
-    dect: function() {
+    dect: function () {
         var x1 = this.readMemoryWord(this.S);
 
         x1 = (x1 - 2) & 0xFFFF;
@@ -850,7 +851,7 @@ F18AGPU.prototype = {
         return 10;
     },
 
-    bl: function() {
+    bl: function () {
         // Branch and Link: BL src
         // Essentially a subroutine jump - return address is stored in R11
         // Note there is no stack, and no official return function.
@@ -865,7 +866,7 @@ F18AGPU.prototype = {
 
     // SWaP Bytes: SWPB src
     // swap the high and low bytes of a word
-    swpb: function() {
+    swpb: function () {
         var x1 = this.readMemoryWord(this.S);
 
         var x2 = ((x1 & 0xff) << 8) | (x1 >> 8);
@@ -877,7 +878,7 @@ F18AGPU.prototype = {
 
     // SET to One: SETO src
     // sets word to 0xffff
-    seto: function() {
+    seto: function () {
         this.writeMemoryWord(this.S, 0xffff);
         this.postIncrement(this.SRC);
 
@@ -885,7 +886,7 @@ F18AGPU.prototype = {
     },
 
     // ABSolute value: ABS src
-    abs: function() {
+    abs: function () {
         var cycles = 0;
         var x1 = this.readMemoryWord(this.S);
 
@@ -906,7 +907,7 @@ F18AGPU.prototype = {
     // For the shift instructions, a count of '0' means use the
     // value in register 0. If THAT is zero, the count is 16.
     // The arithmetic operations preserve the sign bit
-    sra: function() {
+    sra: function () {
         var cycles = 0;
         if (this.D == 0) {
             this.D = this.readMemoryWord(this.WP) & 0xf;
@@ -934,7 +935,7 @@ F18AGPU.prototype = {
 
     // Shift Right Logical: SRL src, dst
     // The logical shifts do not preserve the sign
-    srl: function() {
+    srl: function () {
         var cycles = 0;
         if (this.D == 0) {
             this.D = this.readMemoryWord(this.WP) & 0xf;
@@ -959,7 +960,7 @@ F18AGPU.prototype = {
     },
 
     // Shift Left Arithmetic: SLA src, dst
-    sla: function() {
+    sla: function () {
         var cycles = 0;
         if (this.D == 0) {
             this.D = this.readMemoryWord(this.WP) & 0xf;
@@ -990,7 +991,7 @@ F18AGPU.prototype = {
     // Circular shifts pop bits off one end and onto the other
     // The carry bit is not a part of these shifts, but it set
     // as appropriate
-    src: function() {
+    src: function () {
         var cycles = 0;
         if (this.D == 0)
         {
@@ -1018,7 +1019,7 @@ F18AGPU.prototype = {
 
     // JuMP: JMP dsp
     // (unconditional)
-    jmp: function() {
+    jmp: function () {
         if (this.flagX != 0) {
             this.PC = this.flagX;	// Update offset - it's relative to the X, not the opcode
         }
@@ -1033,7 +1034,7 @@ F18AGPU.prototype = {
     },
 
     // Jump if Less Than: JLT dsp
-    jlt: function() {
+    jlt: function () {
         if (((!this.getAGT()) && (!this.getEQ())) != 0) {
             if (this.flagX != 0) {
                 this.PC = this.flagX;	// Update offset - it's relative to the X, not the opcode
@@ -1053,7 +1054,7 @@ F18AGPU.prototype = {
     },
 
     // Jump if Low or Equal: JLE dsp
-    jle: function() {
+    jle: function () {
         if ((this.getLGT() == 0) || (this.getEQ() != 0)) {
             if (this.flagX != 0) {
                 this.PC = this.flagX;	// Update offset - it's relative to the X, not the opcode
@@ -1075,7 +1076,7 @@ F18AGPU.prototype = {
     // Jump if equal: JEQ dsp
     // Conditional relative branch. The displacement is a signed byte representing
     // the number of words to branch
-    jeq: function() {
+    jeq: function () {
         if (this.getEQ() != 0) {
             if (this.flagX != 0) {
                 this.PC = this.flagX;	// Update offset - it's relative to the X, not the opcode
@@ -1094,7 +1095,7 @@ F18AGPU.prototype = {
     },
 
     // Jump if High or Equal: JHE dsp
-    jhe: function() {
+    jhe: function () {
         if ((this.getLGT() != 0) || (this.getEQ() != 0)) {
             if (this.flagX != 0) {
                 this.PC = this.flagX;	// Update offset - it's relative to the X, not the opcode
@@ -1113,7 +1114,7 @@ F18AGPU.prototype = {
     },
 
     // Jump if Greater Than: JGT dsp
-    jgt: function() {
+    jgt: function () {
         if (this.getAGT() != 0) {
             if (this.flagX != 0) {
                 this.PC = this.flagX;	// Update offset - it's relative to the X, not the opcode
@@ -1132,7 +1133,7 @@ F18AGPU.prototype = {
    },
 
     // Jump if Not Equal: JNE dsp
-    jne: function() {
+    jne: function () {
         if (this.getEQ() == 0) {
             if (this.flagX != 0) {
                 this.PC = this.flagX;	// Update offset - it's relative to the X, not the opcode
@@ -1151,7 +1152,7 @@ F18AGPU.prototype = {
     },
 
     // Jump if No Carry: JNC dsp
-    jnc: function() {
+    jnc: function () {
         if (this.getC() == 0) {
             if (this.flagX != 0) {
                 this.PC = this.flagX;	// Update offset - it's relative to the X, not the opcode
@@ -1171,7 +1172,7 @@ F18AGPU.prototype = {
     },
 
     // Jump On Carry: JOC dsp
-    joc: function() {
+    joc: function () {
         if (this.getC() != 0) {
             if (this.flagX != 0) {
                 this.PC = this.flagX;	// Update offset - it's relative to the X, not the opcode
@@ -1191,7 +1192,7 @@ F18AGPU.prototype = {
     },
 
     // Jump if No Overflow: JNO dsp
-    jno: function() {
+    jno: function () {
         if (this.getOV() == 0) {
             if (this.flagX != 0) {
                 this.PC = this.flagX;	// Update offset - it's relative to the X, not the opcode
@@ -1210,7 +1211,7 @@ F18AGPU.prototype = {
         }
     },
 
-    jl: function() {
+    jl: function () {
         if ((this.getLGT() == 0) && (this.getEQ() == 0)) {
             if (this.flagX != 0) {
                 this.PC = this.flagX;	// Update offset - it's relative to the X, not the opcode
@@ -1230,7 +1231,7 @@ F18AGPU.prototype = {
     },
 
     // Jump if High: JH dsp
-    jh: function() {
+    jh: function () {
         if ((this.getLGT() != 0) && (this.getEQ() == 0))
         {
             if (this.flagX != 0) {
@@ -1250,7 +1251,7 @@ F18AGPU.prototype = {
     },
 
     // Jump on Odd Parity: JOP dsp
-    jop: function() {
+    jop: function () {
         if (this.getOP() != 0) {
             if (this.flagX != 0) {
                 this.PC = this.flagX;	// Update offset - it's relative to the X, not the opcode
@@ -1271,26 +1272,26 @@ F18AGPU.prototype = {
 
     // Set Bit On: SBO src
     // Sets a bit in the CRU
-    sbo: function() {
+    sbo: function () {
         return null;
     },
 
     // Set Bit Zero: SBZ src
     // Zeros a bit in the CRU
-    sbz: function() {
+    sbz: function () {
         return null;
     },
 
     // Test Bit: TB src
     // Tests a CRU bit
-    tb: function() {
+    tb: function () {
         return null;
     },
 
     // Compare Ones Corresponding: COC src, dst
     // Basically comparing against a mask, if all set bits in the src match
     // set bits in the dest (mask), the equal bit is set
-    coc: function() {
+    coc: function () {
         var x1 = this.readMemoryWord(this.S);
         this.postIncrement(this.SRC);
 
@@ -1307,7 +1308,7 @@ F18AGPU.prototype = {
     // Compare Zeros Corresponding: CZC src, dst
     // The opposite of COC. Each set bit in the dst (mask) must
     // match up with a zero bit in the src to set the equals flag
-    czc: function() {
+    czc: function () {
         var x1 = this.readMemoryWord(this.S);
         this.postIncrement(this.SRC);
 
@@ -1322,7 +1323,7 @@ F18AGPU.prototype = {
     },
 
     // eXclusive OR: XOR src, dst
-    xor: function() {
+    xor: function () {
         var x1 = this.readMemoryWord(this.S);
         this.postIncrement(this.SRC);
 
@@ -1360,7 +1361,7 @@ F18AGPU.prototype = {
     //     0 = only write PP if current pixel is not equal to OO
     // OO - pixel to compare to existing pixel
     // PP - new pixel to write, and previous pixel when reading
-    xop: function() {
+    xop: function () {
         this.D = this.WP + (this.D << 1);
         var x1 = this.readMemoryWord(this.S);
         var x2 = this.readMemoryWord(this.D);
@@ -1431,14 +1432,14 @@ F18AGPU.prototype = {
     },
 
     // This is the SPI_OUT instruction of the F18A GPU
-    ldcr: function() {
+    ldcr: function () {
         this.flash.writeByte(this.readMemoryByte(this.S));
         this.postIncrement(this.SRC);
         return 10;
     },
 
     // This is the SPI_IN instruction of the F18A GPU
-    stcr: function() {
+    stcr: function () {
         this.writeMemoryByte(this.S, this.flash.readByte());
         this.postIncrement(this.SRC);
         return 10;
@@ -1447,7 +1448,7 @@ F18AGPU.prototype = {
     // MultiPlY: MPY src, dst
     // Multiply src by dest and store 32-bit result
     // Note: src and dest are unsigned.
-    mpy: function() {
+    mpy: function () {
         var x1 = this.readMemoryWord(this.S);
         this.postIncrement(this.SRC);
 
@@ -1463,7 +1464,7 @@ F18AGPU.prototype = {
     // DIVide: DIV src, dst
     // Dest, a 2 word number, is divided by src. The result is stored as two words at the dst:
     // the first is the whole number result, the second is the remainder
-    div: function() {
+    div: function () {
         var x2 = this.readMemoryWord(this.S);
         this.postIncrement(this.SRC);
 
@@ -1487,7 +1488,7 @@ F18AGPU.prototype = {
 
     // Set Zeros Corresponding: SZC src, dst
     // Zero all bits in dest that are zeroed in src
-    szc: function() {
+    szc: function () {
         var x1 = this.readMemoryWord(this.S);
         this.postIncrement(this.SRC);
 
@@ -1504,7 +1505,7 @@ F18AGPU.prototype = {
     },
 
     // Set Zeros Corresponding, Byte: SZCB src, dst
-    szcb: function() {
+    szcb: function () {
         var x1 = this.readMemoryByte(this.S);
         this.postIncrement(this.SRC);
 
@@ -1521,7 +1522,7 @@ F18AGPU.prototype = {
     },
 
     // Subtract: S src, dst
-    s: function() {
+    s: function () {
         var x1 = this.readMemoryWord(this.S);
         this.postIncrement(this.SRC);
 
@@ -1543,7 +1544,7 @@ F18AGPU.prototype = {
     },
 
     // Subtract Byte: SB src, dst
-    sb: function() {
+    sb: function () {
         var x1 = this.readMemoryByte(this.S);
         this.postIncrement(this.SRC);
 
@@ -1565,7 +1566,7 @@ F18AGPU.prototype = {
     },
 
     // Compare words: C src, dst
-    c: function() {
+    c: function () {
         var x3 = this.readMemoryWord(this.S);
         this.postIncrement(this.SRC);
 
@@ -1586,7 +1587,7 @@ F18AGPU.prototype = {
     },
 
     // CompareBytes: CB src, dst
-    cb: function() {
+    cb: function () {
         var x3 = this.readMemoryByte(this.S);
         this.postIncrement(this.SRC);
 
@@ -1608,7 +1609,7 @@ F18AGPU.prototype = {
     },
 
     // Add words: A src, dst
-    a: function() {
+    a: function () {
         var x1 = this.readMemoryWord(this.S);
         this.postIncrement(this.SRC);
 
@@ -1628,7 +1629,7 @@ F18AGPU.prototype = {
     },
 
     // Add bytes: A src, dst
-    ab: function() {
+    ab: function () {
         var x1 = this.readMemoryByte(this.S);
         this.postIncrement(this.SRC);
 
@@ -1648,7 +1649,7 @@ F18AGPU.prototype = {
     },
 
     // MOVe words: MOV src, dst
-    mov: function() {
+    mov: function () {
         var x1 = this.readMemoryWord(this.S);
         this.postIncrement(this.SRC);
         this.fixD();
@@ -1663,7 +1664,7 @@ F18AGPU.prototype = {
     },
 
     // MOVe Bytes: MOVB src, dst
-    movb: function() {
+    movb: function () {
         var x1 = this.readMemoryByte(this.S);
         this.postIncrement(this.SRC);
 
@@ -1680,7 +1681,7 @@ F18AGPU.prototype = {
     // Set Ones Corresponding: SOC src, dst
     // Essentially performs an OR - setting all the bits in dst that
     // are set in src
-    soc: function() {
+    soc: function () {
         var x1 = this.readMemoryWord(this.S);
         this.postIncrement(this.SRC);
 
@@ -1696,7 +1697,7 @@ F18AGPU.prototype = {
         return 14;
     },
 
-    socb: function() {
+    socb: function () {
         var x1 = this.readMemoryByte(this.S);
         this.postIncrement(this.SRC);
 
@@ -1714,7 +1715,7 @@ F18AGPU.prototype = {
 
     // F18A specific opcodes
 
-    call: function() {
+    call: function () {
         var x2 = this.readMemoryWord(this.WP + 30);	// get R15
         this.writeMemoryWord(x2, this.PC);
         this.PC = this.S;
@@ -1724,7 +1725,7 @@ F18AGPU.prototype = {
         return 8;
     },
 
-    ret: function() {
+    ret: function () {
         var x1 = this.readMemoryWord(this.WP + 30); // get R15
         x1 += 2;
         this.PC = this.readMemoryWord(x1);          // get PC
@@ -1732,7 +1733,7 @@ F18AGPU.prototype = {
         return 8;
     },
 
-    push: function() {
+    push: function () {
         var x1 = this.readMemoryWord(this.S);
         var x2 = this.readMemoryWord(this.WP + 30); // get R15
         this.writeMemoryWord(x2, x1);               // Push the word on the stack
@@ -1742,7 +1743,7 @@ F18AGPU.prototype = {
         return 8;
     },
 
-    slc: function() {
+    slc: function () {
         var cycles = 0;
         if (this.D == 0)
         {
@@ -1768,7 +1769,7 @@ F18AGPU.prototype = {
         return cycles + 12 + 2 * this.D;
     },
 
-    pop: function() {
+    pop: function () {
         var x2 = this.readMemoryWord(this.WP + 30);	// get R15
         // POP the word from the stack
         // the stack pointer post-decrements (per Matthew)
@@ -1780,48 +1781,48 @@ F18AGPU.prototype = {
         return 8;
     },
 
-    getLGT:     function() { return (this.ST & this.BIT_LGT) },	// Logical Greater Than
-    getAGT:     function() { return (this.ST & this.BIT_AGT) },	// Arithmetic Greater Than
-    getEQ:      function() { return (this.ST & this.BIT_EQ) },	// Equal
-    getC:       function() { return (this.ST & this.BIT_C) },	// Carry
-    getOV:      function() { return (this.ST & this.BIT_OV) },	// Overflow
-    getOP:      function() { return (this.ST & this.BIT_OP) },	// Odd Parity
-    getX:       function() { return (this.ST & this.BIT_X) },	// Set during an XOP instruction
+    getLGT:     function () { return (this.ST & this.BIT_LGT) },	// Logical Greater Than
+    getAGT:     function () { return (this.ST & this.BIT_AGT) },	// Arithmetic Greater Than
+    getEQ:      function () { return (this.ST & this.BIT_EQ) },	// Equal
+    getC:       function () { return (this.ST & this.BIT_C) },	// Carry
+    getOV:      function () { return (this.ST & this.BIT_OV) },	// Overflow
+    getOP:      function () { return (this.ST & this.BIT_OP) },	// Odd Parity
+    getX:       function () { return (this.ST & this.BIT_X) },	// Set during an XOP instruction
 
-    setLGT:     function() { this.ST |= 0x8000 },       		// Logical Greater than: >0x0000
-    setAGT:     function() { this.ST |= 0x4000 },		        // Arithmetic Greater than: >0x0000 and <0x8000
-    setEQ:      function() { this.ST |= 0x2000 },       		// Equal: ==0x0000
-    setC:       function() { this.ST |= 0x1000 },		        // Carry: carry occurred during operation
-    setOV:      function() { this.ST |= 0x0800 },       		// Overflow: overflow occurred during operation
-    setOP:      function() { this.ST |= 0x0400 },	            // Odd parity: word has odd number of '1' bits
-    setX:       function() { this.ST |= 0x0200 },		        // Executing 'X' statement
+    setLGT:     function () { this.ST |= 0x8000 },       		// Logical Greater than: >0x0000
+    setAGT:     function () { this.ST |= 0x4000 },		        // Arithmetic Greater than: >0x0000 and <0x8000
+    setEQ:      function () { this.ST |= 0x2000 },       		// Equal: ==0x0000
+    setC:       function () { this.ST |= 0x1000 },		        // Carry: carry occurred during operation
+    setOV:      function () { this.ST |= 0x0800 },       		// Overflow: overflow occurred during operation
+    setOP:      function () { this.ST |= 0x0400 },	            // Odd parity: word has odd number of '1' bits
+    setX:       function () { this.ST |= 0x0200 },		        // Executing 'X' statement
 
-    resetLGT:   function() { this.ST &= 0x7fff },               // Clear the flags
-    resetAGT:   function() { this.ST &= 0xbfff },
-    resetEQ:    function() { this.ST &= 0xdfff },
-    resetC:     function() { this.ST &= 0xefff },
-    resetOV:    function() { this.ST &= 0xf7ff },
-    resetOP:    function() { this.ST &= 0xfbff },
-    resetX:     function() { this.ST &= 0xfdff },
+    resetLGT:   function () { this.ST &= 0x7fff },               // Clear the flags
+    resetAGT:   function () { this.ST &= 0xbfff },
+    resetEQ:    function () { this.ST &= 0xdfff },
+    resetC:     function () { this.ST &= 0xefff },
+    resetOV:    function () { this.ST &= 0xf7ff },
+    resetOP:    function () { this.ST &= 0xfbff },
+    resetX:     function () { this.ST &= 0xfdff },
 
     // Group clears
-    resetEQ_LGT:               function() { this.ST &= 0x5fff },
-    resetLGT_AGT_EQ:           function() { this.ST &= 0x1fff },
-    resetLGT_AGT_EQ_OP:        function() { this.ST &= 0x1bff },
-    resetEQ_LGT_AGT_OV:        function() { this.ST &= 0x17ff },
-    resetEQ_LGT_AGT_C:         function() { this.ST &= 0x0fff },
-    resetEQ_LGT_AGT_C_OV:      function() { this.ST &= 0x7ff },
-    resetEQ_LGT_AGT_C_OV_OP:   function() { this.ST &= 0x3ff },
+    resetEQ_LGT:               function () { this.ST &= 0x5fff },
+    resetLGT_AGT_EQ:           function () { this.ST &= 0x1fff },
+    resetLGT_AGT_EQ_OP:        function () { this.ST &= 0x1bff },
+    resetEQ_LGT_AGT_OV:        function () { this.ST &= 0x17ff },
+    resetEQ_LGT_AGT_C:         function () { this.ST &= 0x0fff },
+    resetEQ_LGT_AGT_C_OV:      function () { this.ST &= 0x7ff },
+    resetEQ_LGT_AGT_C_OV_OP:   function () { this.ST &= 0x3ff },
 
-    logRegs: function() {
+    logRegs: function () {
         this.log.info(this.getRegsString() + this.getInternalRegsString());
     },
 
-    getInternalRegsString: function() {
+    getInternalRegsString: function () {
         return "PC: " + this.PC.toHexWord() + " ST: " + this.ST.toHexWord();
     },
 
-    getRegsString: function() {
+    getRegsString: function () {
         var s = "";
         for (var i = 0; i < 16; i++) {
             s += "R" + i + ":" + (this.readMemoryWord(this.WP + 2 * i)).toHexWord() + " ";
@@ -1829,7 +1830,7 @@ F18AGPU.prototype = {
         return s;
     },
 
-    getRegsStringFormatted: function() {
+    getRegsStringFormatted: function () {
         var s = "";
         for (var i = 0; i < 16; i++) {
             s += "R" + i + (i < 10 ? " " : "") + ":" + (this.readMemoryWord(this.WP + 2 * i)).toHexWord() + (i % 4 == 3 ? "\n" : " ");
@@ -1837,19 +1838,19 @@ F18AGPU.prototype = {
         return s;
     },
 
-    getBreakpoint: function() {
+    getBreakpoint: function () {
         return this.breakpoint;
     },
 
-    setBreakpoint: function(addr) {
+    setBreakpoint: function (addr) {
         this.breakpoint = addr;
     },
 
-    atBreakpoint: function() {
+    atBreakpoint: function () {
         return this.breakpoint && this.PC == this.breakpoint;
     },
 
-    hexArrayToBin: function(hexArray) {
+    hexArrayToBin: function (hexArray) {
         var binArray = [];
         var n = 0;
         for (var i = 0; i < hexArray.length; i++) {

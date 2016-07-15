@@ -9,18 +9,18 @@
 
 'use strict';
 
-var Disassembler = (function() {
+var Disassembler = (function () {
 
-    var Disassembler = function(memory) {
+    var Disassembler = function (memory) {
         this.memory = memory;
         this.addr = null;
     };
 
-    Disassembler.prototype.setMemory = function(memory) {
+    Disassembler.prototype.setMemory = function (memory) {
         this.memory = memory;
     };
 
-    Disassembler.prototype.disassemble = function(start, length, maxInstructions, anchorAddr) {
+    Disassembler.prototype.disassemble = function (start, length, maxInstructions, anchorAddr) {
         this.addr = start || 0;
         var end = length ? start + length : 0x10000;
         maxInstructions = maxInstructions || 0x10000;

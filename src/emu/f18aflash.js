@@ -6,15 +6,15 @@
 
 'use strict';
 
-var F18AFlash = (function() {
+var F18AFlash = (function () {
 
-    var F18AFlash = function(callback) {
+    var F18AFlash = function (callback) {
         this.flashRAM = null;
         this.updated = false;
         this.log = Log.getLog();
         this.reset();
         var that = this;
-        this.database = new Database( function(success) {
+        this.database = new Database( function (success) {
             if (success) {
                 that.restore(callback);
             }
@@ -24,7 +24,7 @@ var F18AFlash = (function() {
         });
     };
 
-    F18AFlash.prototype.reset = function() {
+    F18AFlash.prototype.reset = function () {
         this.writeEnabled = false;
         this.intReset();
         if (this.updated) {
@@ -33,7 +33,7 @@ var F18AFlash = (function() {
         }
     };
 
-    F18AFlash.prototype.intReset = function() {
+    F18AFlash.prototype.intReset = function () {
         this.enabled = false;
         this.address = 0;
         this.command = 0;
@@ -43,7 +43,7 @@ var F18AFlash = (function() {
         this.writeBuffer = [];
     };
 
-    F18AFlash.prototype.enable = function() {
+    F18AFlash.prototype.enable = function () {
         this.log.info("SPI EN - Enable line to SPI flash ROM");
         if (this.flashRAM == null) {
             this.flashRAM = new Uint8Array(0x100000);
@@ -52,7 +52,7 @@ var F18AFlash = (function() {
         this.enabled = true;
     };
 
-    F18AFlash.prototype.disable = function() {
+    F18AFlash.prototype.disable = function () {
         this.log.info("SPI DS - Disable line to SPI flash ROM");
         var i;
         if (this.command == F18AFlash.PAGE_PROGRAM) {
@@ -77,7 +77,7 @@ var F18AFlash = (function() {
         this.intReset();
     };
 
-    F18AFlash.prototype.writeByte = function(b) {
+    F18AFlash.prototype.writeByte = function (b) {
         this.log.debug("Write byte to SPI: " + b.toHexByte());
         if (this.enabled) {
             if (this.addressByte == -1) {
@@ -150,7 +150,7 @@ var F18AFlash = (function() {
         }
     };
 
-    F18AFlash.prototype.readByte = function() {
+    F18AFlash.prototype.readByte = function () {
         if (this.enabled) {
             var b = 0;
             switch (this.command) {
@@ -172,10 +172,10 @@ var F18AFlash = (function() {
         }
     };
 
-    F18AFlash.prototype.save = function() {
+    F18AFlash.prototype.save = function () {
         if (this.database.isSupported() && this.flashRAM) {
             var that = this;
-            this.database.putBinaryFile(F18AFlash.FILE_NAME, this.flashRAM, function(success) {
+            this.database.putBinaryFile(F18AFlash.FILE_NAME, this.flashRAM, function (success) {
                 if (success) {
                     that.log.info("F18A flash RAM saved");
                 }
@@ -183,10 +183,10 @@ var F18AFlash = (function() {
         }
     };
 
-    F18AFlash.prototype.restore = function(callback) {
+    F18AFlash.prototype.restore = function (callback) {
         if (this.database.isSupported()) {
             var that = this;
-            this.database.getBinaryFile(F18AFlash.FILE_NAME, function(file) {
+            this.database.getBinaryFile(F18AFlash.FILE_NAME, function (file) {
                 if (file) {
                     that.flashRAM = new Uint8Array(0x100000);
                     for (var i = 0; i < file.length; i++) {

@@ -11,7 +11,7 @@
 
 var Decoder;
 
-(function() {
+(function () {
 
     var instance;
 
@@ -146,7 +146,7 @@ var Decoder;
             }
         }
 
-        Decoder.prototype.getDecoderTable = function() {
+        Decoder.prototype.getDecoderTable = function () {
             return decoderTable;
         };
     };

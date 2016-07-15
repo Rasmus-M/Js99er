@@ -62,7 +62,7 @@ function Memory(vdp, tms9919, tms5220, settings) {
 
 Memory.prototype = {
 
-    buildMemoryMap: function() {
+    buildMemoryMap: function () {
         var i;
         this.memoryMap = [];
         var romAccessors = [this.readROM, this.writeROM];
@@ -122,7 +122,7 @@ Memory.prototype = {
         }
     },
 
-    reset: function(keepCart) {
+    reset: function (keepCart) {
         var i;
         for (i = 0; i < this.ram.length; i++) {
             // Don't erase cartridge RAM for Mini Memory etc.
@@ -152,14 +152,14 @@ Memory.prototype = {
         }
     },
 
-    toggleCartridgeRAM: function(addr, length, enabled) {
-        var accessors = enabled ? [this.readRAM, this.writeRAM] : [this.readCartridgeROM, this.writeCartridgeROM];
+    toggleCartridgeRAM: function (addr, length, enabled) {
+        var accessors = enabled ? [this.readCartridgeRAM, this.writeCartridgeRAM] : [this.readCartridgeROM, this.writeCartridgeROM];
         for (var i = addr; i < addr + length; i++) {
             this.memoryMap[i] = accessors;
         }
     },
 
-    loadRAM: function(addr, byteArray) {
+    loadRAM: function (addr, byteArray) {
         for (var i = 0; i < byteArray.length; i++) {
             if (this.enableAMS) {
                 this.ams.setByte(addr + i, byteArray[i]);
@@ -170,7 +170,7 @@ Memory.prototype = {
         }
     },
 
-    loadGROM: function(byteArray, bank, base) {
+    loadGROM: function (byteArray, bank, base) {
         var grom = this.groms[base];
         var addr = bank * 0x2000;
         for (var i = 0; i < byteArray.length; i++) {
@@ -181,7 +181,7 @@ Memory.prototype = {
         }
     },
 
-    setCartridgeImage: function(byteArray, inverted) {
+    setCartridgeImage: function (byteArray, inverted) {
         this.cartImage = new Uint8Array(byteArray);
         this.cartInverted = inverted;
         this.cartBankCount = this.cartImage.length / 0x2000;
@@ -189,14 +189,14 @@ Memory.prototype = {
         this.cartAddrOffset = -0x6000;
     },
 
-    loadPeripheralROM: function(byteArray, number) {
+    loadPeripheralROM: function (byteArray, number) {
         this.peripheralROMs[number] = new Uint8Array(0x2000);
         for (var i = 0; i < byteArray.length; i++) {
             this.peripheralROMs[number][i] = byteArray[i];
         }
     },
 
-    setPeripheralROM: function(romNo, enabled) {
+    setPeripheralROM: function (romNo, enabled) {
         // this.log.info("Toggle ROM " + romNo + " " + (enabled ? "on" : "off") + ".");
         if (romNo > 0 && romNo < this.peripheralROMs.length) {
             this.peripheralROMNumber = romNo;
@@ -207,14 +207,14 @@ Memory.prototype = {
         }
     },
 
-    readROM: function(addr, cpu) {
+    readROM: function (addr, cpu) {
         return (this.rom[addr] << 8) | this.rom[addr + 1];
     },
 
-    writeROM: function(addr, w, cpu) {
+    writeROM: function (addr, w, cpu) {
     },
 
-    readRAM: function(addr, cpu) {
+    readRAM: function (addr, cpu) {
         cpu.addCycles(4);
         if (this.enableAMS) {
             return this.ams.readWord(addr);
@@ -225,7 +225,7 @@ Memory.prototype = {
         return 0;
     },
 
-    writeRAM: function(addr, w, cpu) {
+    writeRAM: function (addr, w, cpu) {
         cpu.addCycles(4);
         if (this.enableAMS) {
             this.ams.writeWord(addr, w);
@@ -236,7 +236,7 @@ Memory.prototype = {
         }
     },
 
-    readPeripheralROM: function(addr, cpu) {
+    readPeripheralROM: function (addr, cpu) {
         cpu.addCycles(4);
         if (this.enableAMS && this.ams.hasRegisterAccess()) {
             var w = this.ams.readRegister((addr & 0x1F) >> 1);
@@ -251,19 +251,19 @@ Memory.prototype = {
         return 0;
     },
 
-    writePeripheralROM: function(addr, w, cpu) {
+    writePeripheralROM: function (addr, w, cpu) {
         cpu.addCycles(4);
         if (this.enableAMS && this.ams.hasRegisterAccess()) {
             this.ams.writeRegister((addr & 0x1F) >> 1, ((w & 0xFF) << 8) | (w >> 8));
         }
     },
 
-    readCartridgeROM: function(addr, cpu) {
+    readCartridgeROM: function (addr, cpu) {
         cpu.addCycles(4);
         return this.cartImage != null ? (this.cartImage[addr + this.cartAddrOffset] << 8) | this.cartImage[addr + this.cartAddrOffset + 1] : 0;
     },
 
-    writeCartridgeROM: function(addr, w, cpu) {
+    writeCartridgeROM: function (addr, w, cpu) {
         cpu.addCycles(4);
         this.currentCartBank = (addr >> 1) & (this.cartBankCount - 1);
         if (this.cartInverted) {
@@ -273,28 +273,39 @@ Memory.prototype = {
         // this.log.info("Cartridge bank selected: " + this.currentCartBank);
     },
 
-    readPAD: function(addr, cpu) {
+    readCartridgeRAM: function (addr, cpu) {
+        cpu.addCycles(4);
+        return (this.ram[addr] << 8) | this.ram[addr + 1];
+    },
+
+    writeCartridgeRAM: function (addr, w, cpu) {
+        cpu.addCycles(4);
+        this.ram[addr] = w >> 8;
+        this.ram[addr + 1] = w & 0xFF;
+    },
+
+    readPAD: function (addr, cpu) {
         addr = addr | 0x0300;
         return (this.ram[addr] << 8) | this.ram[addr + 1];
     },
 
-    writePAD: function(addr, w, cpu) {
+    writePAD: function (addr, w, cpu) {
         addr = addr | 0x0300;
         this.ram[addr] = w >> 8;
         this.ram[addr + 1] = w & 0xFF;
     },
 
-    readSound: function(addr, cpu) {
+    readSound: function (addr, cpu) {
         cpu.addCycles(4);
         return 0;
     },
 
-    writeSound: function(addr, w, cpu) {
+    writeSound: function (addr, w, cpu) {
         cpu.addCycles(4);
         this.tms9919.writeData(w >> 8);
     },
 
-    readVDP: function(addr, cpu) {
+    readVDP: function (addr, cpu) {
         cpu.addCycles(4);
         addr = addr & 0x8802;
         if (addr == Memory.VDPRD) {
@@ -306,7 +317,7 @@ Memory.prototype = {
         return 0;
     },
 
-    writeVDP: function(addr, w, cpu) {
+    writeVDP: function (addr, w, cpu) {
         cpu.addCycles(4);
         addr = addr & 0x8C02;
         if (addr == Memory.VDPWD) {
@@ -317,17 +328,17 @@ Memory.prototype = {
         }
     },
 
-    readSpeech: function(addr, cpu) {
+    readSpeech: function (addr, cpu) {
         cpu.addCycles(4);
         return this.tms5220.readSpeechData() << 8;
     },
 
-    writeSpeech: function(addr, w, cpu) {
+    writeSpeech: function (addr, w, cpu) {
         cpu.addCycles(4);
         this.tms5220.writeSpeechData(w >> 8);
     },
 
-    readGROM: function(addr, cpu) {
+    readGROM: function (addr, cpu) {
         cpu.addCycles(4);
         var base = !this.multiGROMBases || this.gromAddress - 1 < 0x6000 ? 0 : (addr & 0x003C) >> 2;
         addr = addr & 0x9802;
@@ -356,7 +367,7 @@ Memory.prototype = {
         return 0;
     },
 
-    writeGROM: function(addr, w, cpu) {
+    writeGROM: function (addr, w, cpu) {
         cpu.addCycles(4);
         addr = addr & 0x9C02;
         if (addr == Memory.GRMWD) {
@@ -378,26 +389,26 @@ Memory.prototype = {
         }
     },
 
-    readNull: function(addr, cpu) {
+    readNull: function (addr, cpu) {
         return 0;
     },
 
-    writeNull: function(addr, w, cpu) {
+    writeNull: function (addr, w, cpu) {
     },
 
-    readWord: function(addr, cpu) {
+    readWord: function (addr, cpu) {
         addr &= 0xFFFE;
         return this.memoryMap[addr][0].call(this, addr, cpu);
     },
 
-    writeWord: function(addr, w, cpu) {
+    writeWord: function (addr, w, cpu) {
         addr &= 0xFFFE;
         this.memoryMap[addr][1].call(this, addr, w, cpu);
     },
 
     // Fast methods that doesn't produce wait states. For debugger etc.
 
-    getByte: function(addr) {
+    getByte: function (addr) {
         if (addr < 0x2000) {
             return this.rom[addr];
         }
@@ -419,7 +430,7 @@ Memory.prototype = {
             }
         }
         if (addr < 0x8000) {
-            return this.cartImage != null ? this.cartImage[addr + this.cartAddrOffset] : 0;
+            return this.cartImage != null ? this.cartImage[addr + this.cartAddrOffset] : this.ram[addr];
         }
         if (addr < 0x8400) {
             addr = addr | 0x0300;
@@ -439,7 +450,7 @@ Memory.prototype = {
         return 0;
     },
 
-    getWord: function(addr) {
+    getWord: function (addr) {
         if (addr < 0x2000) {
             return (this.rom[addr] << 8) | this.rom[addr + 1];
         }
@@ -461,7 +472,7 @@ Memory.prototype = {
             }
         }
         if (addr < 0x8000) {
-            return this.cartImage != null ? (this.cartImage[addr + this.cartAddrOffset] << 8) | this.cartImage[addr + this.cartAddrOffset + 1] : 0;
+            return this.cartImage != null ? (this.cartImage[addr + this.cartAddrOffset] << 8) | this.cartImage[addr + this.cartAddrOffset + 1] : this.ram[addr] << 8 | this.ram[addr + 1];
         }
         if (addr < 0x8400) {
             addr = addr | 0x0300;
@@ -483,30 +494,30 @@ Memory.prototype = {
 
     // For disk IO etc. that's not faithfully emulated
 
-    getPADByte: function(addr) {
+    getPADByte: function (addr) {
         return this.ram[addr];
     },
 
-    getPADWord: function(addr) {
+    getPADWord: function (addr) {
         return this.ram[addr] << 8 | this.ram[addr + 1];
     },
 
-    setPADByte: function(addr, b) {
+    setPADByte: function (addr, b) {
         return this.ram[addr] = b;
     },
 
-    setPADWord: function(addr, w) {
+    setPADWord: function (addr, w) {
         this.ram[addr] = w >> 8;
         this.ram[addr] = w & 0xFF;
     },
 
-    getStatusString: function() {
+    getStatusString: function () {
         return "GROM:" + this.gromAddress.toHexWord() + " (bank:" + ((this.gromAddress & 0xE000) >> 13) +
             ", addr:" + (this.gromAddress & 0x1FFF).toHexWord() + ") " +
            (this.cartImage != null ? "CART: bank " + this.currentCartBank +" / 0-" + (this.cartBankCount - 1) : "");
     },
 
-    hexView: function(start, length, anchorAddr) {
+    hexView: function (start, length, anchorAddr) {
         var text = "";
         var anchorLine = null;
         var addr = start;
@@ -529,11 +540,11 @@ Memory.prototype = {
         return {text: text.substr(1), anchorLine: anchorLine - 1};
     },
 
-    set32KRAMEnabled: function(enabled) {
+    set32KRAMEnabled: function (enabled) {
         this.enable32KRAM = enabled;
     },
 
-    setAMSEnabled: function(enabled) {
+    setAMSEnabled: function (enabled) {
         this.enableAMS = enabled;
     }
 };

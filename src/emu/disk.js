@@ -142,7 +142,7 @@ DiskDrive.DSR_ROM_FILES_16  = 0x405E;
 DiskDrive.DSR_HOOK_START = DiskDrive.DSR_ROM_POWER_UP;
 DiskDrive.DSR_HOOK_END = DiskDrive.DSR_ROM_FILES_16;
 
-DiskDrive.execute = function(pc, diskDrives, memory) {
+DiskDrive.execute = function (pc, diskDrives, memory) {
     var status = 0;
     switch (pc) {
         case DiskDrive.DSR_ROM_POWER_UP:
@@ -173,12 +173,12 @@ DiskDrive.execute = function(pc, diskDrives, memory) {
     memory.setPADByte(0x837C, memory.getPADByte(0x837C) | status);
 };
 
-DiskDrive.powerUp = function(memory) {
+DiskDrive.powerUp = function (memory) {
     Log.getLog().info("Executing disk DSR power-up routine.");
     DiskDrive.setFiles(3, memory);
 };
 
-DiskDrive.setFiles = function(nFiles, memory) {
+DiskDrive.setFiles = function (nFiles, memory) {
     if (nFiles == -1) {
         // Get parameter from BASIC (code from Classic99)
         var x = memory.getPADWord(0x832c);		    // Get next basic token
@@ -208,11 +208,11 @@ DiskDrive.setFiles = function(nFiles, memory) {
 
 DiskDrive.prototype = {
 
-    getName: function() {
+    getName: function () {
         return this.name;
     },
 
-    dsrRoutine: function(pabAddr) {
+    dsrRoutine: function (pabAddr) {
         this.log.info("Executing DSR routine for " + this.name + ", PAB in " + pabAddr.toHexWord() + ".");
         var i;
         var opCode = this.ram[pabAddr];
@@ -571,7 +571,7 @@ DiskDrive.prototype = {
         return status;
     },
 
-    sectorIO: function(memory) {
+    sectorIO: function (memory) {
         var read = (memory.getPADWord(0x834C) & 0x0F) != 0;
         var bufferAddr = memory.getPADWord(0x834E);
         var sectorNo = memory.getPADWord(0x8350);
@@ -591,15 +591,15 @@ DiskDrive.prototype = {
         }
     },
 
-    getDiskImage: function() {
+    getDiskImage: function () {
         return this.diskImage;
     },
 
-    setDiskImage: function(diskImage) {
+    setDiskImage: function (diskImage) {
         this.diskImage = diskImage;
     },
 
-    createCatalogFile: function() {
+    createCatalogFile: function () {
         var catFile = new DiskFile("CATALOG", TI_FILE.FILE_TYPE_DATA, TI_FILE.RECORD_TYPE_FIXED, 38, TI_FILE.DATATYPE_INTERNAL);
         catFile.open(TI_FILE.OPERATION_MODE_OUTPUT, TI_FILE.ACCESS_TYPE_SEQUENTIAL);
         var data = [];
@@ -645,7 +645,7 @@ DiskDrive.prototype = {
         return catFile;
     },
 
-    writeAsString: function(data, n, str) {
+    writeAsString: function (data, n, str) {
         data[n++] = str.length;
         for (var i = 0; i < str.length; i++) {
             data[n++] = str.charCodeAt(i);
@@ -654,7 +654,7 @@ DiskDrive.prototype = {
     },
 
     // Translated from Classic99
-    writeAsFloat: function(data, n, val) {
+    writeAsFloat: function (data, n, val) {
         var word = [0, 0];
         // First write a size byte of 8
         data[n++] = 8;
@@ -690,12 +690,12 @@ DiskDrive.prototype = {
         return n;
     },
 
-    loadDSKFromURL: function(url, onLoad) {
+    loadDSKFromURL: function (url, onLoad) {
         var xhr = new XMLHttpRequest();
         xhr.open('GET', url, true);
         xhr.responseType = 'arraybuffer';
         var self = this;
-        xhr.onload = function(e) {
+        xhr.onload = function (e) {
             self.loadDSKFile("", new Uint8Array(this.response))
             if (onLoad) {
                 onLoad();
@@ -704,7 +704,7 @@ DiskDrive.prototype = {
         xhr.send();
     },
 
-    loadDSKFile: function(dskFileName, fileBuffer) {
+    loadDSKFile: function (dskFileName, fileBuffer) {
         var volumeName = "";
         for (var i = 0; i < 10; i++) {
             var ch = fileBuffer[i];
@@ -829,14 +829,14 @@ DiskDrive.prototype = {
         return diskImage;
     },
 
-    getState: function() {
+    getState: function () {
         return {
             name: this.name,
             diskImage: this.diskImage != null ? this.diskImage.getName() : null
         };
     },
 
-    setRAM: function(ram) {
+    setRAM: function (ram) {
         this.ram = ram;
     }
 };
@@ -850,15 +850,15 @@ function DiskImage(name) {
 
 DiskImage.prototype = {
 
-    getName: function() {
+    getName: function () {
         return this.name;
     },
 
-    getFiles: function() {
+    getFiles: function () {
         return this.files;
     },
 
-    getFilesArray: function() {
+    getFilesArray: function () {
         var filesArray = [];
         for (var fileName in this.files) {
             if (this.files.hasOwnProperty(fileName)) {
@@ -868,21 +868,21 @@ DiskImage.prototype = {
         return filesArray;
     },
 
-    putFile: function(file) {
+    putFile: function (file) {
         this.files[file.getName()] = file;
         this.setBinaryImage(null); // Invalidate binary image on write
     },
 
-    getFile: function(fileName) {
+    getFile: function (fileName) {
         return this.files[fileName];
     },
 
-    deleteFile: function(fileName) {
+    deleteFile: function (fileName) {
         delete this.files[fileName];
         this.setBinaryImage(null); // Invalidate binary image on write
     },
 
-    loadTIFile: function(fileName, fileBuffer, ignoreTIFileName) {
+    loadTIFile: function (fileName, fileBuffer, ignoreTIFileName) {
         if (fileBuffer != null && fileBuffer.length > 0x80) {
             var sectors;
             var flags;
@@ -1065,7 +1065,7 @@ DiskImage.prototype = {
         return null;
     },
 
-    saveTIFile: function(fileName) {
+    saveTIFile: function (fileName) {
         var file = this.getFile(fileName);
         if (file != null) {
             var data = [];
@@ -1159,7 +1159,7 @@ DiskImage.prototype = {
         }
     },
 
-    readSector: function(sectorNo) {
+    readSector: function (sectorNo) {
         var sector = new Uint8Array(256);
         var tiDiskImage = this.getBinaryImage();
         var sectorOffset = 256 * sectorNo;
@@ -1169,18 +1169,18 @@ DiskImage.prototype = {
         return sector;
     },
 
-    getBinaryImage: function() {
+    getBinaryImage: function () {
         if (this.binaryImage == null) {
             this.binaryImage = this.createBinaryImage();
         }
         return this.binaryImage;
     },
 
-    setBinaryImage: function(binaryImage) {
+    setBinaryImage: function (binaryImage) {
         this.binaryImage = binaryImage;
     },
 
-    createBinaryImage: function() {
+    createBinaryImage: function () {
         var n, i, j;
         var dskImg = new Uint8Array(1440 * 256);
         // Volume Information Block
@@ -1312,7 +1312,7 @@ DiskImage.prototype = {
         return dskImg;
     },
 
-    writeString: function(data, n, str, padLen) {
+    writeString: function (data, n, str, padLen) {
         for (var i = 0; i < str.length; i++) {
             data[n++] = str.charCodeAt(i);
         }
@@ -1322,24 +1322,24 @@ DiskImage.prototype = {
         return n;
     },
 
-    writeByte: function(data, n, b) {
+    writeByte: function (data, n, b) {
         data[n++] = b & 0x00FF;
         return n;
     },
 
-    writeWord: function(data, n, w) {
+    writeWord: function (data, n, w) {
         data[n++] = (w & 0xFF00) >> 8;
         data[n++] = w & 0x00FF;
         return n;
     },
 
-    writeLEWord: function(data, n, w) {
+    writeLEWord: function (data, n, w) {
         data[n++] = w & 0x00FF;
         data[n++] = (w & 0xFF00) >> 8;
         return n;
     },
 
-    getState: function() {
+    getState: function () {
         var files = {};
         for (var fileName in this.files) {
             if (this.files.hasOwnProperty(fileName)) {
@@ -1352,7 +1352,7 @@ DiskImage.prototype = {
         };
     },
 
-    setState: function(state) {
+    setState: function (state) {
         this.name = state.name;
         var files = {};
         for (var fileName in state.files) {
@@ -1380,23 +1380,23 @@ function DiskFile(name, fileType, recordType, recordLength, datatype) {
 
 DiskFile.prototype = {
 
-    getName: function() {
+    getName: function () {
         return this.name;
     },
 
-    getFileType: function() {
+    getFileType: function () {
         return this.fileType;
     },
 
-    getRecordType: function() {
+    getRecordType: function () {
         return this.recordType;
     },
 
-    getRecordLength: function() {
+    getRecordLength: function () {
         return this.recordLength;
     },
 
-    getSectorCount: function() {
+    getSectorCount: function () {
         var sectors = 0;
         if (this.getFileType() == TI_FILE.FILE_TYPE_DATA) {
             if (this.getRecordType() == TI_FILE.RECORD_TYPE_FIXED) {
@@ -1424,7 +1424,7 @@ DiskFile.prototype = {
         return sectors;
     },
 
-    getEOFOffset: function() {
+    getEOFOffset: function () {
         var eofOffset = 0;
         if (this.getFileType() == TI_FILE.FILE_TYPE_DATA) {
             if (this.getRecordType() == TI_FILE.RECORD_TYPE_FIXED) {
@@ -1451,7 +1451,7 @@ DiskFile.prototype = {
         return eofOffset;
     },
 
-    getFileSize: function() {
+    getFileSize: function () {
         if (this.fileType == TI_FILE.FILE_TYPE_DATA) {
             if (this.recordType == TI_FILE.RECORD_TYPE_FIXED) {
                 return this.recordLength * this.records.length;
@@ -1469,74 +1469,74 @@ DiskFile.prototype = {
         }
     },
 
-    getDatatype: function() {
+    getDatatype: function () {
         return this.datatype;
     },
 
-    getOperationMode: function() {
+    getOperationMode: function () {
         return this.operationMode;
     },
 
-    getAccessType: function() {
+    getAccessType: function () {
         return this.accessType;
     },
 
-    getRecordPointer: function() {
+    getRecordPointer: function () {
         return this.recordPointer;
     },
 
-    setRecordPointer: function(recordPointer) {
+    setRecordPointer: function (recordPointer) {
         this.recordPointer = recordPointer;
     },
 
-    rewind: function() {
+    rewind: function () {
         this.recordPointer = 0;
     },
 
-	open: function(operationMode, accessType) {
+	open: function (operationMode, accessType) {
 		this.operationMode = operationMode;
 		this.recordPointer = 0;
 		this.accessType = accessType;
 	},
 	
-    getRecord: function() {
+    getRecord: function () {
         return this.records[this.recordPointer++];
     },
 
-    putRecord: function(record) {
+    putRecord: function (record) {
         return this.records[this.recordPointer++] = record;
     },
 
-    deleteRecord: function() {
+    deleteRecord: function () {
         delete this.records[this.recordPointer];
     },
 
-    setProgram: function(program) {
+    setProgram: function (program) {
         this.program = program;
     },
 
-    getProgram: function() {
+    getProgram: function () {
         return this.program;
     },
 
-	close: function() {
+	close: function () {
 		this.operationMode = -1;
 		this.recordPointer = -1;
 	},
 
-    getRecords: function() {
+    getRecords: function () {
         return this.records;
     },
 
-    getRecordCount: function() {
+    getRecordCount: function () {
         return this.records.length;
     },
 
-    isEOF: function() {
+    isEOF: function () {
         return this.recordPointer >= this.getRecordCount();
     },
 
-    getState: function() {
+    getState: function () {
         if (this.fileType == TI_FILE.FILE_TYPE_DATA) {
             var records = [];
             for (var i = 0; i < this.records.length; i++) {
@@ -1561,7 +1561,7 @@ DiskFile.prototype = {
         }
     },
 
-    setState: function(state) {
+    setState: function (state) {
         this.name = state.name;
         this.fileType = state.fileType;
         if (state.fileType == TI_FILE.FILE_TYPE_DATA) {
@@ -1590,7 +1590,7 @@ DiskFile.prototype = {
         }
     },
 
-    toString: function() {
+    toString: function () {
         var s = "";
         var i;
         if (this.fileType == TI_FILE.FILE_TYPE_DATA) {
@@ -1632,17 +1632,17 @@ function Record() {
 
 Record.prototype = {
 
-    getData: function() {
+    getData: function () {
         return this.data;
     },
 
-    getState: function() {
+    getState: function () {
         return {
             data: this.data
         };
     },
 
-    setState: function(state) {
+    setState: function (state) {
         this.data = state.data;
     }
 };

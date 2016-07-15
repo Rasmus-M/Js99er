@@ -151,7 +151,7 @@ function SN76489() {
  *  @param sampleRate    Sample Rate (Hz)
  */
 
-SN76489.prototype.init = function(clockSpeed, sampleRate) {
+SN76489.prototype.init = function (clockSpeed, sampleRate) {
     // Master clock divided by 16 to get internal clock
     // e.g. 3579545 / 16 / 44100 = 5
     this.clock = Math.floor((clockSpeed << SN76489.SCALE) / 16 / sampleRate);
@@ -186,7 +186,7 @@ SN76489.prototype.init = function(clockSpeed, sampleRate) {
  *  @param  value   Value to write (0-0xFF)
  */
 
-SN76489.prototype.write = function(value) {
+SN76489.prototype.write = function (value) {
     // ----------------------------------------------------------------------------------------
     // If bit 7 is 1 then the byte is a LATCH/DATA byte.
     //    %1cctdddd
@@ -263,7 +263,7 @@ SN76489.prototype.write = function(value) {
     }
 };
 
-SN76489.prototype.update = function(buffer, offset, samplesToGenerate) {
+SN76489.prototype.update = function (buffer, offset, samplesToGenerate) {
     for (var sample = 0; sample < samplesToGenerate; sample++)
     {
         // ------------------------------------------------------------------------------------

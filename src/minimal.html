@@ -37,10 +37,10 @@
         var ti994a = new TI994A(document.getElementById("canvas"), {FLOPPY1: new DiskImage("FLOPPY1")}, settings);
         var sound = new Sound(settings.isSoundEnabled(), ti994a.tms9919, ti994a.tms5220);
         var software = new Software();
-        software.loadRPKModuleFromURL("software/turboforth.rpk", function(cart) {
+        software.loadRPKModuleFromURL("software/turboforth.rpk", function (cart) {
             if (cart != null) {
                 ti994a.loadSoftware(cart);
-                ti994a.getDiskDrives()[0].loadDSKFromURL("disks/turboforth.dsk", function() {
+                ti994a.getDiskDrives()[0].loadDSKFromURL("disks/turboforth.dsk", function () {
                     ti994a.start();
                 });
             }

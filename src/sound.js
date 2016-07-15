@@ -31,7 +31,7 @@ function Sound(enabled, psgDev, speechDev) {
             psgDev.setSampleRate(this.sampleRate);
             this.buffer1 = new Int8Array(this.bufferSize);
             this.scriptProcessor1 = Sound.audioContext.createScriptProcessor(this.bufferSize, 0, 1);
-            this.scriptProcessor1.onaudioprocess = function(event) { that.onAudioProcess1(event); };
+            this.scriptProcessor1.onaudioprocess = function (event) { that.onAudioProcess1(event); };
         }
         if (speechDev != null) {
 			var speechSampleRate = TMS5220.SAMPLE_RATE;
@@ -39,7 +39,7 @@ function Sound(enabled, psgDev, speechDev) {
             // this.speechScale += 0.0125; // Attempt to avoid buffer depletion
             this.buffer2 = new Int16Array(Math.floor(this.bufferSize / this.speechScale) + 1);
             this.scriptProcessor2 = Sound.audioContext.createScriptProcessor(this.bufferSize, 0, 1);
-            this.scriptProcessor2.onaudioprocess = function(event) { that.onAudioProcess2(event); };
+            this.scriptProcessor2.onaudioprocess = function (event) { that.onAudioProcess2(event); };
             this.filter = Sound.audioContext.createBiquadFilter();
             this.filter.type = "lowpass";
             this.filter.frequency.value = speechSampleRate / 2;
@@ -55,7 +55,7 @@ Sound.audioContext = null;
 
 Sound.prototype = {
 
-    onAudioProcess1: function(event) {
+    onAudioProcess1: function (event) {
         // Get Float32Array output buffer
         var out = event.outputBuffer.getChannelData(0);
         // Get Int8Array input buffer
@@ -66,7 +66,7 @@ Sound.prototype = {
         }
     },
 
-    onAudioProcess2: function(event) {
+    onAudioProcess2: function (event) {
         // Get Float32Array output buffer
         var out = event.outputBuffer.getChannelData(0);
         // Get Int16Array input buffer
@@ -90,7 +90,7 @@ Sound.prototype = {
         }
     },
 
-    setSoundEnabled: function(enabled) {
+    setSoundEnabled: function (enabled) {
         if (Sound.audioContext) {
             if (enabled) {
                 if (this.scriptProcessor1) {

@@ -21,7 +21,7 @@ Keyboard.prototype = {
 
     // TODO: Fctn (Alt) + S,D,X,E does not work with PC keyboard enabled
 
-    reset: function() {
+    reset: function () {
 
         for (var col = 0; col < 8; col++) {
             this.columns[col] = [];
@@ -42,41 +42,41 @@ Keyboard.prototype = {
         this.pasteIndex = 0;
     },
 
-    attachListeners : function() {
+    attachListeners : function () {
         var self = this;
         if (!this.pcKeyboardEnabled) {
-            $(document).on("keydown", function(evt) {
+            $(document).on("keydown", function (evt) {
                 self.keyEvent(evt, true);
             });
-            $(document).on("keyup", function(evt) {
+            $(document).on("keyup", function (evt) {
                 self.keyEvent(evt, false);
             });
         }
         else {
-            $(document).on("keydown", function(evt) {
+            $(document).on("keydown", function (evt) {
                 self.keyEvent2(evt, true);
             });
-            $(document).on("keypress", function(evt) {
+            $(document).on("keypress", function (evt) {
                 self.keyPressEvent(evt);
             });
-            $(document).on("keyup", function(evt) {
+            $(document).on("keyup", function (evt) {
                 self.keyEvent2(evt, false);
             });
         }
-        $(document).on("paste", function(evt) {
+        $(document).on("paste", function (evt) {
             self.pasteBuffer = "\n" + evt.originalEvent.clipboardData.getData('text/plain') + "\n";
             self.pasteIndex = 0;
         });
     },
 
-    removeListeners: function() {
+    removeListeners: function () {
         $(document).off("keyup");
         $(document).off("keypress");
         $(document).off("keydown");
         $(document).off("paste");
     },
 
-    setPCKeyboardEnabled: function(enabled) {
+    setPCKeyboardEnabled: function (enabled) {
         this.pcKeyboardEnabled = enabled;
         this.reset();
     },
@@ -94,7 +94,7 @@ Keyboard.prototype = {
      >0014  10   11             X	C	V	B	Z
      */
 
-    keyEvent: function(evt, down) {
+    keyEvent: function (evt, down) {
         switch (evt.keyCode) {
             // Column 0
             case 187: // + -> =
@@ -323,7 +323,7 @@ Keyboard.prototype = {
         }
     },
 
-    keyPressEvent: function(evt) {
+    keyPressEvent: function (evt) {
         var charCode;
         if (evt.which == null) {
             charCode = evt.keyCode; // IE
@@ -633,7 +633,7 @@ Keyboard.prototype = {
         evt.preventDefault();
     },
 
-    keyPress: function(col, addr, shift, fctn) {
+    keyPress: function (col, addr, shift, fctn) {
         this.columns[col][addr] = true;
         this.columns[0][7] = fctn;  // Fctn
         this.columns[0][8] = shift; // Shift
@@ -643,7 +643,7 @@ Keyboard.prototype = {
         }
     },
 
-    keyEvent2: function(evt, down) {
+    keyEvent2: function (evt, down) {
         // this.log.info("Keycode: " + evt.keyCode);
         this.keyCode = 0;
         switch (evt.keyCode) {
@@ -698,7 +698,6 @@ Keyboard.prototype = {
                 if (Keyboard.EMULATE_JOYSTICK_2) this.columns[7][7] = down;
                 if (this.joystickActive == 0) {
                     // Up arrow
-                    this.simulateKeyPress()
                     this.columns[0][7] = down; // Fctn
                     this.columns[2][9] = down; // E
                 }
@@ -786,7 +785,7 @@ Keyboard.prototype = {
         }
     },
 
-    isKeyDown: function(col, addr) {
+    isKeyDown: function (col, addr) {
         // This is necessary in order for the Joystick in Donkey Kong to work
         if ((col == 6 || col == 7)) {
             this.joystickActive = 128;
@@ -798,19 +797,19 @@ Keyboard.prototype = {
         return this.columns[col][addr];
     },
 
-    isAlphaLockDown: function() {
+    isAlphaLockDown: function () {
         // this.log.info("Alpha Lock " + this.alphaLock);
         return this.alphaLock;
     },
 
-    simulateKeyPresses: function(keyString, callback) {
+    simulateKeyPresses: function (keyString, callback) {
         if (keyString.length > 0) {
             var pause = keyString.charAt(0) == "§";
             var that = this;
             if (!pause) {
                 var charCode = keyString.charCodeAt(0);
-                this.simulateKeyPress(charCode > 96 ? charCode - 32 : charCode, function() {
-                    window.setTimeout(function() {
+                this.simulateKeyPress(charCode > 96 ? charCode - 32 : charCode, function () {
+                    window.setTimeout(function () {
                         that.simulateKeyPresses(keyString.substr(1), callback);
                     }, Keyboard.KEYPRESS_DURATION);
                 });
@@ -826,18 +825,18 @@ Keyboard.prototype = {
         }
     },
 
-    simulateKeyPress: function(keyCode, callback) {
+    simulateKeyPress: function (keyCode, callback) {
         // this.log.info(keyCode);
         this.simulateKeyDown(keyCode);
         var that = this;
-        window.setTimeout(function() {
+        window.setTimeout(function () {
             that.simulateKeyUp(keyCode);
             if (callback) callback();
         }, Keyboard.KEYPRESS_DURATION);
     },
 
     // Keypress from the virtual keyboard
-    virtualKeyPress: function(keyCode) {
+    virtualKeyPress: function (keyCode) {
         this.virtualKeyDown(keyCode);
         if (keyCode != 16 && keyCode != 17 && keyCode != 18) {
             var that = this;
@@ -847,42 +846,42 @@ Keyboard.prototype = {
         }
     },
 
-    virtualKeyDown: function(keyCode) {
+    virtualKeyDown: function (keyCode) {
         this.simulateKeyDown(keyCode);
         var that = this;
         if (keyCode != 16) {
-            window.setTimeout(function() { that.simulateKeyUp(16); }, Keyboard.KEYPRESS_DURATION);
+            window.setTimeout(function () { that.simulateKeyUp(16); }, Keyboard.KEYPRESS_DURATION);
         }
         if (keyCode != 17) {
-            window.setTimeout(function() { that.simulateKeyUp(17); }, Keyboard.KEYPRESS_DURATION);
+            window.setTimeout(function () { that.simulateKeyUp(17); }, Keyboard.KEYPRESS_DURATION);
         }
         if (keyCode != 18) {
-            window.setTimeout(function() { that.simulateKeyUp(18); }, Keyboard.KEYPRESS_DURATION);
+            window.setTimeout(function () { that.simulateKeyUp(18); }, Keyboard.KEYPRESS_DURATION);
         }
     },
 
-    virtualKeyUp: function(keyCode) {
+    virtualKeyUp: function (keyCode) {
         this.simulateKeyUp(keyCode);
     },
 
-    simulateKeyDown: function(keyCode) {
-        this.keyEvent({keyCode: keyCode, preventDefault: function() {}}, true);
+    simulateKeyDown: function (keyCode) {
+        this.keyEvent({keyCode: keyCode, preventDefault: function () {}}, true);
     },
 
-    simulateKeyUp: function(keyCode) {
-        this.keyEvent({keyCode: keyCode, preventDefault: function() {}}, false);
+    simulateKeyUp: function (keyCode) {
+        this.keyEvent({keyCode: keyCode, preventDefault: function () {}}, false);
     },
 
-    simulateKeyDown2: function(keyCode) {
-        this.keyEvent2({keyCode: keyCode, preventDefault: function() {}}, true);
-        this.keyPressEvent({keyCode: keyCode, preventDefault: function() {}});
+    simulateKeyDown2: function (keyCode) {
+        this.keyEvent2({keyCode: keyCode, preventDefault: function () {}}, true);
+        this.keyPressEvent({keyCode: keyCode, preventDefault: function () {}});
     },
 
-    simulateKeyUp2: function(keyCode) {
-        this.keyEvent2({keyCode: keyCode, preventDefault: function() {}}, false);
+    simulateKeyUp2: function (keyCode) {
+        this.keyEvent2({keyCode: keyCode, preventDefault: function () {}}, false);
     },
 
-    getPasteCharCode: function() {
+    getPasteCharCode: function () {
         var charCode = -1;
         while (charCode == -1 && this.pasteBuffer && this.pasteBuffer.length > this.pasteIndex) {
             var tmpCharCode = this.pasteBuffer.charCodeAt(this.pasteIndex++);

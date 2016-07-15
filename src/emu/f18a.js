@@ -322,7 +322,7 @@ F18A.prototype = {
         this.gpu.reset();
     },
 
-    resetRegs: function() {
+    resetRegs: function () {
         this.log.info("F18A reset");
         this.log.setMinLevel(Log.LEVEL_NONE);
         this.writeRegister(0, 0);
@@ -356,7 +356,7 @@ F18A.prototype = {
         this.log.setMinLevel(Log.LEVEL_INFO);
     },
 
-    setDimensions: function() {
+    setDimensions: function () {
         this.canvas.width = this.screenMode == F18A.MODE_TEXT_80 ? 608 : 304;
         this.canvas.height = this.screenMode == F18A.MODE_TEXT_80 ? 480 : 240;
         this.width = this.screenMode == F18A.MODE_TEXT_80 ? 512 : 256;
@@ -368,7 +368,7 @@ F18A.prototype = {
         this.imagedataData = this.imagedata.data;
     },
 
-    drawFrame: function(timestamp) {
+    drawFrame: function (timestamp) {
         this.lastTime = timestamp;
         // this.log.info("Draw frame");
         if (this.redrawRequired) {
@@ -387,7 +387,7 @@ F18A.prototype = {
                 this.imagedataAddr = 0;
                 this.fakeScanline = null;
                 for (var y = 0; y < this.height; y++) {
-                    this.drawScanLine(y);
+                    this.drawScanline(y);
                     if (this.gpuHsyncTrigger) {
                         this.currentScanline = y;
                         this.runGPU(this.gpu.getPC(), true);
@@ -419,13 +419,13 @@ F18A.prototype = {
         this.frameCounter++;
     },
 
-    fillCanvas: function(color) {
+    fillCanvas: function (color) {
         // this.log.info("Width: " + this.canvas.width + ", Height: " + this.canvas.height);
         this.canvasContext.fillStyle = 'rgba(' + this.palette[color].join(',') + ',1.0)';
         this.canvasContext.fillRect(0, 0, this.canvas.width, this.canvas.height); // TODO: In Chrome the image sometimes turns white if we don't subtract 1
     },
 
-    prepareSprites: function() {
+    prepareSprites: function () {
         this.sprites = [];
         var grids = {};
         var outOfScreenY = this.row30Enabled ? 0xF0 : 0xC0;
@@ -590,7 +590,7 @@ F18A.prototype = {
         }
     },
 
-    drawScanLine: function(y) {
+    drawScanline: function (y) {
         var scrollWidth = this.width;
         var scrollHeight = this.height;
         if (this.screenMode == F18A.MODE_TEXT_80) {
@@ -1073,6 +1073,7 @@ F18A.prototype = {
                     }
                     else {
                         this.log.info("Write " + (this.addressRegister & 0x00FF).toHexByte() + " to F18A register " + reg + " (" + reg.toHexByte() + ") without unlocking.");
+                        this.writeRegister(reg & 0x07, this.addressRegister & 0x00FF);
                     }
                     break;
             }
@@ -1080,7 +1081,7 @@ F18A.prototype = {
         this.latch = !this.latch;
     },
 
-    writeRegister: function(reg, value) {
+    writeRegister: function (reg, value) {
         var oldValue = this.registers[reg];
         this.registers[reg] = value;
         switch (reg) {
@@ -1387,25 +1388,25 @@ F18A.prototype = {
 
     },
 
-    readRegister: function(reg) {
+    readRegister: function (reg) {
         return this.registers[reg];
     },
 
-    runGPU: function(gpuAddress, internal) {
-        this.log.info("F18A GPU triggered at " + gpuAddress.toHexWord());
+    runGPU: function (gpuAddress, internal) {
+        this.log.debug("F18A GPU triggered at " + gpuAddress.toHexWord());
         this.gpu.setPC(gpuAddress); // Set the PC, which also triggers the GPU
         if (this.gpu.atBreakpoint()) {
-            this.log.info("Breakpoint ignored.");
+            this.log.info("Breakpoint in GPU code ignored.");
             while (this.gpu.atBreakpoint() && !this.gpu.isIdle()) {
                 this.gpu.resume();
             }
         }
         if (this.gpu.isIdle()) {
-            this.log.info("F18A GPU idle.");
+            this.log.debug("F18A GPU idle.");
         }
     },
 
-    updateMode: function(reg0, reg1) {
+    updateMode: function (reg0, reg1) {
         var oldMode = this.screenMode;
         // Check bitmap mode bit, not text or multicolor
         if ((reg0 & 0x2) != 0 && (reg1 & 0x18) == 0) {
@@ -1453,7 +1454,7 @@ F18A.prototype = {
         }
     },
 
-    updateTableMasks: function() {
+    updateTableMasks: function () {
         if (this.screenMode == F18A.MODE_BITMAP) {
             this.colorTableMask = ((this.registers[3] & 0x7F) << 6) | 0x3F;
             this.patternTableMask  = ((this.registers[4] & 0x03) << 11) | (this.colorTableMask & 0x7FF);
@@ -1466,7 +1467,7 @@ F18A.prototype = {
         }
     },
 
-    writeData: function(b) {
+    writeData: function (b) {
         if (!this.dataPortMode) {
             var oldValue = this.ram[this.addressRegister];
             this.ram[this.addressRegister] = b;
@@ -1508,7 +1509,7 @@ F18A.prototype = {
         }
     },
 
-    readStatus: function() {
+    readStatus: function () {
         switch (this.statusRegisterNo) {
             case 0:
                 // Normal status
@@ -1559,18 +1560,18 @@ F18A.prototype = {
         this.latch = false; // According to Matthew
     },
 
-    readData: function() {
+    readData: function () {
         var i = this.prefetchByte;
         this.prefetchByte = this.ram[this.addressRegister++];
         this.addressRegister &= 0x3FFF;
         return i;
     },
 
-    getRAM: function() {
+    getRAM: function () {
         return this.ram;
     },
 
-    getCurrentScanline: function() {
+    getCurrentScanline: function () {
         if (this.currentScanline != null) {
             return this.currentScanline;
         }
@@ -1595,7 +1596,7 @@ F18A.prototype = {
         }
     },
 
-    colorTableSize: function() {
+    colorTableSize: function () {
         if (this.screenMode == F18A.MODE_BITMAP) {
             return Math.min(this.colorTableMask + 1, 0x1800);
         }
@@ -1604,7 +1605,7 @@ F18A.prototype = {
         }
     },
 
-    patternTableSize: function() {
+    patternTableSize: function () {
         if (this.screenMode == F18A.MODE_BITMAP) {
             return Math.min(this.patternTableMask + 1, 0x1800);
         }
@@ -1613,7 +1614,7 @@ F18A.prototype = {
         }
     },
 
-    getRegsString: function() {
+    getRegsString: function () {
         var s = "";
         for (var i = 0; i < 8; i++) {
             s += "VR" + i + ":" + this.registers[i].toHexByte() + " ";
@@ -1624,7 +1625,7 @@ F18A.prototype = {
         return s;
     },
 
-    hexView: function(start, length, anchorAddr) {
+    hexView: function (start, length, anchorAddr) {
         var text = "";
         var anchorLine = null;
         var addr = start;
@@ -1647,11 +1648,11 @@ F18A.prototype = {
         return {text: text.substr(1), anchorLine: anchorLine - 1};
     },
 
-    getWord: function(addr) {
+    getWord: function (addr) {
         return addr < 0x4800 ? this.ram[addr] << 8 | this.ram[addr+1] : 0;
     },
 
-    getCharAt: function(x, y) {
+    getCharAt: function (x, y) {
         if (this.screenMode == F18A.MODE_TEXT_80) {
             x *= 2;
         }
@@ -1671,7 +1672,7 @@ F18A.prototype = {
         return 0;
     },
 
-    getTime: function() {
+    getTime: function () {
         return window.performance ? window.performance.now() : (new Date()).getTime();
     }
 

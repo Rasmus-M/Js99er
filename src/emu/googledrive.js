@@ -67,7 +67,7 @@ GoogleDrive.DSR_ROM_GDR3 = 0x403C;
 GoogleDrive.DSR_HOOK_START = GoogleDrive.DSR_ROM_POWER_UP;
 GoogleDrive.DSR_HOOK_END = GoogleDrive.DSR_ROM_GDR3;
 
-GoogleDrive.execute = function(pc, googleDrives, memory, callback) {
+GoogleDrive.execute = function (pc, googleDrives, memory, callback) {
     var googleDrive = null;
     switch (pc) {
         case GoogleDrive.DSR_ROM_POWER_UP:
@@ -90,15 +90,15 @@ GoogleDrive.execute = function(pc, googleDrives, memory, callback) {
         var opCode = googleDrive.ram[pabAddr];
         GoogleDrive.authorize(
             opCode != TI_FILE.OP_CODE_READ && opCode != TI_FILE.OP_CODE_WRITE,
-            function() {
-                googleDrive.dsrRoutine(pabAddr, function(status, errorCode) {
+            function () {
+                googleDrive.dsrRoutine(pabAddr, function (status, errorCode) {
                     googleDrive.log.info("Returned error code: " + errorCode + "\n");
                     googleDrive.ram[pabAddr + 1] = (googleDrive.ram[pabAddr + 1] | (errorCode << 5)) & 0xFF;
                     memory.setPADByte(0x837C, memory.getPADByte(0x837C) | status);
                     callback(true);
                 });
             },
-            function() {
+            function () {
                 googleDrive.log.info("Failed opcode: " + opCode);
                 googleDrive.ram[pabAddr + 1] = (googleDrive.ram[pabAddr + 1] | (TI_FILE.ERROR_DEVICE_ERROR << 5)) & 0xFF;
                 memory.setPADByte(0x837C, memory.getPADByte(0x837C) | 0x20);
@@ -112,7 +112,7 @@ GoogleDrive.execute = function(pc, googleDrives, memory, callback) {
 
 GoogleDrive.AUTHORIZED = false;
 
-GoogleDrive.authorize = function(refresh, success, failure) {
+GoogleDrive.authorize = function (refresh, success, failure) {
 
     var CLIENT_ID = "101694421528-72cnh0nor5rvoj245fispof8hdaq47i4.apps.googleusercontent.com";
     var SCOPES = 'https://www.googleapis.com/auth/drive';
@@ -157,25 +157,25 @@ GoogleDrive.authorize = function(refresh, success, failure) {
     }
 };
 
-GoogleDrive.powerUp = function(memory) {
+GoogleDrive.powerUp = function (memory) {
     Log.getLog().info("Executing Google Drive DSR power-up routine.");
 };
 
 GoogleDrive.prototype = {
 
-    getFolderId: function(callback) {
+    getFolderId: function (callback) {
         if (this.folderId != null) {
             callback(this.folderId);
         }
         else {
-            this.getOrCreateFolder(this.path.split("/"), "root", function(id) {
+            this.getOrCreateFolder(this.path.split("/"), "root", function (id) {
                 this.folderId = id;
                 callback(id);
             }.bind(this));
         }
     },
 
-    dsrRoutine: function(pabAddr, callback) {
+    dsrRoutine: function (pabAddr, callback) {
         this.log.info("Executing DSR routine for " + this.name + ", PAB in " + pabAddr.toHexWord() + ".");
         var i;
         var opCode = this.ram[pabAddr];
@@ -204,7 +204,7 @@ GoogleDrive.prototype = {
                 recordLength
         );
 
-        this.getFolderId(function(parent) {
+        this.getFolderId(function (parent) {
             if (parent != null) {
                 if (fileName.substr(0, this.name.length + 1) == this.name + ".") {
                     fileName = fileName.substr(this.name.length + 1);
@@ -574,7 +574,7 @@ GoogleDrive.prototype = {
         }.bind(this));
     },
 
-    createCatalogFile: function(files) {
+    createCatalogFile: function (files) {
         var catFile = new DiskFile("CATALOG", TI_FILE.FILE_TYPE_DATA, TI_FILE.RECORD_TYPE_FIXED, 38, TI_FILE.DATATYPE_INTERNAL);
         catFile.open(TI_FILE.OPERATION_MODE_OUTPUT, TI_FILE.ACCESS_TYPE_SEQUENTIAL);
         var data = [];
@@ -618,7 +618,7 @@ GoogleDrive.prototype = {
         return catFile;
     },
 
-    writeAsString: function(data, n, str) {
+    writeAsString: function (data, n, str) {
         data[n++] = str.length;
         for (var i = 0; i < str.length; i++) {
             data[n++] = str.charCodeAt(i);
@@ -627,7 +627,7 @@ GoogleDrive.prototype = {
     },
 
     // Translated from Classic99
-    writeAsFloat: function(data, n, val) {
+    writeAsFloat: function (data, n, val) {
         var word = [0, 0];
         // First write a size byte of 8
         data[n++] = 8;
@@ -663,25 +663,25 @@ GoogleDrive.prototype = {
         return n;
     },
 
-    getFiles: function(parent, callback) {
+    getFiles: function (parent, callback) {
         var request = gapi.client.request({
             'path': '/drive/v2/files',
             'method': 'GET',
             'params': {'q': "mimeType != 'application/vnd.google-apps.folder' and '" + parent + "' in parents and trashed = false"}
         });
-        request.execute(function(result) {
+        request.execute(function (result) {
             callback(result.items)
         });
     },
 
-    findFile: function(fileName, parent, callback) {
+    findFile: function (fileName, parent, callback) {
         var request = gapi.client.request({
             'path': '/drive/v2/files',
             'method': 'GET',
             'params': {'q': "mimeType != 'application/vnd.google-apps.folder' and title = '" + fileName + "' and '" + parent + "' in parents and trashed = false"}
         });
 
-        request.execute(function(result) {
+        request.execute(function (result) {
             // console.log(result);
             var items = result.items;
             var id = items.length > 0 ? items[0].id : null;
@@ -690,7 +690,7 @@ GoogleDrive.prototype = {
         }.bind(this));
     },
 
-    getFile: function(fileId, callback) {
+    getFile: function (fileId, callback) {
         var request = gapi.client.request({
             'path': '/drive/v2/files/' + fileId,
             'method': 'GET'
@@ -698,10 +698,10 @@ GoogleDrive.prototype = {
         request.execute(callback);
     },
 
-    getFileContents: function(parent, callback) {
+    getFileContents: function (parent, callback) {
         var that = this;
         var files = [];
-        this.getFiles(parent, function(items) {
+        this.getFiles(parent, function (items) {
             _getFileContents(items, function () {
                 callback(files);
             })
@@ -709,7 +709,7 @@ GoogleDrive.prototype = {
         function _getFileContents(items, callback) {
             if (items.length) {
                 var item = items.shift();
-                that.getFileContent(item.id, function(data) {
+                that.getFileContent(item.id, function (data) {
                     files.push({id: item.id, name: item.title, data: data});
                     _getFileContents(items, callback);
                 })
@@ -720,8 +720,8 @@ GoogleDrive.prototype = {
         }
     },
 
-    getFileContent: function(fileId, callback) {
-        this.getFile(fileId, function(file) {
+    getFileContent: function (fileId, callback) {
+        this.getFile(fileId, function (file) {
             if (file.downloadUrl) {
                 this.log.info("getFileContent: " + file.title);
                 var accessToken = gapi.auth.getToken().access_token;
@@ -729,12 +729,12 @@ GoogleDrive.prototype = {
                 xhr.open('GET', file.downloadUrl);
                 xhr.setRequestHeader('Authorization', 'Bearer ' + accessToken);
                 xhr.responseType = "arraybuffer";
-                xhr.onload = function() {
+                xhr.onload = function () {
                     if (this.status == 200) {
                         callback(new Uint8Array(this.response));
                     }
                 };
-                xhr.onerror = function() {
+                xhr.onerror = function () {
                     callback(null);
                 };
                 xhr.send();
@@ -744,8 +744,8 @@ GoogleDrive.prototype = {
         }.bind(this));
     },
 
-    insertOrUpdateFile: function(fileName, parent, fileData, callback) {
-        this.findFile(fileName, parent, function(fileId) {
+    insertOrUpdateFile: function (fileName, parent, fileData, callback) {
+        this.findFile(fileName, parent, function (fileId) {
             if (fileId == null) {
                 this.insertFile(fileName, parent, fileData, callback);
             }
@@ -755,14 +755,14 @@ GoogleDrive.prototype = {
         }.bind(this));
     },
 
-    insertFile: function(fileName, parent, fileData, callback) {
+    insertFile: function (fileName, parent, fileData, callback) {
         var boundary = '-------314159265358979323846';
         var delimiter = "\r\n--" + boundary + "\r\n";
         var close_delim = "\r\n--" + boundary + "--";
 
         var reader = new FileReader();
         reader.readAsBinaryString(new Blob([fileData]));
-        reader.onload = function(e) {
+        reader.onload = function (e) {
             var contentType = "application/octet-stream";
             var metadata = {
                 'title': fileName,
@@ -795,15 +795,15 @@ GoogleDrive.prototype = {
         }
     },
 
-    updateFile: function(fileId, fileData, callback) {
+    updateFile: function (fileId, fileData, callback) {
         var boundary = '-------314159265358979323846';
         var delimiter = "\r\n--" + boundary + "\r\n";
         var close_delim = "\r\n--" + boundary + "--";
 
         var reader = new FileReader();
         reader.readAsBinaryString(new Blob([fileData]));
-        reader.onload = function(e) {
-            this.getFile(fileId, function(metadata) {
+        reader.onload = function (e) {
+            this.getFile(fileId, function (metadata) {
                 var contentType = "application/octet-stream";
                 var base64Data = btoa(reader.result);
                 var multipartRequestBody =
@@ -831,11 +831,11 @@ GoogleDrive.prototype = {
         }.bind(this);
     },
 
-    getOrCreateFolder: function(path, parent, callback) {
+    getOrCreateFolder: function (path, parent, callback) {
         if (path.length > 0) {
-            this.getFolder(path[0], parent, function(id) {
+            this.getFolder(path[0], parent, function (id) {
                 if (id == null) {
-                    this.createFolder(path[0], parent, function(id) {
+                    this.createFolder(path[0], parent, function (id) {
                         this.getOrCreateFolder(path.splice(1), id, callback);
                     }.bind(this))
                 }
@@ -849,7 +849,7 @@ GoogleDrive.prototype = {
         }
     },
 
-    createFolder: function(folderName, parent, callback) {
+    createFolder: function (folderName, parent, callback) {
         var metadata = {
             'title': folderName,
             'parents': [{'id': parent}],
@@ -862,21 +862,21 @@ GoogleDrive.prototype = {
             'body': JSON.stringify(metadata)
         });
 
-        request.execute(function(result) {
+        request.execute(function (result) {
             var id = result.id;
             this.log.info("createFolder '" + folderName + "': " + id);
             callback(id);
         }.bind(this));
     },
 
-    getFolder: function(folderName, parent, callback) {
+    getFolder: function (folderName, parent, callback) {
         var request = gapi.client.request({
             'path': '/drive/v2/files',
             'method': 'GET',
             'params': {'q': "mimeType = 'application/vnd.google-apps.folder' and title = '" + folderName + "' and '" + parent + "' in parents and trashed = false"}
         });
 
-        request.execute(function(result) {
+        request.execute(function (result) {
             var items = result.items;
             var id = items.length > 0 ? items[0].id : null;
             this.log.info("getFolder '" + folderName + "': " + id);
@@ -885,7 +885,7 @@ GoogleDrive.prototype = {
         }.bind(this));
     },
 
-    setRAM: function(ram) {
+    setRAM: function (ram) {
         this.ram = ram;
     }
 };

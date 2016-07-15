@@ -6,7 +6,7 @@
 
 "use strict"; 
  
-(function(document, window, $) {
+(function (document, window, $) {
 
     var log;
     var settings;
@@ -22,7 +22,7 @@
     var debugTimerId = null;
     var activeTab = null;
 
-    $(document).ready(function() {
+    $(document).ready(function () {
 
         // Check if a new app cache is available on page load
 
@@ -44,8 +44,8 @@
 
         log = Log.getLog();
         log.info("Welcome to JS99'er");
-        log.info("Version 5.2.3, 11 March 2016");
-        log.info(" - Added jumpstart cartridge");
+        log.info("Version 5.4, 9 July 2016");
+        log.info(" - New 9918A scanline renderer");
         log.info("");
         settings = new Settings(true);
         diskImages = {
@@ -68,11 +68,15 @@
             activeTab = e.target;
         });
 
+        if (settings.isPixelatedEnabled()) {
+            $("#canvas").toggleClass("pixelated", true);
+        }
+
         ///////////////
         // Main pane //
         ///////////////
 
-        $("#canvas").on("click touchstart", function(evt) {
+        $("#canvas").on("click touchstart", function (evt) {
             var rect = this.getBoundingClientRect();
             var scale = this.clientHeight / 240;
             var tiX = Math.floor((evt.clientX - rect.left) / scale);
@@ -84,7 +88,7 @@
                 ti994a.keyboard.simulateKeyPress(charCode);
             }
         });
-        $("#btnStart").on("click", function() {
+        $("#btnStart").on("click", function () {
             $("#btnStart").prop("disabled", true);
             $("#btnFast").prop("disabled", true);
             $("#btnFrame").prop("disabled", true);
@@ -93,7 +97,7 @@
             ti994a.start(false);
             debugTimerId = window.setInterval(updateDebugger, 100);
         });
-        $("#btnFast").on("click", function() {
+        $("#btnFast").on("click", function () {
             $("#btnStart").prop("disabled", true);
             $("#btnFast").prop("disabled", true);
             $("#btnFrame").prop("disabled", true);
@@ -102,15 +106,15 @@
             ti994a.start(true);
             debugTimerId = window.setInterval(updateDebugger, 100);
         });
-        $("#btnFrame").on("click", function() {
+        $("#btnFrame").on("click", function () {
             ti994a.frame();
             updateDebugger(false);
         });
-        $("#btnStep").on("click", function() {
+        $("#btnStep").on("click", function () {
             ti994a.step();
             updateDebugger(false);
         });
-        $("#btnStop").on("click", function() {
+        $("#btnStop").on("click", function () {
             $("#btnStart").prop("disabled", false);
             $("#btnFast").prop("disabled", false);
             $("#btnFrame").prop("disabled", false);
@@ -120,22 +124,22 @@
             window.clearInterval(debugTimerId);
             updateDebugger(false);
         });
-        $("#btnReset").on("click", function() {
+        $("#btnReset").on("click", function () {
             ti994a.reset(true);
             if (!ti994a.isRunning()) {
                 $("#btnStart").click();
             }
         });
 
-        $("#btnScreenshot").on("click", function() {
+        $("#btnScreenshot").on("click", function () {
             this.href = document.getElementById("canvas").toDataURL();
         });
 
-        $("#btnLeft").on("mousedown touchstart", function() { ti994a.keyboard.simulateKeyDown(37); }).on("mouseup touchend", function() { ti994a.keyboard.simulateKeyUp(37); });
-        $("#btnUp").on("mousedown touchstart", function() { ti994a.keyboard.simulateKeyDown(38); }).on("mouseup touchend", function() { ti994a.keyboard.simulateKeyUp(38); });
-        $("#btnDown").on("mousedown touchstart", function() { ti994a.keyboard.simulateKeyDown(40); }).on("mouseup touchend", function() { ti994a.keyboard.simulateKeyUp(40); });
-        $("#btnRight").on("mousedown touchstart", function() { ti994a.keyboard.simulateKeyDown(39); }).on("mouseup touchend", function() { ti994a.keyboard.simulateKeyUp(39); });
-        $("#btnFire").on("mousedown touchstart", function() { ti994a.keyboard.simulateKeyDown(9); }).on("mouseup touchend", function() { ti994a.keyboard.simulateKeyUp(9); });
+        $("#btnLeft").on("mousedown touchstart", function () { ti994a.keyboard.simulateKeyDown(37); }).on("mouseup touchend", function () { ti994a.keyboard.simulateKeyUp(37); });
+        $("#btnUp").on("mousedown touchstart", function () { ti994a.keyboard.simulateKeyDown(38); }).on("mouseup touchend", function () { ti994a.keyboard.simulateKeyUp(38); });
+        $("#btnDown").on("mousedown touchstart", function () { ti994a.keyboard.simulateKeyDown(40); }).on("mouseup touchend", function () { ti994a.keyboard.simulateKeyUp(40); });
+        $("#btnRight").on("mousedown touchstart", function () { ti994a.keyboard.simulateKeyDown(39); }).on("mouseup touchend", function () { ti994a.keyboard.simulateKeyUp(39); });
+        $("#btnFire").on("mousedown touchstart", function () { ti994a.keyboard.simulateKeyDown(9); }).on("mouseup touchend", function () { ti994a.keyboard.simulateKeyUp(9); });
 
 
         buildPreloads($("#preloads"), software.getPrograms());
@@ -143,7 +147,7 @@
         $("ul.dropdown-menu [data-toggle=dropdown]").multilevelDropdown();
         buildMore();
 
-        $("#fileInputModule").on("change", function() {
+        $("#fileInputModule").on("change", function () {
             var file = this.files[0];
             if (file == null) {
                 return;
@@ -174,13 +178,13 @@
                     }
                 )
             }
-        }).on("click", function() {
+        }).on("click", function () {
 			$(this).val("");
 		});
 
-        $("#fileInputDisk").on("change", function() {
+        $("#fileInputDisk").on("change", function () {
             loadDiskFiles(this.files);
-        }).on("click", function() {
+        }).on("click", function () {
 			$(this).val("");
 		});
 
@@ -188,25 +192,25 @@
         // Disk Manager pane //
         ///////////////////////
 
-        $("#diskImageList").on("change", function() { updateDiskFileTable(this.value); });
+        $("#diskImageList").on("change", function () { updateDiskFileTable(this.value); });
         updateDiskImageList();
 
 
-        $("#btnSave").on("click", function() {
+        $("#btnSave").on("click", function () {
             if (confirm("Do you want to save the disk state to persistent storage?")) {
                 saveState();
             }
         });
-        $("#btnLoad").on("click", function() {
+        $("#btnLoad").on("click", function () {
             if (confirm("Do you want to restore the disk state from persistent storage?")) {
                 loadState();
             }
         });
-        $("#btnDownload").on("click", function() { downloadDisk(); });
+        $("#btnDownload").on("click", function () { downloadDisk(); });
 
-        $("#insertDSK0").on("click", function() { insertDisk(0); });
-        $("#insertDSK1").on("click", function() { insertDisk(1); });
-        $("#insertDSK2").on("click", function() { insertDisk(2); });
+        $("#insertDSK0").on("click", function () { insertDisk(0); });
+        $("#insertDSK1").on("click", function () { insertDisk(1); });
+        $("#insertDSK2").on("click", function () { insertDisk(2); });
         $("#btnDeleteDisk").on("click", deleteDisk);
         $("#btnDeleteFiles").on("click", deleteFiles);
 
@@ -214,89 +218,89 @@
         // Keyboard pane //
         ///////////////////
 
-        $("#key0").on("click", function() { virtualKeyPress(48); });
-        $("#key1").on("click", function() { virtualKeyPress(49); });
-        $("#key2").on("click", function() { virtualKeyPress(50); });
-        $("#key3").on("click", function() { virtualKeyPress(51); });
-        $("#key4").on("click", function() { virtualKeyPress(52); });
-        $("#key5").on("click", function() { virtualKeyPress(53); });
-        $("#key6").on("click", function() { virtualKeyPress(54); });
-        $("#key7").on("click", function() { virtualKeyPress(55); });
-        $("#key8").on("click", function() { virtualKeyPress(56); });
-        $("#key9").on("click", function() { virtualKeyPress(57); });
-        $("#keyA").on("click", function() { virtualKeyPress(65); });
-        $("#keyB").on("click", function() { virtualKeyPress(66); });
-        $("#keyC").on("click", function() { virtualKeyPress(67); });
-        $("#keyD").on("click", function() { virtualKeyPress(68); });
-        $("#keyE").on("click", function() { virtualKeyPress(69); });
-        $("#keyF").on("click", function() { virtualKeyPress(70); });
-        $("#keyG").on("click", function() { virtualKeyPress(71); });
-        $("#keyH").on("click", function() { virtualKeyPress(72); });
-        $("#keyI").on("click", function() { virtualKeyPress(73); });
-        $("#keyJ").on("click", function() { virtualKeyPress(74); });
-        $("#keyK").on("click", function() { virtualKeyPress(75); });
-        $("#keyL").on("click", function() { virtualKeyPress(76); });
-        $("#keyM").on("click", function() { virtualKeyPress(77); });
-        $("#keyN").on("click", function() { virtualKeyPress(78); });
-        $("#keyO").on("click", function() { virtualKeyPress(79); });
-        $("#keyP").on("click", function() { virtualKeyPress(80); });
-        $("#keyQ").on("click", function() { virtualKeyPress(81); });
-        $("#keyR").on("click", function() { virtualKeyPress(82); });
-        $("#keyS").on("click", function() { virtualKeyPress(83); });
-        $("#keyT").on("click", function() { virtualKeyPress(84); });
-        $("#keyU").on("click", function() { virtualKeyPress(85); });
-        $("#keyV").on("click", function() { virtualKeyPress(86); });
-        $("#keyW").on("click", function() { virtualKeyPress(87); });
-        $("#keyX").on("click", function() { virtualKeyPress(88); });
-        $("#keyY").on("click", function() { virtualKeyPress(89); });
-        $("#keyZ").on("click", function() { virtualKeyPress(90); });
-        $("#keyEquals").on("click", function() { virtualKeyPress(187); });
-        $("#keyDiv").on("click", function() { virtualKeyPress(189); });
-        $("#keySemicolon").on("click", function() { virtualKeyPress(186); });
-        $("#keyEnter").on("click", function() { virtualKeyPress(13); });
-        $("#keyComma").on("click", function() { virtualKeyPress(188); });
-        $("#keyFullStop").on("click", function() { virtualKeyPress(190); });
-        $("#keySpace").on("click", function() { virtualKeyPress(32); });
-        $("#keyLShift").on("click", function() { virtualKeyPress(16); });
-        $("#keyRShift").on("click", function() { virtualKeyPress(16); });
-        $("#keyCtrl").on("click", function() { virtualKeyPress(17); });
-        $("#keyFctn").on("click", function() { virtualKeyPress(18); });
-        $("#keyAlpha").on("click", function() { virtualKeyPress(20); });
+        $("#key0").on("click", function () { virtualKeyPress(48); });
+        $("#key1").on("click", function () { virtualKeyPress(49); });
+        $("#key2").on("click", function () { virtualKeyPress(50); });
+        $("#key3").on("click", function () { virtualKeyPress(51); });
+        $("#key4").on("click", function () { virtualKeyPress(52); });
+        $("#key5").on("click", function () { virtualKeyPress(53); });
+        $("#key6").on("click", function () { virtualKeyPress(54); });
+        $("#key7").on("click", function () { virtualKeyPress(55); });
+        $("#key8").on("click", function () { virtualKeyPress(56); });
+        $("#key9").on("click", function () { virtualKeyPress(57); });
+        $("#keyA").on("click", function () { virtualKeyPress(65); });
+        $("#keyB").on("click", function () { virtualKeyPress(66); });
+        $("#keyC").on("click", function () { virtualKeyPress(67); });
+        $("#keyD").on("click", function () { virtualKeyPress(68); });
+        $("#keyE").on("click", function () { virtualKeyPress(69); });
+        $("#keyF").on("click", function () { virtualKeyPress(70); });
+        $("#keyG").on("click", function () { virtualKeyPress(71); });
+        $("#keyH").on("click", function () { virtualKeyPress(72); });
+        $("#keyI").on("click", function () { virtualKeyPress(73); });
+        $("#keyJ").on("click", function () { virtualKeyPress(74); });
+        $("#keyK").on("click", function () { virtualKeyPress(75); });
+        $("#keyL").on("click", function () { virtualKeyPress(76); });
+        $("#keyM").on("click", function () { virtualKeyPress(77); });
+        $("#keyN").on("click", function () { virtualKeyPress(78); });
+        $("#keyO").on("click", function () { virtualKeyPress(79); });
+        $("#keyP").on("click", function () { virtualKeyPress(80); });
+        $("#keyQ").on("click", function () { virtualKeyPress(81); });
+        $("#keyR").on("click", function () { virtualKeyPress(82); });
+        $("#keyS").on("click", function () { virtualKeyPress(83); });
+        $("#keyT").on("click", function () { virtualKeyPress(84); });
+        $("#keyU").on("click", function () { virtualKeyPress(85); });
+        $("#keyV").on("click", function () { virtualKeyPress(86); });
+        $("#keyW").on("click", function () { virtualKeyPress(87); });
+        $("#keyX").on("click", function () { virtualKeyPress(88); });
+        $("#keyY").on("click", function () { virtualKeyPress(89); });
+        $("#keyZ").on("click", function () { virtualKeyPress(90); });
+        $("#keyEquals").on("click", function () { virtualKeyPress(187); });
+        $("#keyDiv").on("click", function () { virtualKeyPress(189); });
+        $("#keySemicolon").on("click", function () { virtualKeyPress(186); });
+        $("#keyEnter").on("click", function () { virtualKeyPress(13); });
+        $("#keyComma").on("click", function () { virtualKeyPress(188); });
+        $("#keyFullStop").on("click", function () { virtualKeyPress(190); });
+        $("#keySpace").on("click", function () { virtualKeyPress(32); });
+        $("#keyLShift").on("click", function () { virtualKeyPress(16); });
+        $("#keyRShift").on("click", function () { virtualKeyPress(16); });
+        $("#keyCtrl").on("click", function () { virtualKeyPress(17); });
+        $("#keyFctn").on("click", function () { virtualKeyPress(18); });
+        $("#keyAlpha").on("click", function () { virtualKeyPress(20); });
         $('map').imageMapResize();
 
         ///////////////////
         // Debugger pane //
         ///////////////////
 
-        $("#debuggerTab").on("click", function() { updateDebugger(true); });
-        $("#disassembly").on("click", function(evt) {
+        $("#debuggerTab").on("click", function () { updateDebugger(true); });
+        $("#disassembly").on("click", function (evt) {
             $("#disassemblyCheck").addClass("glyphicon glyphicon-ok");
             $("#hexViewCheck").removeClass("glyphicon glyphicon-ok");
             memoryView = 0;
             updateDebugger();
         });
-        $("#hexView").on("click", function() {
+        $("#hexView").on("click", function () {
             $("#disassemblyCheck").removeClass("glyphicon glyphicon-ok");
             $("#hexViewCheck").addClass("glyphicon glyphicon-ok");
             memoryView = 1;
             updateDebugger();
         });
-        $("#cpumem").on("click", function() {
+        $("#cpumem").on("click", function () {
             $("#cpumemCheck").addClass("glyphicon glyphicon-ok");
             $("#vdpmemCheck").removeClass("glyphicon glyphicon-ok");
             memoryType = 0;
             updateDebugger();
         });
-        $("#vdpmem").on("click", function() {
+        $("#vdpmem").on("click", function () {
             $("#cpumemCheck").removeClass("glyphicon glyphicon-ok");
             $("#vdpmemCheck").addClass("glyphicon glyphicon-ok");
             memoryType = 1;
             updateDebugger();
         });
 
-        $("#breakpoint").on("focus", function() {
+        $("#breakpoint").on("focus", function () {
             ti994a.keyboard.removeListeners();
-        }).on("blur", function() {
+        }).on("blur", function () {
             var val = this.value.parseHexWord();
             if (val) {
                 this.value = val.toHexWord();
@@ -315,9 +319,9 @@
             ti994a.keyboard.attachListeners();
         });
 
-        $("#address").on("focus", function() {
+        $("#address").on("focus", function () {
             ti994a.keyboard.removeListeners();
-        }).on("blur", function() {
+        }).on("blur", function () {
             var val = this.value.parseHexWord();
             if (val) {
                 this.value = val.toHexWord();
@@ -337,28 +341,28 @@
 
         var enableSound = $("#enableSound");
         enableSound.bootstrapSwitch("state", settings.isSoundEnabled());
-        enableSound.on('switchChange.bootstrapSwitch', function(event, state) {
+        enableSound.on('switchChange.bootstrapSwitch', function (event, state) {
             settings.setSoundEnabled(state);
             sound.setSoundEnabled(state);
         });
 
         var enableSpeech = $("#enableSpeech");
         enableSpeech.bootstrapSwitch("state", settings.isSpeechEnabled());
-        enableSpeech.on('switchChange.bootstrapSwitch', function(event, state) {
+        enableSpeech.on('switchChange.bootstrapSwitch', function (event, state) {
             settings.setSpeechEnabled(state);
             ti994a.tms5220.setSpeechEnabled(state);
         });
 
         var enable32KRAM = $("#enable32KRAM");
         enable32KRAM.bootstrapSwitch("state", settings.is32KRAMEnabled());
-        enable32KRAM.on('switchChange.bootstrapSwitch', function(event, state) {
+        enable32KRAM.on('switchChange.bootstrapSwitch', function (event, state) {
             settings.set32KRAMEnabled(state);
             ti994a.memory.set32KRAMEnabled(state);
         });
 
         var enableAMS = $("#enableAMS");
         enableAMS.bootstrapSwitch("state", settings.isAMSEnabled());
-        enableAMS.on('switchChange.bootstrapSwitch', function(event, state) {
+        enableAMS.on('switchChange.bootstrapSwitch', function (event, state) {
             if (state != settings.isAMSEnabled()) {
                 settings.setAMSEnabled(state);
                 ti994a.memory.setAMSEnabled(state);
@@ -368,7 +372,7 @@
 
         var enableFlicker = $("#enableFlicker");
         enableFlicker.bootstrapSwitch("state", settings.isFlickerEnabled());
-        enableFlicker.on('switchChange.bootstrapSwitch', function(event, state) {
+        enableFlicker.on('switchChange.bootstrapSwitch', function (event, state) {
             settings.setFlickerEnabled(state);
             if (ti994a.vdp.setFlicker) {
                 ti994a.vdp.setFlicker(state)
@@ -377,24 +381,24 @@
 
         var enableF18A = $("#enableF18A");
         enableF18A.bootstrapSwitch("state", settings.isF18AEnabled());
-        enableF18A.on('switchChange.bootstrapSwitch', function(event, state) {
+        enableF18A.on('switchChange.bootstrapSwitch', function (event, state) {
             if (state != settings.isF18AEnabled()) {
                 settings.setF18AEnabled(state);
                 ti994a.setVDP(settings);
-                window.setTimeout(function() { $("#btnReset").click(); }, 500);
+                window.setTimeout(function () { $("#btnReset").click(); }, 500);
             }
         });
 
         var enablePCKeyboard = $("#enablePCKeyboard");
         enablePCKeyboard.bootstrapSwitch("state", settings.isPCKeyboardEnabled());
-        enablePCKeyboard.on('switchChange.bootstrapSwitch', function(event, state) {
+        enablePCKeyboard.on('switchChange.bootstrapSwitch', function (event, state) {
             settings.setPCKeyboardEnabled(state);
             ti994a.keyboard.setPCKeyboardEnabled(state);
         });
 
         var enableGoogleDrive = $("#enableGoogleDrive");
         enableGoogleDrive.bootstrapSwitch("state", settings.isGoogleDriveEnabled());
-        enableGoogleDrive.on('switchChange.bootstrapSwitch', function(event, state) {
+        enableGoogleDrive.on('switchChange.bootstrapSwitch', function (event, state) {
             if (state != settings.isGoogleDriveEnabled()) {
                 settings.setGoogleDriveEnabled(state);
                 ti994a.setGoogleDrive(settings);
@@ -402,8 +406,17 @@
             }
         });
 
+        var enablePixelated = $("#enablePixelated");
+        enablePixelated.bootstrapSwitch("state", settings.isPixelatedEnabled());
+        enablePixelated.on('switchChange.bootstrapSwitch', function (event, state) {
+            if (state != settings.isPixelatedEnabled()) {
+                settings.setPixelatedEnabled(state);
+                $("#canvas").toggleClass("pixelated", state);
+            }
+        });
+
         // Load editor/assembler
-        software.loadProgram("software/editor-assembler.json", null, function(cart) {
+        software.loadProgram("software/editor-assembler.json", null, function (cart) {
             if (cart != null) {
                 ti994a.loadSoftware(cart);
             }
@@ -436,7 +449,7 @@
                 item.appendTo(list);
                 link = $("<a href=\"#\">" + programs[i].name + "</a>");
                 link.appendTo(item);
-                link.on("click", function() { $("#more").modal(); });
+                link.on("click", function () { $("#more").modal(); });
             }
             else {
                 var id = list.attr("id") + "." + i;
@@ -450,9 +463,9 @@
     }
 
     function makeLoadSoftwareCallback(path) {
-        return function(event) {
+        return function (event) {
             event.preventDefault();
-            software.getProgram(path, function(sw) {
+            software.getProgram(path, function (sw) {
                 if (sw != null) {
                     ti994a.loadSoftware(sw);
                 }
@@ -470,20 +483,20 @@
             var name = cart[1] || fileToName(filename);
             sortedCarts.push({name: name, filename: filename});
         }
-        sortedCarts.sort(function(c1, c2) {return c1.name > c2.name ? 1 : -1});
+        sortedCarts.sort(function (c1, c2) {return c1.name > c2.name ? 1 : -1});
         for (var j in sortedCarts) {
             var sortedCart = sortedCarts[j];
             moreSelect.append("<option value=\"" + sortedCart.filename + ".rpk\">" + sortedCart.name + "</option>");
         }
-        moreSelect.on("change", function() {
+        moreSelect.on("change", function () {
             $("#more").modal("hide");
             var filename = this.value;
             var name = $(this).find(":selected").text();
-            software.loadRPKModuleFromURL("carts/" + filename, function(cart) {
+            software.loadRPKModuleFromURL("carts/" + filename, function (cart) {
                 if (cart != null) {
                     ti994a.loadSoftware(cart);
                 }
-            }, function(msg) {
+            }, function (msg) {
                 log.error("Failed to load '" + name + "' (" + filename + ").");
             });
         });
@@ -524,12 +537,12 @@
                 else if (extension != null && extension.toLowerCase() == "obj") {
                     log.info("Loading object file.");
                     var reader = new FileReader();
-                    reader.onload = function() {
+                    reader.onload = function () {
                         var objLoader = new ObjLoader();
                         objLoader.loadObjFile(this.result);
                         ti994a.loadSoftware(objLoader.getSoftware());
                     };
-                    reader.onerror = function() {
+                    reader.onerror = function () {
                         alert(this.error.name);
                     };
                     reader.readAsText(file);
@@ -544,7 +557,7 @@
 
     function loadTIFile(filename, file) {
         var reader = new FileReader();
-        reader.onload = function() {
+        reader.onload = function () {
             var diskDrive = ti994a.diskDrives[$("#diskDrive").val()];
             // reader.result contains the contents of blob as a typed array
             var fileBuffer = new Uint8Array(this.result);
@@ -563,7 +576,7 @@
                 }
             }
         };
-        reader.onerror = function() {
+        reader.onerror = function () {
             alert(this.error.name);
         };
         reader.readAsArrayBuffer(file);
@@ -575,7 +588,7 @@
 
     function saveState() {
         if (database.isSupported()) {
-            database.deleteAllDiskImages(function(success) {
+            database.deleteAllDiskImages(function (success) {
                     if (success) {
                         var diskImageArray = [];
                         for (var diskImageName in diskImages) {
@@ -583,11 +596,11 @@
                                 diskImageArray.push(diskImages[diskImageName]);
                             }
                         }
-                        saveDiskImages(diskImageArray, 0, function(success) {
+                        saveDiskImages(diskImageArray, 0, function (success) {
                             if (success) {
                                 log.info("Disk images saved OK.");
                                 var diskDrives = ti994a.getDiskDrives();
-                                saveDiskDrives(diskDrives, 0, function(success) {
+                                saveDiskDrives(diskDrives, 0, function (success) {
                                     if (success) {
                                         log.info("Disk drives saved OK.");
                                     }
@@ -615,7 +628,7 @@
             return;
         }
         var diskImage = diskImages[index];
-        database.putDiskImage(diskImage, function(ok) {
+        database.putDiskImage(diskImage, function (ok) {
             if (ok) {
                 saveDiskImages(diskImages, index + 1, callback);
             }
@@ -631,7 +644,7 @@
             return;
         }
         var diskDrive = diskDrives[index];
-        database.putDiskDrive(diskDrive, function(ok) {
+        database.putDiskDrive(diskDrive, function (ok) {
             if (ok) {
                 saveDiskDrives(diskDrives, index + 1, callback);
             }
@@ -642,12 +655,12 @@
     }
 
     function loadState() {
-		database.getDiskImages(function(dskImgs) {
+		database.getDiskImages(function (dskImgs) {
 			if (dskImgs && Object.keys(dskImgs).length >= 3) {
                 diskImages = dskImgs;
                 log.info("Disk images restored OK.");
                 var diskDrives = ti994a.getDiskDrives();
-				loadDiskDrives(diskDrives, dskImgs, 0, function(success) {
+				loadDiskDrives(diskDrives, dskImgs, 0, function (success) {
 					if (success) {
                         log.info("Disk drives restored OK.");
 					}
@@ -669,7 +682,7 @@
             return;
         }
         var diskDriveName = diskDrives[index].getName();
-        database.getDiskDrive(diskDriveName, function(diskDriveState) {
+        database.getDiskDrive(diskDriveName, function (diskDriveState) {
             if (diskDriveState) {
 				if (diskDriveState.diskImage && diskImages[diskDriveState.diskImage]) {
 					diskDrives[index].setDiskImage(diskImages[diskDriveState.diskImage]);
@@ -786,7 +799,7 @@
             if (diskImageName && diskImageName.length > 0 && confirm("Are you sure you want to delete the " + nSelected + " selected file" + (nSelected > 1 ? "s" : "") + " from '" + diskImageName + "'?")) {
                 var diskImage = diskImages[diskImageName];
                 $("input:checked").each(
-                    function(index) {
+                    function (index) {
                         diskImage.deleteFile(this.name);
                         if (index == nSelected - 1) {
                             updateDiskFileTable(diskImageName);

@@ -29,14 +29,14 @@ function Log(id) {
         this.framePre = typeof(document) === "object" ? document.getElementById(id) : null;
         if (this.framePre == null || this.framePre == undefined) {
             if (console) {
-                this.print = function(object) {
+                this.print = function (object) {
                     console.log(object);
                 };
             }
             return;
         }
 		else {
-			this.print = function(object) {
+			this.print = function (object) {
 				if (object != null) {
 					this.buffer += object + "\n";
 					this.bufferCount++;
@@ -45,7 +45,7 @@ function Log(id) {
                     var buffer = this.buffer;
                     var framePre = this.framePre;
                     window.setTimeout(
-                        function() {
+                        function () {
                             framePre.appendChild(document.createTextNode(buffer));
                             framePre.scrollTop = framePre.scrollHeight;
                         },
@@ -61,11 +61,11 @@ function Log(id) {
 				}
 			};
 			var that = this;
-			setInterval(function() { that.flushBuffer() }, 1000);
+			setInterval(function () { that.flushBuffer() }, 1000);
 		}
     }
 	
-	this.flushBuffer = function() {
+	this.flushBuffer = function () {
 		this.bufferCount = this.bufferSize;
 		this.print(null);
 	};
@@ -103,7 +103,7 @@ Log.getLog = function () {
  * Set minimum log level.
  * @param level Log level to set
  */
-Log.prototype.setMinLevel = function(level) {
+Log.prototype.setMinLevel = function (level) {
     this.minLevel = level;
 };
 

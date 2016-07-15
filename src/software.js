@@ -21,11 +21,11 @@ function Software() {
 
 Software.prototype = {
 
-    getPrograms: function() {
+    getPrograms: function () {
         return this.programs;
     },
 
-    getProgram: function(path, onReady) {
+    getProgram: function (path, onReady) {
         var log = this.log;
         var pathParts = path.split(".");
         var programs = this.programs;
@@ -38,13 +38,13 @@ Software.prototype = {
                 if (program != null) {
                     if (program.url != null) {
                         if (program.url.substr(program.url.length - 3).toLowerCase() == "rpk") {
-                            this.loadRPKModuleFromURL(program.url, onReady, function(msg) { log.error(msg); });
+                            this.loadRPKModuleFromURL(program.url, onReady, function (msg) { log.error(msg); });
                         }
                         else if (program.url.substr(program.url.length - 3).toLowerCase() == "bin") {
-                            this.loadBinModuleFromURL(program.url, onReady, function(msg) { log.error(msg); });
+                            this.loadBinModuleFromURL(program.url, onReady, function (msg) { log.error(msg); });
                         }
                         else {
-                            this.loadProgram(program.url, program, function(prg) {
+                            this.loadProgram(program.url, program, function (prg) {
                                 program.url = null; // Mark as loaded
                                 onReady(prg);
                             });
@@ -60,14 +60,14 @@ Software.prototype = {
         onReady(null);
     },
 
-    loadProgram: function(url, program, onReady) {
+    loadProgram: function (url, program, onReady) {
         var log = this.log;
         var self = this;
         $.ajax({
             url: url,
             async: true,
             dataType: "json",
-            success: function(data, textStatus, jqXHR) {
+            success: function (data, textStatus, jqXHR) {
                 if (program == null) {
                     program = {};
                 }
@@ -101,14 +101,14 @@ Software.prototype = {
                 program.ramAt7000 = data.ramAt7000 == "true";
                 onReady(program);
             },
-            error: function(jqXHR, textStatus, errorThrown) {
+            error: function (jqXHR, textStatus, errorThrown) {
                 log.error(textStatus.toUpperCase() + ": " + (errorThrown ? errorThrown : "Could not load JSON file. In Chrome add --allow-file-access-from-files parameter."));
                 onReady(null);
             }
         });
     },
 
-    hexArrayToBin: function(hexArray) {
+    hexArrayToBin: function (hexArray) {
         var binArray = [];
         var n = 0;
         for (var i = 0; i < hexArray.length; i++) {
@@ -120,20 +120,20 @@ Software.prototype = {
         return binArray;
     },
 
-    loadRPKModuleFromFile: function(file, onSuccess, onError) {
+    loadRPKModuleFromFile: function (file, onSuccess, onError) {
         this.loadRPKModule(new zip.BlobReader(file), onSuccess, onError);
     },
 
-    loadRPKModuleFromURL: function(url, onSuccess, onError) {
+    loadRPKModuleFromURL: function (url, onSuccess, onError) {
         this.loadRPKModule(new zip.HttpReader(url), onSuccess, onError);
     },
 
-    loadRPKModule: function(reader, onSuccess, onError) {
+    loadRPKModule: function (reader, onSuccess, onError) {
         var log = Log.getLog();
-        zip.createReader(reader, function(zipReader) {
-            zipReader.getEntries(function(entries) {
+        zip.createReader(reader, function (zipReader) {
+            zipReader.getEntries(function (entries) {
                 var layoutEntry = null;
-                entries.forEach(function(entry) {
+                entries.forEach(function (entry) {
                     // log.info(entry.filename);
                     if (entry.filename == "layout.xml") {
                         // log.info("Layout file found");
@@ -142,7 +142,7 @@ Software.prototype = {
                 });
                 if (layoutEntry != null) {
                     var writer = new zip.TextWriter("ISO-8859-1");
-                    layoutEntry.getData(writer, function(txt) {
+                    layoutEntry.getData(writer, function (txt) {
                         // log.info(txt);
                         var parser = new DOMParser();
                         var xmlDoc = parser.parseFromString(txt, "text/xml");
@@ -168,12 +168,12 @@ Software.prototype = {
                         }
 
                         function loadFile(entries, filename, romId, socketId, pcbType) {
-                            entries.forEach(function(entry) {
+                            entries.forEach(function (entry) {
                                 if (entry.filename == filename) {
                                     var blobWriter = new zip.BlobWriter();
-                                    entry.getData(blobWriter, function(blob) {
+                                    entry.getData(blobWriter, function (blob) {
                                         var reader = new FileReader();
-                                        reader.onload = function() {
+                                        reader.onload = function () {
                                             // reader.result contains the contents of blob as a typed array
                                             var typedArray = new Uint8Array(this.result);
                                             var byteArray = [];
@@ -210,19 +210,19 @@ Software.prototype = {
                     });
                 }
             });
-        }, function(message) {
+        }, function (message) {
             if (onError) onError(message);
         });
     },
 
-    loadBinModuleFromURL: function(url, onSuccess, onError) {
+    loadBinModuleFromURL: function (url, onSuccess, onError) {
         console.log(url);
         var baseFileName = url.split('.')[0];
         var inverted = baseFileName && baseFileName.charAt(baseFileName.length - 1) == "3";
         var xhr = new XMLHttpRequest();
         xhr.open('GET', url, true);
         xhr.responseType = 'arraybuffer';
-        xhr.onload = function(e) {
+        xhr.onload = function (e) {
             var byteArray = new Uint8Array(this.response);
             var cart = {
                 type: inverted ? Software.TYPE_INVERTED_CART : Software.TYPE_CART,
@@ -233,11 +233,11 @@ Software.prototype = {
         xhr.send();
     },
 
-    loadBinModuleFromFile: function(file, onSuccess, onError) {
+    loadBinModuleFromFile: function (file, onSuccess, onError) {
         var baseFileName = file.name.split('.')[0];
         var inverted = baseFileName && baseFileName.charAt(baseFileName.length - 1) == "3";
         var reader = new FileReader();
-        reader.onload = function() {
+        reader.onload = function () {
             var byteArray = new Uint8Array(this.result);
             var cart = {
                 type: inverted ? Software.TYPE_INVERTED_CART : Software.TYPE_CART,
@@ -245,7 +245,7 @@ Software.prototype = {
             };
             onSuccess(cart);
         };
-        reader.onerror = function() {
+        reader.onerror = function () {
             if (onError) onError(this.error.name);
         };
         reader.readAsArrayBuffer(file);
@@ -278,6 +278,11 @@ Software.programs = [
                 name: "Mini Memory",
                 type: Software.TYPE_CART,
                 url: "software/minimem.json"
+            },
+            {
+                name: "Supercart",
+                type: Software.TYPE_CART,
+                url: "software/supercart.json"
             },
             {
                 name: "Editor Assembler II",

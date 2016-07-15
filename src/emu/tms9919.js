@@ -15,28 +15,28 @@ function TMS9919() {
 
 TMS9919.prototype = {
 
-    reset: function() {
+    reset: function () {
         this.mute();
         this.sn76489.init(SN76489.CLOCK_3_58MHZ, this.sampleRate);
     },
 
-    setSampleRate: function(sampleRate) {
+    setSampleRate: function (sampleRate) {
         this.sampleRate = sampleRate;
         this.reset();
     },
 
-    writeData: function(b) {
+    writeData: function (b) {
         this.sn76489.write(b);
     },
 
-    mute: function() {
+    mute: function () {
         this.writeData(0x9F);
         this.writeData(0xBF);
         this.writeData(0xDF);
         this.writeData(0xFF);
     },
 
-    setGROMClock: function(gromClock) {
+    setGROMClock: function (gromClock) {
         this.log.info("GROM clock set to " + gromClock.toHexByte());
         var divider;
         if (gromClock == 0xD6) {
@@ -48,7 +48,7 @@ TMS9919.prototype = {
         this.sn76489.init(SN76489.CLOCK_3_58MHZ / divider, this.sampleRate);
     } ,
 
-    update: function(buffer, length){
+    update: function (buffer, length){
         this.sn76489.update(buffer, 0, length);
     }
 };

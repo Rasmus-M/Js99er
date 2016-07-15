@@ -23,17 +23,17 @@ function Database(callback) {
 
 Database.prototype = {
 
-	open: function(callback) {
+	open: function (callback) {
         var that = this;
         if (window.indexedDB) {
             var request = indexedDB.open(Database.NAME, Database.VERSION);
 
-            request.onupgradeneeded = function(e) {
+            request.onupgradeneeded = function (e) {
                 // Only called when Database.VERSION changes
 
                 var db = e.target.result;
 
-                e.target.transaction.onerror = function(e) {
+                e.target.transaction.onerror = function (e) {
                     that.log.error(e.value);
                 };
 
@@ -49,13 +49,13 @@ Database.prototype = {
                 db.createObjectStore(Database.BINARY_FILE_STORE, { keyPath: "name" });
             };
 
-            request.onsuccess = function(e) {
+            request.onsuccess = function (e) {
                 that.log.info("Database opened OK.");
                 that.db = e.target.result;
                 if (callback) callback(true);
             };
 
-            request.onerror = function(e) {
+            request.onerror = function (e) {
                 this.log.info("Database could not be opened.");
                 that.log.error(e.value);
                 that.db = null;
@@ -70,11 +70,11 @@ Database.prototype = {
         }
     },
 
-    isSupported: function() {
+    isSupported: function () {
         return this.supported;
     },
 
-	getDiskDrive: function(name, callback) {
+	getDiskDrive: function (name, callback) {
 		if (this.db != null && name != null) {
             var that = this;
 
@@ -83,11 +83,11 @@ Database.prototype = {
 
 			var request = store.get(name);
 
-			request.onsuccess = function(e) {
+			request.onsuccess = function (e) {
                 if (callback) callback(e.target.result);
 			};
 
-			request.onerror = function(e) {
+			request.onerror = function (e) {
 				that.log.error(e.value);
                 if (callback) callback(false);
 			};
@@ -97,7 +97,7 @@ Database.prototype = {
         }
 	},
 
-	putDiskDrive: function(diskDrive, callback) {
+	putDiskDrive: function (diskDrive, callback) {
 		if (this.db != null) {
             var that = this;
 
@@ -106,11 +106,11 @@ Database.prototype = {
 
 			var request = store.put(diskDrive.getState());
 
-			request.onsuccess = function(e) {
+			request.onsuccess = function (e) {
                 if (callback) callback(true);
 			};
 
-			request.onerror = function(e) {
+			request.onerror = function (e) {
 				that.log.error(e.value);
                 if (callback) callback(false);
 			};
@@ -120,7 +120,7 @@ Database.prototype = {
         }
     },
 	
-	getDiskImages: function(callback) {
+	getDiskImages: function (callback) {
 		if (this.db != null) {
             var that = this;
 
@@ -131,7 +131,7 @@ Database.prototype = {
 			// Get everything in the store;
 			var cursorRequest = store.openCursor();
 
-			cursorRequest.onsuccess = function(e) {
+			cursorRequest.onsuccess = function (e) {
 				var cursor = e.target.result;
 				if (cursor) {
                     var state = cursor.value;
@@ -146,7 +146,7 @@ Database.prototype = {
 				}
 			};
   
-			cursorRequest.onerror = function(e) {
+			cursorRequest.onerror = function (e) {
 				that.log.error(e.value);
                 if (callback) callback(false);
 			};
@@ -156,7 +156,7 @@ Database.prototype = {
         }
     },
 
-	getDiskImage: function(name, callback) {
+	getDiskImage: function (name, callback) {
 		if (this.db != null && name != null) {
             var that = this;
 
@@ -165,14 +165,14 @@ Database.prototype = {
 
 			var request = store.get(name);
 
-			request.onsuccess = function(e) {
+			request.onsuccess = function (e) {
                 var state = e.target.result;
                 var diskImage = new DiskImage(state.name);
                 diskImage.setState(state);
                 if (callback) callback(diskImage);
 			};
 
-			request.onerror = function(e) {
+			request.onerror = function (e) {
 				that.log.error(e.value);
                 if (callback) callback(false);
 			};
@@ -182,7 +182,7 @@ Database.prototype = {
         }
     },
 
-	putDiskImage: function(diskImage, callback) {
+	putDiskImage: function (diskImage, callback) {
 		if (this.db != null) {
             var that = this;
 
@@ -191,11 +191,11 @@ Database.prototype = {
 
 			var request = store.put(diskImage.getState());
 
-			request.onsuccess = function(e) {
+			request.onsuccess = function (e) {
                 if (callback) callback(true);
 			};
 
-			request.onerror = function(e) {
+			request.onerror = function (e) {
 				that.log.error(e.value);
 				if (callback) callback(false);
 			};
@@ -205,7 +205,7 @@ Database.prototype = {
         }
     },
 	
-	deleteDiskImage: function(name, callback) {
+	deleteDiskImage: function (name, callback) {
 		if (this.db != null && name != null) {
             var that = this;
 
@@ -214,11 +214,11 @@ Database.prototype = {
 
 			var request = store.delete(diskImage);
 
-			request.onsuccess = function(e) {
+			request.onsuccess = function (e) {
                 if (callback) callback(true);
 			};
 
-			request.onerror = function(e) {
+			request.onerror = function (e) {
 				that.log.error(e.value);
                 if (callback) callback(false);
 			};
@@ -228,7 +228,7 @@ Database.prototype = {
         }
     },
 
-    deleteAllDiskImages: function(callback) {
+    deleteAllDiskImages: function (callback) {
         if (this.db != null) {
             var that = this;
 
@@ -238,7 +238,7 @@ Database.prototype = {
             // Get everything in the store;
             var cursorRequest = store.openCursor();
 
-            cursorRequest.onsuccess = function(e) {
+            cursorRequest.onsuccess = function (e) {
                 var cursor = e.target.result;
                 if (cursor) {
                     cursor.delete();
@@ -249,7 +249,7 @@ Database.prototype = {
                 }
             };
 
-            cursorRequest.onerror = function(e) {
+            cursorRequest.onerror = function (e) {
                 that.log.error(e.value);
                 if (callback) callback(false);
             };
@@ -259,7 +259,7 @@ Database.prototype = {
         }
     },
 
-    getBinaryFile: function(name, callback) {
+    getBinaryFile: function (name, callback) {
         if (this.db != null && name != null) {
             var that = this;
 
@@ -269,7 +269,7 @@ Database.prototype = {
 
             var request = store.get(name);
 
-            request.onsuccess = function(e) {
+            request.onsuccess = function (e) {
                 var obj = e.target.result;
                 if (obj) {
                     if (callback) callback(obj.binaryFile);
@@ -279,7 +279,7 @@ Database.prototype = {
                 }
             };
 
-            request.onerror = function(e) {
+            request.onerror = function (e) {
                 that.log.error(e.value);
                 if (callback) callback(false);
             };
@@ -289,7 +289,7 @@ Database.prototype = {
         }
     },
 
-    putBinaryFile: function(name, binaryFile, callback) {
+    putBinaryFile: function (name, binaryFile, callback) {
         if (this.db != null) {
             var that = this;
 
@@ -298,11 +298,11 @@ Database.prototype = {
 
             var request = store.put({name: name, binaryFile: binaryFile});
 
-            request.onsuccess = function(e) {
+            request.onsuccess = function (e) {
                 if (callback) callback(true);
             };
 
-            request.onerror = function(e) {
+            request.onerror = function (e) {
                 that.log.error(e.value);
                 if (callback) callback(false);
             };

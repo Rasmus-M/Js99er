@@ -23,6 +23,10 @@ body {
     image-rendering: crisp-edges;
 }
 
+.pixelated {
+    image-rendering: pixelated;
+}
+
 #tools, #diskTools, #debuggerTools {
     padding-left: 8px;
 }
