@@ -226,6 +226,7 @@ TMS9900.prototype = {
             //     this.cru.decrementCounter(decr);
             // }
         }
+        return (this.cycles - startCycles) - cyclesToRun;
     },
 
     execute: function (instruction) {

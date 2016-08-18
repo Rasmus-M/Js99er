@@ -26,26 +26,27 @@
 
         // Check if a new app cache is available on page load
 
-        if (window.applicationCache) {
-            window.applicationCache.addEventListener('updateready', function (e) {
-                if (window.applicationCache.status == window.applicationCache.UPDATEREADY) {
-                    // Browser downloaded a new app cache.
-                    if (confirm("A new version of JS99'er is available. Would you like to download it?")) {
-                        window.applicationCache.swapCache();
-                        window.location.reload();
-                    }
-                } else {
-                    // Manifest didn't change. Nothing new on server.
-                }
-            }, false);
-        }
+        //if (window.applicationCache) {
+        //    window.applicationCache.addEventListener('updateready', function (e) {
+        //        if (window.applicationCache.status == window.applicationCache.UPDATEREADY) {
+        //            // Browser downloaded a new app cache.
+        //            if (confirm("A new version of JS99'er is available. Would you like to download it?")) {
+        //                window.applicationCache.swapCache();
+        //                window.location.reload();
+        //            }
+        //        } else {
+        //            // Manifest didn't change. Nothing new on server.
+        //        }
+        //    }, false);
+        //}
 
         // Init
 
         log = Log.getLog();
         log.info("Welcome to JS99'er");
-        log.info("Version 5.4, 9 July 2016");
-        log.info(" - New 9918A scanline renderer");
+        log.info("Version 5.5.1, 18 August 2016");
+        log.info(" - Interleave CPU and VDP for both 9918A and F18A");
+        log.info(" - Fixed bug preventing Plato from running");
         log.info("");
         settings = new Settings(true);
         diskImages = {

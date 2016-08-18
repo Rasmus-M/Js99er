@@ -452,9 +452,6 @@ F18AGPU.prototype = {
                 color[2] = (b & 0x0F) * 17;
             }
             this.f18a.redrawRequired = true;
-            if (colNo == this.f18a.bgColor) {
-                this.f18a.redrawBorder = true;
-            }
         }
         // VREG >6000->603F
         else if (addr < 0x7000) {

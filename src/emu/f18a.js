@@ -14,7 +14,6 @@ F18A.VERSION = 0x17;
 F18A.MAX_SCANLINE_SPRITES_JUMPER = true;
 F18A.SCANLINES_JUMPER = false;
 
-
 F18A.MODE_GRAPHICS = 0;
 F18A.MODE_TEXT = 1;
 F18A.MODE_TEXT_80 = 2;
@@ -97,10 +96,11 @@ F18A.PALETTE = [
 "FFF"  // 15 >FFFFFF (255 255 255) white
 ];
 
-function F18A(canvas, cru, tms9919) {
+function F18A(canvas, cru, tms9919, enableFlicker) {
     this.canvas = canvas;
     this.cru = cru;
     this.tms9919 = tms9919;
+    this.enableFlicker = enableFlicker;
 
     // Allocate full 64K, but actually only using 16K VDP RAM + 2K VDP GRAM
     // + 32 bytes for GPU registers
@@ -186,12 +186,15 @@ function F18A(canvas, cru, tms9919) {
 
     this.sprites = null;
     this.collision = null;
+    this.fifthSprite = null;
+    this.fifthSpriteIndex = null;
 
     this.redrawRequired = null;
-    this.redrawBorder = null;
 
-    this.width = null;
-    this.height = null;
+    this.canvasWidth = null;
+    this.canvasHeight = null;
+    this.drawWidth = null;
+    this.drawHeight = null;
     this.leftBorder = null;
     this.topBorder = null;
     this.canvasContext = canvas.getContext("2d");
@@ -293,7 +296,7 @@ F18A.prototype = {
         this.bitmapWidth = 0;
         this.bitmapHeight = 0;
         this.interruptScanline = 0;
-        this.maxScanlineSprites = F18A.MAX_SCANLINE_SPRITES_JUMPER ? 32 : 4;
+        this.maxScanlineSprites = F18A.MAX_SCANLINE_SPRITES_JUMPER && !this.enableFlicker ? 32 : 4;
         this.maxSprites = 32;
         this.tileMap2AlwaysOnTop = true;
         this.ecmPositionAttributes = false;
@@ -310,11 +313,12 @@ F18A.prototype = {
 
         this.sprites = [];
         this.collision = false;
+        this.fifthSprite = false;
+        this.fifthSpriteIndex = 0x1F;
 
         this.redrawRequired = true;
-        this.redrawBorder = false;
 
-        this.setDimensions();
+        this.setDimensions(true);
         this.imagedataAddr = 0;
         this.frameCounter = 0;
         this.lastTime = 0;
@@ -356,16 +360,23 @@ F18A.prototype = {
         this.log.setMinLevel(Log.LEVEL_INFO);
     },
 
-    setDimensions: function () {
-        this.canvas.width = this.screenMode == F18A.MODE_TEXT_80 ? 608 : 304;
-        this.canvas.height = this.screenMode == F18A.MODE_TEXT_80 ? 480 : 240;
-        this.width = this.screenMode == F18A.MODE_TEXT_80 ? 512 : 256;
-        this.height = this.screenMode == F18A.MODE_TEXT_80 ? (this.row30Enabled ? 480 : 384) : (this.row30Enabled ? 240 : 192);
-        this.leftBorder = Math.floor((this.canvas.width - this.width) >> 1);
-        this.topBorder = Math.floor((this.canvas.height - this.height) >> 1);
-        this.fillCanvas(this.bgColor);
-        this.imagedata = this.canvasContext.getImageData(this.leftBorder, this.topBorder, this.width, this.height);
-        this.imagedataData = this.imagedata.data;
+    setDimensions: function (force) {
+        var newCanvasWidth = this.screenMode == F18A.MODE_TEXT_80 ? 608 : 304;
+        var newCanvasHeight = this.screenMode == F18A.MODE_TEXT_80 ? 480 : 240;
+        var newDimensions = force || newCanvasWidth != this.canvas.width || newCanvasHeight != this.canvas.height;
+        if (newDimensions) {
+            this.canvas.width = this.canvasWidth = newCanvasWidth;
+            this.canvas.height = this.canvasHeight = newCanvasHeight;
+        }
+        this.drawWidth = this.screenMode == F18A.MODE_TEXT_80 ? 512 : 256;
+        this.drawHeight = this.row30Enabled ? 240 : 192;
+        this.leftBorder = Math.floor((this.canvasWidth - this.drawWidth) >> 1);
+        this.topBorder = Math.floor(((this.canvasHeight >> (this.screenMode == F18A.MODE_TEXT_80 ? 1 : 0)) - this.drawHeight) >> 1);
+        if (newDimensions) {
+            this.fillCanvas(this.bgColor);
+            this.imagedata = this.canvasContext.getImageData(0, 0, this.canvasWidth, this.canvasHeight);
+            this.imagedataData = this.imagedata.data;
+        }
     },
 
     drawFrame: function (timestamp) {
@@ -374,26 +385,21 @@ F18A.prototype = {
         if (this.redrawRequired) {
             // this.log.info("Redraw " + this.frameCounter);
             if (this.displayOn) {
-                if (this.redrawBorder) {
-                    // this.log.info("Redraw border");
-                    this.fillCanvas(this.bgColor);
-                    this.redrawBorder = false;
-                }
-                if (this.unlocked || (this.screenMode != F18A.MODE_TEXT && this.screenMode != F18A.MODE_TEXT_80)) {
-                    this.prepareSprites();
-                }
                 this.collision = false;
                 // Draw scanlines
                 this.imagedataAddr = 0;
                 this.fakeScanline = null;
-                for (var y = 0; y < this.height; y++) {
-                    this.drawScanline(y);
+                for (var y = 0; y < 240; y++) {
+                    this._drawScanline(y);
+                    if (this.screenMode == F18A.MODE_TEXT_80) {
+                        this._duplicateScanline();
+                    }
                     if (this.gpuHsyncTrigger) {
                         this.currentScanline = y;
                         this.runGPU(this.gpu.getPC(), true);
                     }
                 }
-                this.canvasContext.putImageData(this.imagedata, this.leftBorder, this.topBorder);
+                this.updateCanvas();
                 this.currentScanline = null;
             }
             else {
@@ -420,627 +426,650 @@ F18A.prototype = {
     },
 
     fillCanvas: function (color) {
-        // this.log.info("Width: " + this.canvas.width + ", Height: " + this.canvas.height);
         this.canvasContext.fillStyle = 'rgba(' + this.palette[color].join(',') + ',1.0)';
-        this.canvasContext.fillRect(0, 0, this.canvas.width, this.canvas.height); // TODO: In Chrome the image sometimes turns white if we don't subtract 1
+        this.canvasContext.fillRect(0, 0, this.canvasWidth, this.canvasHeight);
     },
 
-    prepareSprites: function () {
-        this.sprites = [];
-        var grids = {};
-        var outOfScreenY = this.row30Enabled ? 0xF0 : 0xC0;
-        var negativeScreenY = this.row30Enabled ? 0xF0 : 0xD0;
-        var maxSpriteAttrAddr = this.spriteAttributeTable + (this.maxSprites << 2);
-        for (var spriteAttrAddr = this.spriteAttributeTable; (this.row30Enabled || this.ram[spriteAttrAddr] != 0xd0) && spriteAttrAddr < maxSpriteAttrAddr; spriteAttrAddr += 4) {
-            var parentSpriteAttrAddr = null;
-            if (this.spriteLinkingEnabled) {
-                var spriteLinkingAttr = this.ram[this.spriteAttributeTable + 0x80 + ((spriteAttrAddr - this.spriteAttributeTable) >> 2)];
-                if ((spriteLinkingAttr & 0x20) != 0) {
-                    parentSpriteAttrAddr = this.spriteAttributeTable + ((spriteLinkingAttr & 0x1F) << 2);
-                }
-            }
-            var spriteY = this.ram[spriteAttrAddr];
-            if (parentSpriteAttrAddr != null) {
-                spriteY = (spriteY + this.ram[parentSpriteAttrAddr]) & 0xFF;
-            }
-            if (!this.realSpriteYCoord) {
-                spriteY++;
-            }
-            if (spriteY < outOfScreenY || spriteY > negativeScreenY) {
-                if (spriteY > negativeScreenY) {
-                    spriteY -= 256;
-                }
-                var spriteAttr = this.ram[spriteAttrAddr + 3];
-                var spriteX = this.ram[spriteAttrAddr + 1];
-                if (parentSpriteAttrAddr == null) {
-                    if ((spriteAttr & 0x80) != 0) {
-                        spriteX -= 32; // Early clock
-                    }
-                }
-                else {
-                    spriteX = (spriteX + this.ram[parentSpriteAttrAddr + 1]) & 0xFF;
-                    if ((this.ram[parentSpriteAttrAddr + 3] & 0x80) != 0) {
-                        spriteX -= 32; // Early clock of parent
-                    }
-                }
-                var spriteSize = !this.unlocked || (spriteAttr & 0x10) == 0 ? this.spriteSize : 1;
-                var patternNo = (this.ram[spriteAttrAddr + 2] & (spriteSize != 0 ? 0xFC : 0xFF));
-                var key = ((spriteAttr & 0x7F) << 8) | patternNo;
-                var empty = true;
-                var grid = grids[key];
-                if (grid == null) {
-                    grid = [];
-                    var spriteFlipY = this.unlocked && (spriteAttr & 0x20) != 0;
-                    var spriteFlipX = this.unlocked && (spriteAttr & 0x40) != 0;
-                    var spriteMag = this.spriteMag;
-                    var spriteWidth = 8 << spriteSize;
-                    var spriteDimensionY = spriteWidth << spriteMag;
-                    //noinspection JSSuspiciousNameCombination
-                    var spriteDimensionX = spriteDimensionY;
-                    var baseColor = spriteAttr & 0x0F;
-                    var patternAddr = this.spritePatternTable + (patternNo << 3);
-                    for (var y = 0; y < spriteDimensionY; y++) {
-                        var row = [];
-                        var dy = y >> spriteMag;
-                        for (var x = 0; x < spriteWidth; x += 8) {
-                            var spritePatternAddr = patternAddr + dy + (x << 1);
-                            var spritePatternByte0 = this.ram[spritePatternAddr];
-                            var spritePatternByte1 = this.ram[spritePatternAddr + this.spritePlaneOffset];
-                            var spritePatternByte2 = this.ram[spritePatternAddr + (this.spritePlaneOffset << 1)];
-                            var spriteBit = 0x80;
-                            var spriteBitShift2 = 7;
-                            for (var spriteBitShift1 = 0; spriteBitShift1 < 8; spriteBitShift1++) {
-                                var sprColor;
-                                switch (this.spriteColorMode) {
-                                    case F18A.COLOR_MODE_NORMAL:
-                                        sprColor = (spritePatternByte0 & spriteBit) != 0 ? baseColor : 0;
-                                        break;
-                                    case F18A.COLOR_MODE_ECM_1:
-                                        sprColor = (spritePatternByte0 & spriteBit) >> spriteBitShift2;
-                                        break;
-                                    case F18A.COLOR_MODE_ECM_2:
-                                        sprColor =
-                                            ((spritePatternByte0 & spriteBit) >> spriteBitShift2) |
-                                            (((spritePatternByte1 & spriteBit) >> spriteBitShift2) << 1);
-                                        break;
-                                    case F18A.COLOR_MODE_ECM_3:
-                                        sprColor =
-                                            ((spritePatternByte0 & spriteBit) >> spriteBitShift2) |
-                                            (((spritePatternByte1 & spriteBit) >> spriteBitShift2) << 1) |
-                                            (((spritePatternByte2 & spriteBit) >> spriteBitShift2) << 2);
-                                        break;
-                                }
-                                if (spriteFlipX) {
-                                    row[spriteDimensionY - (x + spriteBitShift1) - 1] = sprColor;
-                                }
-                                else {
-                                    row[x + spriteBitShift1] = sprColor;
-                                }
-                                if (sprColor != 0) {
-                                    empty = false;
-                                }
-                                spriteBit >>= 1;
-                                spriteBitShift2--;
-                            }
-                        }
-                        if (spriteFlipY) {
-                            grid[spriteDimensionY - y - 1] = row;
-                        }
-                        else {
-                            grid[y] = row;
-                        }
-                    }
-                    if (spriteMag) {
-                        for (y = 0; y < spriteDimensionY; y++) {
-                            row = grid[y];
-                            for (x = spriteDimensionX - 1; x >= 0; x--) {
-                                row[x] = row[x >> 1];
-                            }
-                        }
-                    }
-                    if (this.screenMode == F18A.MODE_TEXT_80) {
-                        // Double width in 80 column mode
-                        spriteDimensionX <<= 1;
-                        for (y = 0; y < spriteDimensionY; y++) {
-                            row = grid[y];
-                            for (x = spriteDimensionX - 1; x >= 0; x--) {
-                                row[x] = row[x >> 1];
-                            }
-                        }
-                        spriteX <<= 1;
-                    }
-                    if (empty) {
-                        grids[key] = [];
-                    }
-                    else {
-                        grids[key] = grid;
-                    }
-                }
-                else if (grid.length > 0) {
-                    baseColor = spriteAttr & 0x0F;
-                    empty = false;
-                }
-                if (!empty) {
-                    var sprPaletteBaseIndex = 0;
-                    switch (this.spriteColorMode) {
-                        case F18A.COLOR_MODE_NORMAL:
-                            sprPaletteBaseIndex = this.spritePaletteSelect;
-                            break;
-                        case F18A.COLOR_MODE_ECM_1:
-                            sprPaletteBaseIndex = (this.spritePaletteSelect & 0x20) | (baseColor << 1);
-                            break;
-                        case F18A.COLOR_MODE_ECM_2:
-                            sprPaletteBaseIndex = (baseColor << 2);
-                            break;
-                        case F18A.COLOR_MODE_ECM_3:
-                            sprPaletteBaseIndex = ((baseColor & 0x0e) << 2);
-                            break;
-                    }
-                    this.sprites.push({
-                        x: spriteX,
-                        y: spriteY,
-                        width: spriteDimensionX,
-                        height: spriteDimensionY,
-                        grid: grid,
-                        paletteBaseIndex : sprPaletteBaseIndex
-                    });
-                }
-
-            }
-        }
+    initFrame: function (timestamp) {
+        this.lastTime = timestamp;
+        this.imagedataAddr = 0;
+        this.fakeScanline = null;
     },
 
     drawScanline: function (y) {
-        var scrollWidth = this.width;
-        var scrollHeight = this.height;
+        this.currentScanline = y - this.topBorder;
+        this.collision = false;
+        this.fifthSprite = false;
+        this.fifthSpriteIndex = 0x1F;
+        this._drawScanline(y);
         if (this.screenMode == F18A.MODE_TEXT_80) {
-            if ((y & 1) == 0) {
-                y >>= 1;
-                scrollHeight >>= 1;
+            this._duplicateScanline();
+        }
+        if (this.gpuHsyncTrigger) {
+            this.runGPU(this.gpu.getPC(), true);
+        }
+        if (y == this.topBorder + this.drawHeight - (this.row30Enabled ? 1 : 0)) {
+            this.statusRegister |= 0x80;
+            if (this.interruptsOn) {
+                this.cru.writeBit(2, false);
             }
-            else {
-                // Duplicate last scan line
-                var lineBytes = this.width << 2;
-                var imagedataAddr2 = this.imagedataAddr - lineBytes;
-                for (var i = 0; i < lineBytes; i++) {
-                    this.imagedataData[this.imagedataAddr++] = this.imagedataData[imagedataAddr2++];
+            if (this.gpuVsyncTrigger) {
+                this.runGPU(this.gpu.getPC(), true);
+            }
+        }
+        if (this.collision) {
+            this.statusRegister |= 0x20;
+        }
+        if ((this.statusRegister & 0x40) == 0) {
+            this.statusRegister |= (this.reportMax ? this.registers[30] : this.fifthSpriteIndex);
+        }
+        if (this.fifthSprite) {
+            this.statusRegister |= 0x40;
+        }
+    },
+
+    updateCanvas: function () {
+        this.canvasContext.putImageData(this.imagedata, 0, 0);
+    },
+
+    _drawScanline: function (y) {
+        var imagedata = this.imagedataData;
+        var imagedataAddr = this.imagedataAddr;
+        if (this.displayOn && y >= this.topBorder && y < this.topBorder + this.drawHeight) {
+            y -= this.topBorder;
+            // Prepare sprites
+            var spriteColorBuffer, spritePaletteBaseIndexBuffer;
+            if (this.unlocked || (this.screenMode != F18A.MODE_TEXT && this.screenMode != F18A.MODE_TEXT_80)) {
+                spriteColorBuffer = new Uint8Array(this.drawWidth);
+                spritePaletteBaseIndexBuffer = new Uint8Array(this.drawWidth);
+                var spritesOnLine = 0;
+                var outOfScreenY = this.row30Enabled ? 0xF0 : 0xC0;
+                var negativeScreenY = this.row30Enabled ? 0xF0 : 0xD0;
+                var maxSpriteAttrAddr = this.spriteAttributeTable + (this.maxSprites << 2);
+                for (var spriteAttrAddr = this.spriteAttributeTable, index = 0; (this.row30Enabled || this.ram[spriteAttrAddr] != 0xd0) && spriteAttrAddr < maxSpriteAttrAddr && spritesOnLine <= this.maxScanlineSprites; spriteAttrAddr += 4, index++) {
+                    var parentSpriteAttrAddr = null;
+                    if (this.spriteLinkingEnabled) {
+                        var spriteLinkingAttr = this.ram[this.spriteAttributeTable + 0x80 + ((spriteAttrAddr - this.spriteAttributeTable) >> 2)];
+                        if ((spriteLinkingAttr & 0x20) != 0) {
+                            parentSpriteAttrAddr = this.spriteAttributeTable + ((spriteLinkingAttr & 0x1F) << 2);
+                        }
+                    }
+                    var spriteY = this.ram[spriteAttrAddr];
+                    if (parentSpriteAttrAddr != null) {
+                        spriteY = (spriteY + this.ram[parentSpriteAttrAddr]) & 0xFF;
+                    }
+                    if (!this.realSpriteYCoord) {
+                        spriteY++;
+                    }
+                    if (spriteY < outOfScreenY || spriteY > negativeScreenY) {
+                        if (spriteY > negativeScreenY) {
+                            spriteY -= 256;
+                        }
+                        var spriteAttr = this.ram[spriteAttrAddr + 3];
+                        var spriteSize = !this.unlocked || (spriteAttr & 0x10) == 0 ? this.spriteSize : 1;
+                        var spriteMag = this.spriteMag;
+                        var spriteHeight = 8 << spriteSize; // 8 or 16
+                        var spriteDimensionY = spriteHeight << spriteMag; // 8, 16 or 32
+                        if (y >= spriteY && y < spriteY + spriteDimensionY) {
+                            if (spritesOnLine < this.maxScanlineSprites) {
+                                //noinspection JSSuspiciousNameCombination
+                                var spriteWidth = spriteHeight;
+                                //noinspection JSSuspiciousNameCombination
+                                var spriteDimensionX = spriteDimensionY;
+                                var spriteX = this.ram[spriteAttrAddr + 1];
+                                if (parentSpriteAttrAddr == null) {
+                                    if ((spriteAttr & 0x80) != 0) {
+                                        spriteX -= 32; // Early clock
+                                    }
+                                }
+                                else {
+                                    // Linked
+                                    spriteX = (spriteX + this.ram[parentSpriteAttrAddr + 1]) & 0xFF;
+                                    if ((this.ram[parentSpriteAttrAddr + 3] & 0x80) != 0) {
+                                        spriteX -= 32; // Early clock of parent
+                                    }
+                                }
+                                var patternNo = (this.ram[spriteAttrAddr + 2] & (spriteSize != 0 ? 0xFC : 0xFF));
+                                var spriteFlipY = this.unlocked && (spriteAttr & 0x20) != 0;
+                                var spriteFlipX = this.unlocked && (spriteAttr & 0x40) != 0;
+                                var baseColor = spriteAttr & 0x0F;
+                                var sprPaletteBaseIndex = 0;
+                                switch (this.spriteColorMode) {
+                                    case F18A.COLOR_MODE_NORMAL:
+                                        sprPaletteBaseIndex = this.spritePaletteSelect;
+                                        break;
+                                    case F18A.COLOR_MODE_ECM_1:
+                                        sprPaletteBaseIndex = (this.spritePaletteSelect & 0x20) | (baseColor << 1);
+                                        break;
+                                    case F18A.COLOR_MODE_ECM_2:
+                                        sprPaletteBaseIndex = (baseColor << 2);
+                                        break;
+                                    case F18A.COLOR_MODE_ECM_3:
+                                        sprPaletteBaseIndex = ((baseColor & 0x0e) << 2);
+                                        break;
+                                }
+                                var spritePatternBaseAddr = this.spritePatternTable + (patternNo << 3);
+                                var dy = (y - spriteY) >> spriteMag;
+                                if (spriteFlipY) {
+                                    dy = spriteHeight - dy - 1;
+                                }
+                                for (var dx = 0; dx < spriteWidth; dx += 8) {
+                                    var spritePatternAddr = spritePatternBaseAddr + dy + (dx << 1);
+                                    var spritePatternByte0 = this.ram[spritePatternAddr];
+                                    var spritePatternByte1 = this.ram[spritePatternAddr + this.spritePlaneOffset];
+                                    var spritePatternByte2 = this.ram[spritePatternAddr + (this.spritePlaneOffset << 1)];
+                                    var spriteBit = 0x80;
+                                    var spriteBitShift2 = 7;
+                                    for (var spriteBitShift1 = 0; spriteBitShift1 < 8; spriteBitShift1++) {
+                                        var sprColor;
+                                        var pixelOn = 0;
+                                        switch (this.spriteColorMode) {
+                                            case F18A.COLOR_MODE_NORMAL:
+                                                pixelOn = (spritePatternByte0 & spriteBit) != 0;
+                                                sprColor = pixelOn ? baseColor : 0;
+                                                break;
+                                            case F18A.COLOR_MODE_ECM_1:
+                                                sprColor = (spritePatternByte0 & spriteBit) >> spriteBitShift2;
+                                                break;
+                                            case F18A.COLOR_MODE_ECM_2:
+                                                sprColor =
+                                                    ((spritePatternByte0 & spriteBit) >> spriteBitShift2) |
+                                                    (((spritePatternByte1 & spriteBit) >> spriteBitShift2) << 1);
+                                                break;
+                                            case F18A.COLOR_MODE_ECM_3:
+                                                sprColor =
+                                                    ((spritePatternByte0 & spriteBit) >> spriteBitShift2) |
+                                                    (((spritePatternByte1 & spriteBit) >> spriteBitShift2) << 1) |
+                                                    (((spritePatternByte2 & spriteBit) >> spriteBitShift2) << 2);
+                                                break;
+                                        }
+                                        if (sprColor > 0 || pixelOn) {
+                                            var x2 = spriteX + ((spriteFlipX ? spriteDimensionX - (dx + spriteBitShift1) - 1 : dx + spriteBitShift1) << spriteMag);
+                                            if (x2 >= 0 && x2 < this.drawWidth) {
+                                                if (spriteColorBuffer[x2] == 0) {
+                                                    spriteColorBuffer[x2] = sprColor + 1; // Add one here so 0 means uninitialized. Subtract one before drawing.
+                                                    spritePaletteBaseIndexBuffer[x2] = sprPaletteBaseIndex;
+                                                }
+                                                else {
+                                                    this.collision = true;
+                                                }
+                                            }
+                                            if (spriteMag) {
+                                                x2++;
+                                                if (x2 >= 0 && x2 < this.drawWidth) {
+                                                    if (spriteColorBuffer[x2] == 0) {
+                                                        spriteColorBuffer[x2] = sprColor + 1; // Add one here so 0 means uninitialized. Subtract one before drawing.
+                                                        spritePaletteBaseIndexBuffer[x2] = sprPaletteBaseIndex;
+                                                    }
+                                                    else {
+                                                        this.collision = true;
+                                                    }
+                                                }
+                                            }
+                                        }
+                                        spriteBit >>= 1;
+                                        spriteBitShift2--;
+                                    }
+                                }
+                            }
+                            spritesOnLine++;
+                            if (spritesOnLine == 5 && !this.fifthSprite) {
+                                this.fifthSprite = true;
+                                this.fifthSpriteIndex = index;
+                            }
+                        }
+                    }
                 }
-                return;
+                if (this.screenMode == F18A.MODE_TEXT_80) {
+                    for (x1 = this.drawWidth >> 1; x1 >= 0; x1--) {
+                        spriteColorBuffer[x1 << 1] = spriteColorBuffer[x1];
+                        spritePaletteBaseIndexBuffer[x1 << 1] = spritePaletteBaseIndexBuffer[x1];
+                        spriteColorBuffer[(x1 << 1) + 1] = spriteColorBuffer[x1];
+                        spritePaletteBaseIndexBuffer[(x1 << 1) + 1] = spritePaletteBaseIndexBuffer[x1];
+                    }
+                }
             }
-        }
-        // Border in text modes
-        var borderWidth = this.screenMode == F18A.MODE_TEXT ? 8 : (this.screenMode == F18A.MODE_TEXT_80 ? 16 : 0);
-        scrollWidth -= (borderWidth << 1);
-        // Prepare values for Tile layer 1
-        var nameTableCanonicalBase = this.vPageSize1 ? this.nameTable & 0x3000 : (this.hPageSize1 ? this.nameTable & 0x3800 : this.nameTable);
-        var nameTableBaseAddr = this.nameTable;
-        var y1 = y + this.vScroll1;
-        if (y1 >= scrollHeight) {
-            y1 -= scrollHeight;
-            nameTableBaseAddr ^= this.vPageSize1;
-        }
-        var rowOffset;
-        switch (this.screenMode) {
-            case F18A.MODE_GRAPHICS:
-            case F18A.MODE_BITMAP:
-            case F18A.MODE_MULTICOLOR:
-                rowOffset = (y1 >> 3) << 5;
-                break;
-            case F18A.MODE_TEXT:
-                rowOffset = (y1 >> 3) * 40;
-                break;
-            case F18A.MODE_TEXT_80:
-                rowOffset = (y1 >> 3) * 80;
-                break;
-        }
-        var lineOffset = y1 & 7;
-        // Prepare values for Bitmap layer
-        if (this.bitmapEnable) {
-            var bitmapX2 = this.bitmapX + this.bitmapWidth;
-            var bitmapY1 = y - this.bitmapY;
-            var bitmapY2 = this.bitmapY + this.bitmapHeight;
-            var bitmapYOffset = bitmapY1 * this.bitmapWidth;
-        }
-        // Prepare values for Tile layer 2
-        var rowOffset2, nameTableBaseAddr2, lineOffset2;
-        if (this.tileLayer2Enabled) {
-            var nameTableCanonicalBase2 = this.vPageSize2 ? this.nameTable2 & 0x3000 : (this.hPageSize2 ? this.nameTable2 & 0x3800 : this.nameTable2);
-            nameTableBaseAddr2 = this.nameTable2;
-            var y12 = y + this.vScroll2;
-            if (y12 >= scrollHeight) {
-                y12 -= scrollHeight;
-                nameTableBaseAddr2 ^= this.vPageSize2;
+            var scrollWidth = this.drawWidth;
+            var scrollHeight = this.drawHeight;
+            // Border in text modes
+            var borderWidth = this.screenMode == F18A.MODE_TEXT ? 8 : (this.screenMode == F18A.MODE_TEXT_80 ? 16 : 0);
+            scrollWidth -= (borderWidth << 1);
+            // Prepare values for Tile layer 1
+            var nameTableCanonicalBase = this.vPageSize1 ? this.nameTable & 0x3000 : (this.hPageSize1 ? this.nameTable & 0x3800 : this.nameTable);
+            var nameTableBaseAddr = this.nameTable;
+            var y1 = y + this.vScroll1;
+            if (y1 >= scrollHeight) {
+                y1 -= scrollHeight;
+                nameTableBaseAddr ^= this.vPageSize1;
             }
+            var rowOffset;
             switch (this.screenMode) {
                 case F18A.MODE_GRAPHICS:
                 case F18A.MODE_BITMAP:
                 case F18A.MODE_MULTICOLOR:
-                    rowOffset2 = (y12 >> 3) << 5;
+                    rowOffset = (y1 >> 3) << 5;
                     break;
                 case F18A.MODE_TEXT:
-                    rowOffset2 = (y12 >> 3) * 40;
+                    rowOffset = (y1 >> 3) * 40;
                     break;
                 case F18A.MODE_TEXT_80:
-                    rowOffset2 = (y12 >> 3) * 80;
+                    rowOffset = (y1 >> 3) * 80;
                     break;
             }
-            lineOffset2 = y12 & 7;
-        }
-        // Draw line
-        for (var x = 0; x < this.width; x++) {
-            // Draw pixel
-            var color = this.bgColor;
-            var paletteBaseIndex = 0;
-            // Tile layer 1
-            if (this.tileLayer1Enabled) {
-                var nameTableAddr = nameTableBaseAddr;
-                var x1 = x - borderWidth + (this.hScroll1 << (this.screenMode == F18A.MODE_TEXT_80 ? 1 : 0));
-                if (x1 >= scrollWidth) {
-                    x1 -= scrollWidth;
-                    nameTableAddr ^= this.hPageSize1;
+            var lineOffset = y1 & 7;
+            // Prepare values for Bitmap layer
+            if (this.bitmapEnable) {
+                var bitmapX2 = this.bitmapX + this.bitmapWidth;
+                var bitmapY1 = y - this.bitmapY;
+                var bitmapY2 = this.bitmapY + this.bitmapHeight;
+                var bitmapYOffset = bitmapY1 * this.bitmapWidth;
+            }
+            // Prepare values for Tile layer 2
+            var rowOffset2, nameTableBaseAddr2, lineOffset2;
+            if (this.tileLayer2Enabled) {
+                var nameTableCanonicalBase2 = this.vPageSize2 ? this.nameTable2 & 0x3000 : (this.hPageSize2 ? this.nameTable2 & 0x3800 : this.nameTable2);
+                nameTableBaseAddr2 = this.nameTable2;
+                var y12 = y + this.vScroll2;
+                if (y12 >= scrollHeight) {
+                    y12 -= scrollHeight;
+                    nameTableBaseAddr2 ^= this.vPageSize2;
                 }
-                var charNo, bitShift, bit, patternAddr, patternByte;
-                var tileColor, tilePriority, tileAttributeByte, transparentColor0;
-                var tilePaletteBaseIndex, lineOffset1;
                 switch (this.screenMode) {
                     case F18A.MODE_GRAPHICS:
-                        nameTableAddr += (x1 >> 3) + rowOffset;
-                        charNo = this.ram[nameTableAddr];
-                        bitShift = x1 & 7;
-                        lineOffset1 = lineOffset;
-                        if (this.tileColorMode != F18A.COLOR_MODE_NORMAL) {
-                            tileAttributeByte = this.ram[this.colorTable + (this.ecmPositionAttributes ? nameTableAddr - nameTableCanonicalBase : charNo)];
-                            tilePriority = (tileAttributeByte & 0x80) != 0;
-                            if ((tileAttributeByte & 0x40) != 0) {
-                                // Flip X
-                                bitShift = 7 - bitShift;
-                            }
-                            if ((tileAttributeByte & 0x20) != 0) {
-                                // Flip y
-                                lineOffset1 = 7 - lineOffset1;
-                            }
-                            transparentColor0 = (tileAttributeByte & 0x10) != 0;
-                        }
-                        bit = 0x80 >> bitShift;
-                        patternAddr = this.charPatternTable + (charNo << 3) + lineOffset1;
-                        patternByte = this.ram[patternAddr];
-                        switch (this.tileColorMode) {
-                            case F18A.COLOR_MODE_NORMAL:
-                                var colorSet = this.ram[this.colorTable + (charNo >> 3)];
-                                tileColor = (patternByte & bit) != 0 ? (colorSet & 0xF0) >> 4 : colorSet & 0x0F;
-                                tilePaletteBaseIndex = this.tilePaletteSelect;
-                                transparentColor0 = true;
-                                tilePriority = false;
-                                break;
-                            case F18A.COLOR_MODE_ECM_1:
-                                tileColor = ((patternByte & bit) >> (7 - bitShift));
-                                tilePaletteBaseIndex = (this.tilePaletteSelect & 0x20) | ((tileAttributeByte & 0x0f) << 1);
-                                break;
-                            case F18A.COLOR_MODE_ECM_2:
-                                tileColor =
-                                    ((patternByte & bit) >> (7 - bitShift)) |
-                                    (((this.ram[patternAddr + this.tilePlaneOffset] & bit) >> (7 - bitShift)) << 1);
-                                tilePaletteBaseIndex = ((tileAttributeByte & 0x0f) << 2);
-                                break;
-                            case F18A.COLOR_MODE_ECM_3:
-                                tileColor =
-                                    ((patternByte & bit) >> (7 - bitShift)) |
-                                    (((this.ram[patternAddr + this.tilePlaneOffset] & bit) >> (7 - bitShift)) << 1) |
-                                    (((this.ram[patternAddr + (this.tilePlaneOffset << 1)] & bit) >> (7 - bitShift)) << 2);
-                                tilePaletteBaseIndex = ((tileAttributeByte & 0x0e) << 2);
-                                break;
-                        }
-                        if (tileColor > 0 || !transparentColor0) {
-                            color = tileColor;
-                            paletteBaseIndex = tilePaletteBaseIndex;
-                        }
-                        break;
                     case F18A.MODE_BITMAP:
-                        charNo = this.ram[nameTableAddr + (x1 >> 3) + rowOffset];
-                        bitShift = x1 & 7;
-                        bit = 0x80 >> bitShift;
-                        var charSetOffset = (y & 0xC0) << 5;
-                        patternByte = this.ram[this.charPatternTable + (((charNo << 3) + charSetOffset) & this.patternTableMask) + lineOffset];
-                        var colorAddr = this.colorTable + (((charNo << 3) + charSetOffset) & this.colorTableMask) + lineOffset;
-                        var colorByte = this.ram[colorAddr];
-                        tileColor = (patternByte & bit) != 0 ? (colorByte & 0xF0) >> 4 : (colorByte & 0x0F);
-                        if (tileColor > 0) {
-                            color = tileColor;
-                            paletteBaseIndex = this.tilePaletteSelect;
-                        }
+                    case F18A.MODE_MULTICOLOR:
+                        rowOffset2 = (y12 >> 3) << 5;
                         break;
                     case F18A.MODE_TEXT:
+                        rowOffset2 = (y12 >> 3) * 40;
+                        break;
                     case F18A.MODE_TEXT_80:
-                        if (x >= borderWidth && x < this.width - borderWidth) {
-                            nameTableAddr += Math.floor(x1 / 6) + rowOffset;
-                            charNo = this.ram[nameTableAddr];
-                            bitShift = x1 % 6;
-                            lineOffset1 = lineOffset;
-                            if (this.tileColorMode != F18A.COLOR_MODE_NORMAL) {
-                                tileAttributeByte = this.ram[this.colorTable + (this.ecmPositionAttributes ? nameTableAddr - nameTableCanonicalBase : charNo)];
-                                tilePriority = (tileAttributeByte & 0x80) != 0;
-                                if ((tileAttributeByte & 0x40) != 0) {
-                                    // Flip X
-                                    bitShift = 5 - bitShift;
-                                }
-                                if ((tileAttributeByte & 0x20) != 0) {
-                                    // Flip y
-                                    lineOffset1 = 7 - lineOffset1;
-                                }
-                                transparentColor0 = (tileAttributeByte & 0x10) != 0;
-                            }
-                            bit = 0x80 >> bitShift;
-                            patternAddr = this.charPatternTable + (charNo << 3) + lineOffset1;
-                            patternByte = this.ram[patternAddr];
-                            switch (this.tileColorMode) {
-                                case F18A.COLOR_MODE_NORMAL:
-                                    if (this.unlocked && this.ecmPositionAttributes) {
-                                        tileAttributeByte = this.ram[this.colorTable + nameTableAddr - nameTableCanonicalBase];
-                                        tileColor = (patternByte & bit) != 0 ? tileAttributeByte >> 4 : tileAttributeByte & 0xF;
-                                    }
-                                    else {
-                                        tileColor = (patternByte & bit) != 0 ? this.fgColor : this.bgColor;
-                                    }
-                                    tilePaletteBaseIndex = this.tilePaletteSelect;
-                                    transparentColor0 = true;
-                                    tilePriority = false;
-                                    break;
-                                case F18A.COLOR_MODE_ECM_1:
-                                    tileColor = ((patternByte & bit) >> (7 - bitShift));
-                                    tilePaletteBaseIndex = (this.tilePaletteSelect & 0x20) | ((tileAttributeByte & 0x0f) << 1);
-                                    break;
-                                case F18A.COLOR_MODE_ECM_2:
-                                    tileColor =
-                                        ((patternByte & bit) >> (7 - bitShift)) |
-                                        (((this.ram[patternAddr + this.tilePlaneOffset] & bit) >> (7 - bitShift)) << 1);
-                                    tilePaletteBaseIndex = ((tileAttributeByte & 0x0f) << 2);
-                                    break;
-                                case F18A.COLOR_MODE_ECM_3:
-                                    tileColor =
-                                        ((patternByte & bit) >> (7 - bitShift)) |
-                                        (((this.ram[patternAddr + this.tilePlaneOffset] & bit) >> (7 - bitShift)) << 1) |
-                                        (((this.ram[patternAddr + (this.tilePlaneOffset << 1)] & bit) >> (7 - bitShift)) << 2);
-                                    tilePaletteBaseIndex = ((tileAttributeByte & 0x0e) << 2);
-                                    break;
-                            }
-                            if (tileColor > 0 || !transparentColor0) {
-                                color = tileColor;
-                                paletteBaseIndex = tilePaletteBaseIndex;
-                            }
-                        }
-                        else {
-                            color = this.bgColor;
-                        }
-                        break;
-                    case F18A.MODE_MULTICOLOR:
-                        charNo = this.ram[nameTableAddr + (x1 >> 3) + rowOffset];
-                        colorByte = this.ram[this.charPatternTable + (charNo << 3) + ((y1 & 0x1c) >> 2)];
-                        tileColor = (x1 & 4) == 0 ? (colorByte & 0xf0) >> 4 : (colorByte & 0x0f);
-                        if (tileColor > 0) {
-                            color = tileColor;
-                            paletteBaseIndex = this.tilePaletteSelect;
-                        }
+                        rowOffset2 = (y12 >> 3) * 80;
                         break;
                 }
+                lineOffset2 = y12 & 7;
             }
-            // Bitmap layer
-            if (this.bitmapEnable) {
-                var bmpX = this.screenMode != F18A.MODE_TEXT_80 ? x : x >> 1;
-                if (bmpX >= this.bitmapX && bmpX < bitmapX2 && y >= this.bitmapY && y < bitmapY2) {
-                    var bitmapX1 = x - this.bitmapX;
-                    var bitmapPixelOffset = bitmapX1 + bitmapYOffset;
-                    var bitmapByte = this.ram[this.bitmapBaseAddr + (bitmapPixelOffset >> 2)];
-                    var bitmapBitShift,bitmapColor;
-                    if (this.bitmapFat) {
-                        // 16 color bitmap with fat pixels
-                        bitmapBitShift = (2 - (bitmapPixelOffset & 2)) << 1;
-                        bitmapColor = (bitmapByte >> bitmapBitShift) & 0x0F;
-                    }
-                    else {
-                        // 4 color bitmap
-                        bitmapBitShift = (3 - (bitmapPixelOffset & 3)) << 1;
-                        bitmapColor = (bitmapByte >> bitmapBitShift) & 0x03;
-                    }
-                    if ((bitmapColor > 0 || !this.bitmapTransparent) && (color == this.bgColor || this.bitmapPriority)) {
-                        color = bitmapColor;
-                        paletteBaseIndex = this.bitmapPaletteSelect;
-                    }
-                }
-            }
-            // Sprite layer
-            var spriteColor = null;
-            if ((this.unlocked || (this.screenMode != F18A.MODE_TEXT && this.screenMode != F18A.MODE_TEXT_80)) && (!tilePriority || transparentColor0 && color == 0)) {
-                var spritePaletteBaseIndex = 0;
-                var dy = 0;
-                for (var spr = 0; spr < this.sprites.length && (spriteColor == null || !this.collision); spr++) {
-                    var sprite = this.sprites[spr];
-                    dy = y - sprite.y;
-                    if (dy >= 0 && dy < sprite.height) {
-                        var dx = x - sprite.x;
-                        if (dx >= 0 && dx < sprite.width) {
-                            var sprColor = sprite.grid[dy][dx];
-                            if (sprColor != 0) {
-                                if (spriteColor) {
-                                    this.collision = true;
+            // Draw line
+            for (var xc = 0; xc < this.canvasWidth; xc++) {
+                // Draw pixel
+                var color = this.bgColor;
+                var paletteBaseIndex = 0;
+                if (xc >= this.leftBorder && xc < this.leftBorder + this.drawWidth) {
+                    var x = xc - this.leftBorder;
+                    // Tile layer 1
+                    if (this.tileLayer1Enabled) {
+                        var nameTableAddr = nameTableBaseAddr;
+                        var x1 = x - borderWidth + (this.hScroll1 << (this.screenMode == F18A.MODE_TEXT_80 ? 1 : 0));
+                        if (x1 >= scrollWidth) {
+                            x1 -= scrollWidth;
+                            nameTableAddr ^= this.hPageSize1;
+                        }
+                        var charNo, bitShift, bit, patternAddr, patternByte;
+                        var tileColor, tilePriority, tileAttributeByte, transparentColor0;
+                        var tilePaletteBaseIndex, lineOffset1;
+                        switch (this.screenMode) {
+                            case F18A.MODE_GRAPHICS:
+                                nameTableAddr += (x1 >> 3) + rowOffset;
+                                charNo = this.ram[nameTableAddr];
+                                bitShift = x1 & 7;
+                                lineOffset1 = lineOffset;
+                                if (this.tileColorMode != F18A.COLOR_MODE_NORMAL) {
+                                    tileAttributeByte = this.ram[this.colorTable + (this.ecmPositionAttributes ? nameTableAddr - nameTableCanonicalBase : charNo)];
+                                    tilePriority = (tileAttributeByte & 0x80) != 0;
+                                    if ((tileAttributeByte & 0x40) != 0) {
+                                        // Flip X
+                                        bitShift = 7 - bitShift;
+                                    }
+                                    if ((tileAttributeByte & 0x20) != 0) {
+                                        // Flip y
+                                        lineOffset1 = 7 - lineOffset1;
+                                    }
+                                    transparentColor0 = (tileAttributeByte & 0x10) != 0;
+                                }
+                                bit = 0x80 >> bitShift;
+                                patternAddr = this.charPatternTable + (charNo << 3) + lineOffset1;
+                                patternByte = this.ram[patternAddr];
+                                switch (this.tileColorMode) {
+                                    case F18A.COLOR_MODE_NORMAL:
+                                        var colorSet = this.ram[this.colorTable + (charNo >> 3)];
+                                        tileColor = (patternByte & bit) != 0 ? (colorSet & 0xF0) >> 4 : colorSet & 0x0F;
+                                        tilePaletteBaseIndex = this.tilePaletteSelect;
+                                        transparentColor0 = true;
+                                        tilePriority = false;
+                                        break;
+                                    case F18A.COLOR_MODE_ECM_1:
+                                        tileColor = ((patternByte & bit) >> (7 - bitShift));
+                                        tilePaletteBaseIndex = (this.tilePaletteSelect & 0x20) | ((tileAttributeByte & 0x0f) << 1);
+                                        break;
+                                    case F18A.COLOR_MODE_ECM_2:
+                                        tileColor =
+                                            ((patternByte & bit) >> (7 - bitShift)) |
+                                            (((this.ram[patternAddr + this.tilePlaneOffset] & bit) >> (7 - bitShift)) << 1);
+                                        tilePaletteBaseIndex = ((tileAttributeByte & 0x0f) << 2);
+                                        break;
+                                    case F18A.COLOR_MODE_ECM_3:
+                                        tileColor =
+                                            ((patternByte & bit) >> (7 - bitShift)) |
+                                            (((this.ram[patternAddr + this.tilePlaneOffset] & bit) >> (7 - bitShift)) << 1) |
+                                            (((this.ram[patternAddr + (this.tilePlaneOffset << 1)] & bit) >> (7 - bitShift)) << 2);
+                                        tilePaletteBaseIndex = ((tileAttributeByte & 0x0e) << 2);
+                                        break;
+                                }
+                                if (tileColor > 0 || !transparentColor0) {
+                                    color = tileColor;
+                                    paletteBaseIndex = tilePaletteBaseIndex;
+                                }
+                                break;
+                            case F18A.MODE_BITMAP:
+                                charNo = this.ram[nameTableAddr + (x1 >> 3) + rowOffset];
+                                bitShift = x1 & 7;
+                                bit = 0x80 >> bitShift;
+                                var charSetOffset = (y & 0xC0) << 5;
+                                patternByte = this.ram[this.charPatternTable + (((charNo << 3) + charSetOffset) & this.patternTableMask) + lineOffset];
+                                var colorAddr = this.colorTable + (((charNo << 3) + charSetOffset) & this.colorTableMask) + lineOffset;
+                                var colorByte = this.ram[colorAddr];
+                                tileColor = (patternByte & bit) != 0 ? (colorByte & 0xF0) >> 4 : (colorByte & 0x0F);
+                                if (tileColor > 0) {
+                                    color = tileColor;
+                                    paletteBaseIndex = this.tilePaletteSelect;
+                                }
+                                break;
+                            case F18A.MODE_TEXT:
+                            case F18A.MODE_TEXT_80:
+                                if (x >= borderWidth && x < this.drawWidth - borderWidth) {
+                                    nameTableAddr += Math.floor(x1 / 6) + rowOffset;
+                                    charNo = this.ram[nameTableAddr];
+                                    bitShift = x1 % 6;
+                                    lineOffset1 = lineOffset;
+                                    if (this.tileColorMode != F18A.COLOR_MODE_NORMAL) {
+                                        tileAttributeByte = this.ram[this.colorTable + (this.ecmPositionAttributes ? nameTableAddr - nameTableCanonicalBase : charNo)];
+                                        tilePriority = (tileAttributeByte & 0x80) != 0;
+                                        if ((tileAttributeByte & 0x40) != 0) {
+                                            // Flip X
+                                            bitShift = 5 - bitShift;
+                                        }
+                                        if ((tileAttributeByte & 0x20) != 0) {
+                                            // Flip y
+                                            lineOffset1 = 7 - lineOffset1;
+                                        }
+                                        transparentColor0 = (tileAttributeByte & 0x10) != 0;
+                                    }
+                                    bit = 0x80 >> bitShift;
+                                    patternAddr = this.charPatternTable + (charNo << 3) + lineOffset1;
+                                    patternByte = this.ram[patternAddr];
+                                    switch (this.tileColorMode) {
+                                        case F18A.COLOR_MODE_NORMAL:
+                                            if (this.unlocked && this.ecmPositionAttributes) {
+                                                tileAttributeByte = this.ram[this.colorTable + nameTableAddr - nameTableCanonicalBase];
+                                                tileColor = (patternByte & bit) != 0 ? tileAttributeByte >> 4 : tileAttributeByte & 0xF;
+                                            }
+                                            else {
+                                                tileColor = (patternByte & bit) != 0 ? this.fgColor : this.bgColor;
+                                            }
+                                            tilePaletteBaseIndex = this.tilePaletteSelect;
+                                            transparentColor0 = true;
+                                            tilePriority = false;
+                                            break;
+                                        case F18A.COLOR_MODE_ECM_1:
+                                            tileColor = ((patternByte & bit) >> (7 - bitShift));
+                                            tilePaletteBaseIndex = (this.tilePaletteSelect & 0x20) | ((tileAttributeByte & 0x0f) << 1);
+                                            break;
+                                        case F18A.COLOR_MODE_ECM_2:
+                                            tileColor =
+                                                ((patternByte & bit) >> (7 - bitShift)) |
+                                                (((this.ram[patternAddr + this.tilePlaneOffset] & bit) >> (7 - bitShift)) << 1);
+                                            tilePaletteBaseIndex = ((tileAttributeByte & 0x0f) << 2);
+                                            break;
+                                        case F18A.COLOR_MODE_ECM_3:
+                                            tileColor =
+                                                ((patternByte & bit) >> (7 - bitShift)) |
+                                                (((this.ram[patternAddr + this.tilePlaneOffset] & bit) >> (7 - bitShift)) << 1) |
+                                                (((this.ram[patternAddr + (this.tilePlaneOffset << 1)] & bit) >> (7 - bitShift)) << 2);
+                                            tilePaletteBaseIndex = ((tileAttributeByte & 0x0e) << 2);
+                                            break;
+                                    }
+                                    if (tileColor > 0 || !transparentColor0) {
+                                        color = tileColor;
+                                        paletteBaseIndex = tilePaletteBaseIndex;
+                                    }
                                 }
                                 else {
-                                    spriteColor = sprColor;
-                                    spritePaletteBaseIndex = sprite.paletteBaseIndex;
+                                    color = this.bgColor;
                                 }
+                                break;
+                            case F18A.MODE_MULTICOLOR:
+                                charNo = this.ram[nameTableAddr + (x1 >> 3) + rowOffset];
+                                colorByte = this.ram[this.charPatternTable + (charNo << 3) + ((y1 & 0x1c) >> 2)];
+                                tileColor = (x1 & 4) == 0 ? (colorByte & 0xf0) >> 4 : (colorByte & 0x0f);
+                                if (tileColor > 0) {
+                                    color = tileColor;
+                                    paletteBaseIndex = this.tilePaletteSelect;
+                                }
+                                break;
+                        }
+                    }
+                    // Bitmap layer
+                    if (this.bitmapEnable) {
+                        var bmpX = this.screenMode != F18A.MODE_TEXT_80 ? x : x >> 1;
+                        if (bmpX >= this.bitmapX && bmpX < bitmapX2 && y >= this.bitmapY && y < bitmapY2) {
+                            var bitmapX1 = x - this.bitmapX;
+                            var bitmapPixelOffset = bitmapX1 + bitmapYOffset;
+                            var bitmapByte = this.ram[this.bitmapBaseAddr + (bitmapPixelOffset >> 2)];
+                            var bitmapBitShift, bitmapColor;
+                            if (this.bitmapFat) {
+                                // 16 color bitmap with fat pixels
+                                bitmapBitShift = (2 - (bitmapPixelOffset & 2)) << 1;
+                                bitmapColor = (bitmapByte >> bitmapBitShift) & 0x0F;
+                            }
+                            else {
+                                // 4 color bitmap
+                                bitmapBitShift = (3 - (bitmapPixelOffset & 3)) << 1;
+                                bitmapColor = (bitmapByte >> bitmapBitShift) & 0x03;
+                            }
+                            if ((bitmapColor > 0 || !this.bitmapTransparent) && (color == this.bgColor || this.bitmapPriority)) {
+                                color = bitmapColor;
+                                paletteBaseIndex = this.bitmapPaletteSelect;
                             }
                         }
                     }
-                }
-                if (spriteColor) {
-                    color = spriteColor;
-                    paletteBaseIndex = spritePaletteBaseIndex;
-                }
-            }
-            // Tile layer 2
-            // The following is almost just a copy of the code from TL1, so this could be coded more elegantly
-            if (this.tileLayer2Enabled) {
-                var nameTableAddr2 = nameTableBaseAddr2;
-                var x12 = x - borderWidth + (this.hScroll2 << (this.screenMode == F18A.MODE_TEXT_80 ? 1 : 0));
-                if (x12 >= scrollWidth) {
-                    x12 -= scrollWidth;
-                    nameTableAddr2 ^= this.hPageSize2;
-                }
-                var charNo2, bitShift2, bit2, patternAddr2, patternByte2;
-                var tileColor2, tilePriority2, tileAttributeByte2, transparentColor02;
-                var tilePaletteBaseIndex2, lineOffset12;
-                switch (this.screenMode) {
-                    case F18A.MODE_GRAPHICS:
-                        nameTableAddr2 += (x12 >> 3) + rowOffset2;
-                        charNo2 = this.ram[nameTableAddr2];
-                        bitShift2 = x12 & 7;
-                        lineOffset12 = lineOffset2;
-                        if (this.tileColorMode != F18A.COLOR_MODE_NORMAL) {
-                            tileAttributeByte2 = this.ram[this.colorTable2 + (this.ecmPositionAttributes ? nameTableAddr2 - nameTableCanonicalBase2 : charNo2)];
-                            tilePriority2 = (tileAttributeByte2 & 0x80) != 0;
-                            if ((tileAttributeByte2 & 0x40) != 0) {
-                                // Flip X
-                                bitShift2 = 7 - bitShift2;
-                            }
-                            if ((tileAttributeByte2 & 0x20) != 0) {
-                                // Flip y
-                                lineOffset12 = 7 - lineOffset12;
-                            }
-                            transparentColor02 = (tileAttributeByte2 & 0x10) != 0;
+                    // Sprite layer
+                    var spriteColor = null;
+                    if ((this.unlocked || (this.screenMode != F18A.MODE_TEXT && this.screenMode != F18A.MODE_TEXT_80)) && (!tilePriority || transparentColor0 && color == 0)) {
+                        spriteColor = spriteColorBuffer[x] - 1;
+                        if (spriteColor > 0) {
+                            color = spriteColor;
+                            paletteBaseIndex = spritePaletteBaseIndexBuffer[x];
                         }
-                        bit2 = 0x80 >> bitShift2;
-                        patternAddr2 = this.charPatternTable + (charNo2 << 3) + lineOffset12;
-                        patternByte2 = this.ram[patternAddr2];
-                        switch (this.tileColorMode) {
-                            case F18A.COLOR_MODE_NORMAL:
-                                var colorSet2 = this.ram[this.colorTable2 + (charNo2 >> 3)];
-                                tileColor2 = (patternByte2 & bit2) != 0 ? (colorSet2 & 0xF0) >> 4 : colorSet2 & 0x0F;
+                        else {
+                            spriteColor = null;
+                        }
+                    }
+                    // Tile layer 2
+                    // The following is almost just a copy of the code from TL1, so this could be coded more elegantly
+                    if (this.tileLayer2Enabled) {
+                        var nameTableAddr2 = nameTableBaseAddr2;
+                        var x12 = x - borderWidth + (this.hScroll2 << (this.screenMode == F18A.MODE_TEXT_80 ? 1 : 0));
+                        if (x12 >= scrollWidth) {
+                            x12 -= scrollWidth;
+                            nameTableAddr2 ^= this.hPageSize2;
+                        }
+                        var charNo2, bitShift2, bit2, patternAddr2, patternByte2;
+                        var tileColor2, tilePriority2, tileAttributeByte2, transparentColor02;
+                        var tilePaletteBaseIndex2, lineOffset12;
+                        switch (this.screenMode) {
+                            case F18A.MODE_GRAPHICS:
+                                nameTableAddr2 += (x12 >> 3) + rowOffset2;
+                                charNo2 = this.ram[nameTableAddr2];
+                                bitShift2 = x12 & 7;
+                                lineOffset12 = lineOffset2;
+                                if (this.tileColorMode != F18A.COLOR_MODE_NORMAL) {
+                                    tileAttributeByte2 = this.ram[this.colorTable2 + (this.ecmPositionAttributes ? nameTableAddr2 - nameTableCanonicalBase2 : charNo2)];
+                                    tilePriority2 = (tileAttributeByte2 & 0x80) != 0;
+                                    if ((tileAttributeByte2 & 0x40) != 0) {
+                                        // Flip X
+                                        bitShift2 = 7 - bitShift2;
+                                    }
+                                    if ((tileAttributeByte2 & 0x20) != 0) {
+                                        // Flip y
+                                        lineOffset12 = 7 - lineOffset12;
+                                    }
+                                    transparentColor02 = (tileAttributeByte2 & 0x10) != 0;
+                                }
+                                bit2 = 0x80 >> bitShift2;
+                                patternAddr2 = this.charPatternTable + (charNo2 << 3) + lineOffset12;
+                                patternByte2 = this.ram[patternAddr2];
+                                switch (this.tileColorMode) {
+                                    case F18A.COLOR_MODE_NORMAL:
+                                        var colorSet2 = this.ram[this.colorTable2 + (charNo2 >> 3)];
+                                        tileColor2 = (patternByte2 & bit2) != 0 ? (colorSet2 & 0xF0) >> 4 : colorSet2 & 0x0F;
+                                        tilePaletteBaseIndex2 = this.tilePaletteSelect2;
+                                        transparentColor02 = true;
+                                        tilePriority2 = false;
+                                        break;
+                                    case F18A.COLOR_MODE_ECM_1:
+                                        tileColor2 = ((patternByte2 & bit2) >> (7 - bitShift2));
+                                        tilePaletteBaseIndex2 = (this.tilePaletteSelect2 & 0x20) | ((tileAttributeByte2 & 0x0f) << 1);
+                                        break;
+                                    case F18A.COLOR_MODE_ECM_2:
+                                        tileColor2 =
+                                            ((patternByte2 & bit2) >> (7 - bitShift2)) |
+                                            (((this.ram[patternAddr2 + this.tilePlaneOffset] & bit2) >> (7 - bitShift2)) << 1);
+                                        tilePaletteBaseIndex2 = ((tileAttributeByte2 & 0x0f) << 2);
+                                        break;
+                                    case F18A.COLOR_MODE_ECM_3:
+                                        tileColor2 =
+                                            ((patternByte2 & bit2) >> (7 - bitShift2)) |
+                                            (((this.ram[patternAddr2 + this.tilePlaneOffset] & bit2) >> (7 - bitShift2)) << 1) |
+                                            (((this.ram[patternAddr2 + (this.tilePlaneOffset << 1)] & bit2) >> (7 - bitShift2)) << 2);
+                                        tilePaletteBaseIndex2 = ((tileAttributeByte2 & 0x0e) << 2);
+                                        break;
+                                }
+                                break;
+                            case F18A.MODE_BITMAP:
+                                charNo2 = this.ram[nameTableAddr2 + (x12 >> 3) + rowOffset2];
+                                bitShift2 = x12 & 7;
+                                bit2 = 0x80 >> bitShift2;
+                                var charSetOffset2 = (y & 0xC0) << 5;
+                                patternByte2 = this.ram[this.charPatternTable + (((charNo2 << 3) + charSetOffset2) & this.patternTableMask) + lineOffset2];
+                                var colorAddr2 = this.colorTable2 + (((charNo2 << 3) + charSetOffset2) & this.colorTableMask) + lineOffset2;
+                                var colorByte2 = this.ram[colorAddr2];
+                                tileColor2 = (patternByte2 & bit2) != 0 ? (colorByte2 & 0xF0) >> 4 : (colorByte2 & 0x0F);
                                 tilePaletteBaseIndex2 = this.tilePaletteSelect2;
                                 transparentColor02 = true;
                                 tilePriority2 = false;
                                 break;
-                            case F18A.COLOR_MODE_ECM_1:
-                                tileColor2 = ((patternByte2 & bit2) >> (7 - bitShift2));
-                                tilePaletteBaseIndex2 = (this.tilePaletteSelect2 & 0x20) | ((tileAttributeByte2 & 0x0f) << 1);
-                                break;
-                            case F18A.COLOR_MODE_ECM_2:
-                                tileColor2 =
-                                    ((patternByte2 & bit2) >> (7 - bitShift2)) |
-                                    (((this.ram[patternAddr2 + this.tilePlaneOffset] & bit2) >> (7 - bitShift2)) << 1);
-                                tilePaletteBaseIndex2 = ((tileAttributeByte2 & 0x0f) << 2);
-                                break;
-                            case F18A.COLOR_MODE_ECM_3:
-                                tileColor2 =
-                                    ((patternByte2 & bit2) >> (7 - bitShift2)) |
-                                    (((this.ram[patternAddr2 + this.tilePlaneOffset] & bit2) >> (7 - bitShift2)) << 1) |
-                                    (((this.ram[patternAddr2 + (this.tilePlaneOffset << 1)] & bit2) >> (7 - bitShift2)) << 2);
-                                tilePaletteBaseIndex2 = ((tileAttributeByte2 & 0x0e) << 2);
-                                break;
-                        }
-                        break;
-                    case F18A.MODE_BITMAP:
-                        charNo2 = this.ram[nameTableAddr2 + (x12 >> 3) + rowOffset2];
-                        bitShift2 = x12 & 7;
-                        bit2 = 0x80 >> bitShift2;
-                        var charSetOffset2 = (y & 0xC0) << 5;
-                        patternByte2 = this.ram[this.charPatternTable + (((charNo2 << 3) + charSetOffset2) & this.patternTableMask) + lineOffset2];
-                        var colorAddr2 = this.colorTable2 + (((charNo2 << 3) + charSetOffset2) & this.colorTableMask) + lineOffset2;
-                        var colorByte2 = this.ram[colorAddr2];
-                        tileColor2 = (patternByte2 & bit2) != 0 ? (colorByte2 & 0xF0) >> 4 : (colorByte2 & 0x0F);
-                        tilePaletteBaseIndex2 = this.tilePaletteSelect2;
-                        transparentColor02 = true;
-                        tilePriority2 = false;
-                        break;
-                    case F18A.MODE_TEXT:
-                    case F18A.MODE_TEXT_80:
-                        if (x >= borderWidth && x < this.width - borderWidth) {
-                            nameTableAddr2 += Math.floor(x12 / 6) + rowOffset2;
-                            charNo2 = this.ram[nameTableAddr2];
-                            bitShift2 = x12 % 6;
-                            lineOffset12 = lineOffset2;
-                            if (this.tileColorMode != F18A.COLOR_MODE_NORMAL) {
-                                tileAttributeByte2 = this.ram[this.colorTable2 + (this.ecmPositionAttributes ? nameTableAddr2 - nameTableCanonicalBase2 : charNo2)];
-                                tilePriority2 = (tileAttributeByte2 & 0x80) != 0;
-                                if ((tileAttributeByte2 & 0x40) != 0) {
-                                    // Flip X
-                                    bitShift2 = 5 - bitShift2;
-                                }
-                                if ((tileAttributeByte2 & 0x20) != 0) {
-                                    // Flip y
-                                    lineOffset12 = 7 - lineOffset12;
-                                }
-                                transparentColor02 = (tileAttributeByte2 & 0x10) != 0;
-                            }
-                            bit2 = 0x80 >> bitShift2;
-                            patternAddr2 = this.charPatternTable + (charNo2 << 3) + lineOffset12;
-                            patternByte2 = this.ram[patternAddr2];
-                            switch (this.tileColorMode) {
-                                case F18A.COLOR_MODE_NORMAL:
-                                    if (this.unlocked && this.ecmPositionAttributes) {
-                                        tileAttributeByte2 = this.ram[this.colorTable2 + nameTableAddr2 - nameTableCanonicalBase2];
-                                        tileColor2 = (patternByte2 & bit2) != 0 ? tileAttributeByte2 >> 4 : tileAttributeByte2 & 0xF;
+                            case F18A.MODE_TEXT:
+                            case F18A.MODE_TEXT_80:
+                                if (x >= borderWidth && x < this.drawWidth - borderWidth) {
+                                    nameTableAddr2 += Math.floor(x12 / 6) + rowOffset2;
+                                    charNo2 = this.ram[nameTableAddr2];
+                                    bitShift2 = x12 % 6;
+                                    lineOffset12 = lineOffset2;
+                                    if (this.tileColorMode != F18A.COLOR_MODE_NORMAL) {
+                                        tileAttributeByte2 = this.ram[this.colorTable2 + (this.ecmPositionAttributes ? nameTableAddr2 - nameTableCanonicalBase2 : charNo2)];
+                                        tilePriority2 = (tileAttributeByte2 & 0x80) != 0;
+                                        if ((tileAttributeByte2 & 0x40) != 0) {
+                                            // Flip X
+                                            bitShift2 = 5 - bitShift2;
+                                        }
+                                        if ((tileAttributeByte2 & 0x20) != 0) {
+                                            // Flip y
+                                            lineOffset12 = 7 - lineOffset12;
+                                        }
+                                        transparentColor02 = (tileAttributeByte2 & 0x10) != 0;
                                     }
-                                    else {
-                                        tileColor2 = (patternByte2 & bit2) != 0 ? this.fgColor : this.bgColor;
+                                    bit2 = 0x80 >> bitShift2;
+                                    patternAddr2 = this.charPatternTable + (charNo2 << 3) + lineOffset12;
+                                    patternByte2 = this.ram[patternAddr2];
+                                    switch (this.tileColorMode) {
+                                        case F18A.COLOR_MODE_NORMAL:
+                                            if (this.unlocked && this.ecmPositionAttributes) {
+                                                tileAttributeByte2 = this.ram[this.colorTable2 + nameTableAddr2 - nameTableCanonicalBase2];
+                                                tileColor2 = (patternByte2 & bit2) != 0 ? tileAttributeByte2 >> 4 : tileAttributeByte2 & 0xF;
+                                            }
+                                            else {
+                                                tileColor2 = (patternByte2 & bit2) != 0 ? this.fgColor : this.bgColor;
+                                            }
+                                            tilePaletteBaseIndex2 = this.tilePaletteSelect2;
+                                            transparentColor02 = true;
+                                            tilePriority2 = false;
+                                            break;
+                                        case F18A.COLOR_MODE_ECM_1:
+                                            tileColor2 = ((patternByte2 & bit2) >> (7 - bitShift2));
+                                            tilePaletteBaseIndex2 = (this.tilePaletteSelect2 & 0x20) | ((tileAttributeByte2 & 0x0f) << 1);
+                                            break;
+                                        case F18A.COLOR_MODE_ECM_2:
+                                            tileColor2 =
+                                                ((patternByte2 & bit2) >> (7 - bitShift2)) |
+                                                (((this.ram[patternAddr2 + this.tilePlaneOffset] & bit2) >> (7 - bitShift2)) << 1);
+                                            tilePaletteBaseIndex2 = ((tileAttributeByte2 & 0x0f) << 2);
+                                            break;
+                                        case F18A.COLOR_MODE_ECM_3:
+                                            tileColor2 =
+                                                ((patternByte2 & bit2) >> (7 - bitShift2)) |
+                                                (((this.ram[patternAddr2 + this.tilePlaneOffset] & bit2) >> (7 - bitShift2)) << 1) |
+                                                (((this.ram[patternAddr2 + (this.tilePlaneOffset << 1)] & bit2) >> (7 - bitShift2)) << 2);
+                                            tilePaletteBaseIndex2 = ((tileAttributeByte2 & 0x0e) << 2);
+                                            break;
                                     }
-                                    tilePaletteBaseIndex2 = this.tilePaletteSelect2;
+                                }
+                                else {
+                                    tileColor2 = 0;
                                     transparentColor02 = true;
                                     tilePriority2 = false;
-                                    break;
-                                case F18A.COLOR_MODE_ECM_1:
-                                    tileColor2 = ((patternByte2 & bit2) >> (7 - bitShift2));
-                                    tilePaletteBaseIndex2 = (this.tilePaletteSelect2 & 0x20) | ((tileAttributeByte2 & 0x0f) << 1);
-                                    break;
-                                case F18A.COLOR_MODE_ECM_2:
-                                    tileColor2 =
-                                        ((patternByte2 & bit2) >> (7 - bitShift2)) |
-                                        (((this.ram[patternAddr2 + this.tilePlaneOffset] & bit2) >> (7 - bitShift2)) << 1);
-                                    tilePaletteBaseIndex2 = ((tileAttributeByte2 & 0x0f) << 2);
-                                    break;
-                                case F18A.COLOR_MODE_ECM_3:
-                                    tileColor2 =
-                                        ((patternByte2 & bit2) >> (7 - bitShift2)) |
-                                        (((this.ram[patternAddr2 + this.tilePlaneOffset] & bit2) >> (7 - bitShift2)) << 1) |
-                                        (((this.ram[patternAddr2 + (this.tilePlaneOffset << 1)] & bit2) >> (7 - bitShift2)) << 2);
-                                    tilePaletteBaseIndex2 = ((tileAttributeByte2 & 0x0e) << 2);
-                                    break;
-                            }
+                                }
+                                break;
+                            case F18A.MODE_MULTICOLOR:
+                                charNo2 = this.ram[nameTableAddr2 + (x12 >> 3) + rowOffset2];
+                                colorByte2 = this.ram[this.charPatternTable + (charNo2 << 3) + ((y12 & 0x1c) >> 2)];
+                                tileColor2 = (x12 & 4) == 0 ? (colorByte2 & 0xf0) >> 4 : (colorByte2 & 0x0f);
+                                tilePaletteBaseIndex2 = this.tilePaletteSelect2;
+                                transparentColor02 = true;
+                                tilePriority2 = false;
+                                break;
                         }
-                        else {
-                            tileColor2 = 0;
-                            transparentColor02 = true;
-                            tilePriority2 = false;
+                        if ((tileColor2 > 0 || !transparentColor02) && (this.tileMap2AlwaysOnTop || tilePriority2 || spriteColor == null)) {
+                            color = tileColor2;
+                            paletteBaseIndex = tilePaletteBaseIndex2;
                         }
-                        break;
-                    case F18A.MODE_MULTICOLOR:
-                        charNo2 = this.ram[nameTableAddr2 + (x12 >> 3) + rowOffset2];
-                        colorByte2 = this.ram[this.charPatternTable + (charNo2 << 3) + ((y12 & 0x1c) >> 2)];
-                        tileColor2 = (x12 & 4) == 0 ? (colorByte2 & 0xf0) >> 4 : (colorByte2 & 0x0f);
-                        tilePaletteBaseIndex2 = this.tilePaletteSelect2;
-                        transparentColor02 = true;
-                        tilePriority2 = false;
-                        break;
+                    }
                 }
-                if ((tileColor2 > 0 || !transparentColor02) && (this.tileMap2AlwaysOnTop || tilePriority2 || spriteColor == null)) {
-                    color = tileColor2;
-                    paletteBaseIndex = tilePaletteBaseIndex2;
-                }
+                // Draw pixel
+                var rgbColor = this.palette[color + paletteBaseIndex];
+                imagedata[imagedataAddr++] = rgbColor[0];
+                imagedata[imagedataAddr++] = rgbColor[1];
+                imagedata[imagedataAddr++] = rgbColor[2];
+                imagedataAddr++;
             }
-            // Draw pixel
-            var rgbColor = this.palette[color + paletteBaseIndex];
-            this.imagedataData[this.imagedataAddr++] = rgbColor[0];
-            this.imagedataData[this.imagedataAddr++] = rgbColor[1];
-            this.imagedataData[this.imagedataAddr++] = rgbColor[2];
-            this.imagedataAddr++;
+        }
+        else {
+            // Empty scanline
+            rgbColor = this.palette[this.bgColor];
+            for (xc = 0; xc < this.canvasWidth; xc++) {
+                imagedata[imagedataAddr++] = rgbColor[0]; // R
+                imagedata[imagedataAddr++] = rgbColor[1]; // G
+                imagedata[imagedataAddr++] = rgbColor[2]; // B
+                imagedataAddr++; // Skip alpha
+            }
         }
         if (this.scanLines && (y & 1) != 0) {
             // Dim last scan line
-            imagedataAddr2 = this.imagedataAddr - (this.width << 2);
-            for (x = 0; x < this.width; x++) {
-                this.imagedataData[imagedataAddr2++] *= 0.75;
-                this.imagedataData[imagedataAddr2++] *= 0.75;
-                this.imagedataData[imagedataAddr2++] *= 0.75;
+            var imagedataAddr2 = imagedataAddr - (this.drawWidth << 2);
+            for (xc = 0; xc < this.canvasWidth; xc++) {
+                imagedata[imagedataAddr2++] *= 0.75;
+                imagedata[imagedataAddr2++] *= 0.75;
+                imagedata[imagedataAddr2++] *= 0.75;
                 imagedataAddr2++;
             }
+        }
+        this.imagedataAddr = imagedataAddr;
+    },
+
+    _duplicateScanline: function () {
+        var lineBytes = this.canvasWidth << 2;
+        var imagedataAddr2 = this.imagedataAddr - lineBytes;
+        for (var i = 0; i < lineBytes; i++) {
+            this.imagedataData[this.imagedataAddr++] = this.imagedataData[imagedataAddr2++];
         }
     },
 
@@ -1073,7 +1102,7 @@ F18A.prototype = {
                     }
                     else {
                         this.log.info("Write " + (this.addressRegister & 0x00FF).toHexByte() + " to F18A register " + reg + " (" + reg.toHexByte() + ") without unlocking.");
-                        this.writeRegister(reg & 0x07, this.addressRegister & 0x00FF);
+                        // this.writeRegister(reg & 0x07, this.addressRegister & 0x00FF); //  & 0x07 makes TurboForth 80 column not working
                     }
                     break;
             }
@@ -1132,7 +1161,6 @@ F18A.prototype = {
             case 7:
                 this.fgColor = (this.registers[7] & 0xf0) >> 4;
                 this.bgColor = this.registers[7] & 0x0f;
-                this.redrawBorder = true;
                 break;
             // Name table 2 base address
             case 10:
@@ -1514,7 +1542,7 @@ F18A.prototype = {
             case 0:
                 // Normal status
                 var i = this.statusRegister;
-                this.statusRegister = 0;
+                this.statusRegister = 0x1F;
                 this.cru.writeBit(2, true);
                 return i;
             case 1:
@@ -1581,9 +1609,6 @@ F18A.prototype = {
                 if ((now - this.lastTime) > 0.04) {
                     this.fakeScanline++;
                     this.lastTime = now;
-                }
-                else {
-                    console.log(now - this.lastTime);
                 }
             }
             else {
@@ -1657,8 +1682,8 @@ F18A.prototype = {
             x *= 2;
         }
         x -= this.leftBorder;
-        y -= this.topBorder / (this.screenMode == F18A.MODE_TEXT_80 ? 2 : 1);
-        if (x < this.width && y < this.height) {
+        y -= this.topBorder;
+        if (x < this.drawWidth && y < this.drawHeight) {
             switch (this.screenMode) {
                 case F18A.MODE_GRAPHICS:
                 case F18A.MODE_BITMAP:
@@ -1674,6 +1699,11 @@ F18A.prototype = {
 
     getTime: function () {
         return window.performance ? window.performance.now() : (new Date()).getTime();
-    }
+    },
 
+    setFlicker: function (value) {
+        this.enableFlicker = value;
+        this.maxScanlineSprites = F18A.MAX_SCANLINE_SPRITES_JUMPER && !this.enableFlicker ? 32 : 4;
+        this.log.info("Max scanline sprites: " + this.maxScanlineSprites);
+    }
 };

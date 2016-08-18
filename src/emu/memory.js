@@ -226,6 +226,9 @@ Memory.prototype = {
     },
 
     writeRAM: function (addr, w, cpu) {
+        //if (addr == 0xb6f4) {
+        //    this.log.info("Write RAM " + addr.toHexWord() + ": " + w.toHexWord() + " from PC=" + cpu.getPC().toHexWord());
+        //}
         cpu.addCycles(4);
         if (this.enableAMS) {
             this.ams.writeWord(addr, w);
@@ -245,6 +248,7 @@ Memory.prototype = {
         else if (this.peripheralROMEnabled) {
             var peripheralROM = this.peripheralROMs[this.peripheralROMNumber];
             if (peripheralROM != null) {
+                // this.log.info("Read peripheral ROM " + addr.toHexWord() + ": " + (peripheralROM[addr - 0x4000] << 8 | peripheralROM[addr + 1 - 0x4000]).toHexWord());
                 return peripheralROM[addr - 0x4000] << 8 | peripheralROM[addr + 1 - 0x4000];
             }
         }

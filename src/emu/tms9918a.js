@@ -183,6 +183,9 @@ TMS9918A.prototype = {
         this.updateCanvas();
     },
 
+    initFrame: function (timestamp) {
+    },
+
     drawScanline: function (y) {
         var imageData = this.imageData.data,
             width = this.width,
@@ -328,7 +331,7 @@ TMS9918A.prototype = {
                 imageDataAddr++; // Skip alpha
             }
         }
-        if (y == vBorder + drawHeight + 1) {
+        if (y == vBorder + drawHeight) {
             this.statusRegister |= 0x80;
             if (this.interruptsOn) {
                 this.cru.writeBit(2, false);
@@ -337,10 +340,12 @@ TMS9918A.prototype = {
         if (collision) {
             this.statusRegister |= 0x20;
         }
-        if (fifthSprite && (this.statusRegister & 0x40) == 0) {
+        if ((this.statusRegister & 0x40) == 0) {
+            this.statusRegister |= fifthSpriteIndex;
+        }
+        if (fifthSprite) {
             this.statusRegister |= 0x40;
         }
-        this.statusRegister |= fifthSpriteIndex;
     },
 
     updateCanvas: function () {

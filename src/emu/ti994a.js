@@ -48,7 +48,7 @@ TI994A.prototype = {
 
     setVDP: function (settings) {
         if (settings && settings.isF18AEnabled()) {
-            this.vdp = new F18A(this.canvas, this.cru, this.tms9919);
+            this.vdp = new F18A(this.canvas, this.cru, this.tms9919, settings.isFlickerEnabled());
         }
         else {
             this.vdp = new TMS9918A(this.canvas, this.cru, settings.isFlickerEnabled());
@@ -130,7 +130,8 @@ TI994A.prototype = {
 
     frame: function () {
         if (this.vdp.gpu) {
-            this.frameFullScreen();
+            // this.frameFullScreen();
+            this.frameScanline();
         }
         else {
             this.frameScanline();
@@ -163,16 +164,23 @@ TI994A.prototype = {
 
     frameScanline: function () {
         var cpuSpeed = this.cpuSpeed;
-        if (!this.tms9900.isSuspended()) {
-            this.tms9900.run(TI994A.FRAMES_PER_SCANLINE * cpuSpeed * 22);
-            if (this.tms9900.atBreakpoint() && this.onBreakpoint) {
-                this.onBreakpoint(this.tms9900);
-                return;
+        // F18A GPU
+        if (this.vdp.gpu && !this.vdp.gpu.isIdle()) {
+            this.vdp.gpu.run(F18AGPU.FRAME_CYCLES * cpuSpeed);
+            if (this.vdp.gpu.atBreakpoint()) {
+                if (this.onBreakpoint) {
+                    this.onBreakpoint(this.vdp.gpu);
+                }
             }
+            cpuSpeed *= 0.5; // Reduce CPU cycles when GPU is running
         }
+        // Draw screen
+        var startCycles = this.tms9900.cycles;
+        var extraCycles = 0;
+        this.vdp.initFrame(window.performance ? window.performance.now() : new Date().getTime());
         for (var y = 0; y < 240; y++) {
             if (!this.tms9900.isSuspended()) {
-                this.tms9900.run(TI994A.FRAMES_PER_SCANLINE * cpuSpeed);
+                extraCycles = this.tms9900.run((TI994A.FRAMES_PER_SCANLINE - extraCycles) * cpuSpeed);
                 if (this.tms9900.atBreakpoint() && this.onBreakpoint) {
                     this.onBreakpoint(this.tms9900);
                     return;
@@ -181,6 +189,14 @@ TI994A.prototype = {
             this.vdp.drawScanline(y);
         }
         this.vdp.updateCanvas();
+        // Blanking
+        if (!this.tms9900.isSuspended()) {
+            this.tms9900.run((TMS9900.FRAME_CYCLES - (this.tms9900.cycles - startCycles)) * cpuSpeed);
+            if (this.tms9900.atBreakpoint() && this.onBreakpoint) {
+                this.onBreakpoint(this.tms9900);
+                return;
+            }
+        }
         this.cru.decrementCounter(781);
         this.fpsFrameCount++;
         this.frameCount++;
@@ -194,7 +210,7 @@ TI994A.prototype = {
             this.tms9900.run(1);
         }
         if (this.vdp.gpu) {
-            this.drawFrame();
+            this.drawFrame(window.performance ? window.performance.now() : new Date().getTime());
         }
     },
 
@@ -203,6 +219,7 @@ TI994A.prototype = {
         clearInterval(this.frameInterval);
         clearInterval(this.fpsInterval);
         this.tms9919.mute();
+        // this.drawFrame();
         this.running = false;
     },
 
