@@ -14,6 +14,7 @@ function Settings(persistent) {
     this.enableF18A = false;
     this.enableFlicker = false;
     this.enablePCKeyboard = false;
+    this.enableMapArrowKeysToFctnSDEX = true;
     this.enableGoogleDrive = false;
     this.enableAMS = false;
     this.enablePixelated = false;
@@ -36,6 +37,9 @@ function Settings(persistent) {
         }
         if (this.storage.getItem("enablePCKeyboard") != null) {
             this.enablePCKeyboard = this.storage.getItem("enablePCKeyboard") == "true";
+        }
+        if (this.storage.getItem("enableMapArrowKeysToFctnSDEX") != null) {
+            this.enableMapArrowKeysToFctnSDEX = this.storage.getItem("enableMapArrowKeysToFctnSDEX") == "true";
         }
         if (this.storage.getItem("enableGoogleDrive") != null) {
             this.enableGoogleDrive = this.storage.getItem("enableGoogleDrive") == "true";
@@ -114,6 +118,17 @@ Settings.prototype =  {
         this.enablePCKeyboard = enabled;
         if (this.persistent && this.storage) {
             this.storage.setItem("enablePCKeyboard", enabled);
+        }
+    },
+
+    isMapArrowKeysToFctnSDEXEnabled: function () {
+        return this.enableMapArrowKeysToFctnSDEX;
+    },
+
+    setMapArrowKeysToFctnSDEXEnabled: function (enabled) {
+        this.enableMapArrowKeysToFctnSDEX = enabled;
+        if (this.persistent && this.storage) {
+            this.storage.setItem("enableMapArrowKeysToFctnSDEX", enabled);
         }
     },
 

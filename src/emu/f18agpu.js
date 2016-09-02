@@ -12,7 +12,8 @@
 
 'use strict';
 
-F18AGPU.FRAME_CYCLES = 500000;
+F18AGPU.FRAME_CYCLES = 1250000; // Speed is approximately 25 times that of the normal CPU
+F18AGPU.FRAMES_PER_SCANLINE = 4000;
 
 F18AGPU.PRELOAD = [
     "020F47FE100D4036405A409440B440FAFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFFF0CA0411C034004C1D0603F000971C0214006069010F7C0203F02C0603F04C0A0",
@@ -226,7 +227,6 @@ F18AGPU.prototype = {
     setPC: function (value) {
         this.PC = value;
         this.setIdle(false);
-        this.run(F18AGPU.FRAME_CYCLES);
     },
 
     inctPC: function () {

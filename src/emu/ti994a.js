@@ -16,7 +16,7 @@ function TI994A(canvas, diskImages, settings, onBreakpoint) {
     this.onBreakpoint = onBreakpoint;
 
     // Assemble the console
-    this.keyboard = new Keyboard(settings && settings.isPCKeyboardEnabled());
+    this.keyboard = new Keyboard(settings && settings.isPCKeyboardEnabled(), settings && settings.isMapArrowKeysToFctnSDEXEnabled());
     this.cru = new CRU(this.keyboard);
     this.tms9919 = new TMS9919();
     this.setVDP(settings);
@@ -164,21 +164,12 @@ TI994A.prototype = {
 
     frameScanline: function () {
         var cpuSpeed = this.cpuSpeed;
-        // F18A GPU
-        if (this.vdp.gpu && !this.vdp.gpu.isIdle()) {
-            this.vdp.gpu.run(F18AGPU.FRAME_CYCLES * cpuSpeed);
-            if (this.vdp.gpu.atBreakpoint()) {
-                if (this.onBreakpoint) {
-                    this.onBreakpoint(this.vdp.gpu);
-                }
-            }
-            cpuSpeed *= 0.5; // Reduce CPU cycles when GPU is running
-        }
         // Draw screen
         var startCycles = this.tms9900.cycles;
         var extraCycles = 0;
         this.vdp.initFrame(window.performance ? window.performance.now() : new Date().getTime());
         for (var y = 0; y < 240; y++) {
+            this.vdp.drawScanline(y);
             if (!this.tms9900.isSuspended()) {
                 extraCycles = this.tms9900.run((TI994A.FRAMES_PER_SCANLINE - extraCycles) * cpuSpeed);
                 if (this.tms9900.atBreakpoint() && this.onBreakpoint) {
@@ -186,7 +177,14 @@ TI994A.prototype = {
                     return;
                 }
             }
-            this.vdp.drawScanline(y);
+            // F18A GPU
+            if (this.vdp.gpu && !this.vdp.gpu.isIdle()) {
+                this.vdp.gpu.run(F18AGPU.FRAMES_PER_SCANLINE * cpuSpeed);
+                if (this.vdp.gpu.atBreakpoint() && this.onBreakpoint) {
+                    this.onBreakpoint(this.vdp.gpu);
+                    return;
+                }
+            }
         }
         this.vdp.updateCanvas();
         // Blanking
@@ -194,6 +192,14 @@ TI994A.prototype = {
             this.tms9900.run((TMS9900.FRAME_CYCLES - (this.tms9900.cycles - startCycles)) * cpuSpeed);
             if (this.tms9900.atBreakpoint() && this.onBreakpoint) {
                 this.onBreakpoint(this.tms9900);
+                return;
+            }
+        }
+        // F18A GPU
+        if (this.vdp.gpu && !this.vdp.gpu.isIdle()) {
+            this.vdp.gpu.run((F18AGPU.FRAME_CYCLES - (240 * F18AGPU.FRAMES_PER_SCANLINE)) * cpuSpeed);
+            if (this.vdp.gpu.atBreakpoint() && this.onBreakpoint) {
+                this.onBreakpoint(this.vdp.gpu);
                 return;
             }
         }
@@ -219,7 +225,7 @@ TI994A.prototype = {
         clearInterval(this.frameInterval);
         clearInterval(this.fpsInterval);
         this.tms9919.mute();
-        // this.drawFrame();
+        this.vdp.updateCanvas();
         this.running = false;
     },
 

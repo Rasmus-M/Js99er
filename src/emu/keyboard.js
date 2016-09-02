@@ -4,12 +4,13 @@
  * Created 2014 by Rasmus Moustgaard <rasmus.moustgaard@gmail.com>
 */
 
-function Keyboard(pcKeyboardEnabled) {
+function Keyboard(pcKeyboardEnabled, mapArrowKeysToFctnSDEX) {
     this.pcKeyboardEnabled = pcKeyboardEnabled;
+    this.mapArrowKeysToFctnSDEX = mapArrowKeysToFctnSDEX;
     this.columns = new Array(9);
-    this.joystickActive = 0;
+    this.joystickActive = 250;
     this.keyCode = 0;
-    this.keyMap = [];
+    this.keyMap = {};
     this.reset();
     this.log = Log.getLog();
 }
@@ -18,8 +19,6 @@ Keyboard.KEYPRESS_DURATION = 100;
 Keyboard.EMULATE_JOYSTICK_2 = false;
 
 Keyboard.prototype = {
-
-    // TODO: Fctn (Alt) + S,D,X,E does not work with PC keyboard enabled
 
     reset: function () {
 
@@ -78,6 +77,11 @@ Keyboard.prototype = {
 
     setPCKeyboardEnabled: function (enabled) {
         this.pcKeyboardEnabled = enabled;
+        this.reset();
+    },
+
+    setMapArrowKeysToFctnSDEXEnabled: function (enabled) {
+        this.mapArrowKeysToFctnSDEX = enabled;
         this.reset();
     },
 
@@ -249,7 +253,7 @@ Keyboard.prototype = {
             case 37:  // Left arrow -> J1 Left
                 this.columns[6][4] = down;
                 if (Keyboard.EMULATE_JOYSTICK_2) this.columns[7][4] = down;
-                if (this.joystickActive == 0) {
+                if (this.mapArrowKeysToFctnSDEX && this.joystickActive == 0) {
                     // Left arrow
                     this.columns[0][7] = down; // Fctn
                     this.columns[1][8] = down; // S
@@ -258,7 +262,7 @@ Keyboard.prototype = {
             case 39:  // Right arrow -> J1 Right
                 this.columns[6][5] = down;
                 if (Keyboard.EMULATE_JOYSTICK_2) this.columns[7][5] = down;
-                if (this.joystickActive == 0) {
+                if (this.mapArrowKeysToFctnSDEX && this.joystickActive == 0) {
                     // Right arrow
                     this.columns[0][7] = down; // Fctn
                     this.columns[2][8] = down; // D
@@ -267,7 +271,7 @@ Keyboard.prototype = {
             case 40:  // Down arrow -> J1 Down
                 this.columns[6][6] = down;
                 if (Keyboard.EMULATE_JOYSTICK_2) this.columns[7][6] = down;
-                if (this.joystickActive == 0) {
+                if (this.mapArrowKeysToFctnSDEX && this.joystickActive == 0) {
                     // Down arrow
                     this.columns[0][7] = down; // Fctn
                     this.columns[1][10] = down; // X
@@ -276,7 +280,7 @@ Keyboard.prototype = {
             case 38:  // Up arrow -> J1 Up
                 this.columns[6][7] = down;
                 if (Keyboard.EMULATE_JOYSTICK_2) this.columns[7][7] = down;
-                if (this.joystickActive == 0) {
+                if (this.mapArrowKeysToFctnSDEX && this.joystickActive == 0) {
                     // Up arrow
                     this.columns[0][7] = down; // Fctn
                     this.columns[2][9] = down; // E
@@ -323,6 +327,7 @@ Keyboard.prototype = {
         }
     },
 
+    // For PC keyboard
     keyPressEvent: function (evt) {
         var charCode;
         if (evt.which == null) {
@@ -633,6 +638,7 @@ Keyboard.prototype = {
         evt.preventDefault();
     },
 
+    // For PC keyboard
     keyPress: function (col, addr, shift, fctn) {
         this.columns[col][addr] = true;
         this.columns[0][7] = fctn;  // Fctn
@@ -643,8 +649,9 @@ Keyboard.prototype = {
         }
     },
 
+    // For PC keyboard
     keyEvent2: function (evt, down) {
-        // this.log.info("Keycode: " + evt.keyCode);
+        // console.log("Keycode2: " + evt.keyCode);
         this.keyCode = 0;
         switch (evt.keyCode) {
             case 32: // Space
@@ -669,7 +676,7 @@ Keyboard.prototype = {
             case 37:  // Left arrow -> J1 Left
                 this.columns[6][4] = down;
                 if (Keyboard.EMULATE_JOYSTICK_2) this.columns[7][4] = down;
-                if (this.joystickActive == 0) {
+                if (this.mapArrowKeysToFctnSDEX && this.joystickActive == 0) {
                     // Left arrow
                     this.columns[0][7] = down; // Fctn
                     this.columns[1][8] = down; // S
@@ -678,33 +685,74 @@ Keyboard.prototype = {
             case 39:  // Right arrow -> J1 Right
                 this.columns[6][5] = down;
                 if (Keyboard.EMULATE_JOYSTICK_2) this.columns[7][5] = down;
-                if (this.joystickActive == 0) {
+                if (this.mapArrowKeysToFctnSDEX && this.joystickActive == 0) {
                     // Right arrow
                     this.columns[0][7] = down; // Fctn
                     this.columns[2][8] = down; // D
                 }
                 break;
-            case 40:  // Down arrow -> J1 Down
-                this.columns[6][6] = down;
-                if (Keyboard.EMULATE_JOYSTICK_2) this.columns[7][6] = down;
-                if (this.joystickActive == 0) {
-                    // Down arrow
-                    this.columns[0][7] = down; // Fctn
-                    this.columns[1][10] = down; // X
-                }
-                break;
             case 38:  // Up arrow -> J1 Up
                 this.columns[6][7] = down;
                 if (Keyboard.EMULATE_JOYSTICK_2) this.columns[7][7] = down;
-                if (this.joystickActive == 0) {
+                if (this.mapArrowKeysToFctnSDEX && this.joystickActive == 0) {
                     // Up arrow
                     this.columns[0][7] = down; // Fctn
                     this.columns[2][9] = down; // E
                 }
                 break;
+            case 40:  // Down arrow -> J1 Down
+                this.columns[6][6] = down;
+                if (Keyboard.EMULATE_JOYSTICK_2) this.columns[7][6] = down;
+                if (this.mapArrowKeysToFctnSDEX && this.joystickActive == 0) {
+                    // Down arrow
+                    this.columns[0][7] = down; // Fctn
+                    this.columns[1][10] = down; // X
+                }
+                break;
+            // Alt+S/D/E/X does not produce a keypress event so we need to handle that here
+            case 83: // Fctn+S
+                if (this.columns[0][7]) {
+                    this.columns[1][8] = down;
+                }
+                else {
+                    this.doDefault(evt, down);
+                    return; // Browser should handle key event
+                }
+                break;
+            case 68: // Fctn+D
+                if (this.columns[0][7]) {
+                    this.columns[2][8] = down;
+                }
+                else {
+                    this.doDefault(evt, down);
+                    return; // Browser should handle key event
+                }
+                break;
+            case 69: // Fctn+E
+                if (this.columns[0][7]) {
+                    this.columns[2][9] = down;
+                }
+                else {
+                    this.doDefault(evt, down);
+                    return; // Browser should handle key event
+                }
+                break;
+            case 88: // Fctn+X
+                if (this.columns[0][7]) {
+                    this.columns[1][10] = down;
+                }
+                else {
+                    this.doDefault(evt, down);
+                    return; // Browser should handle key event
+                }
+                break;
             case 20:  // Caps lock -> Alpha lock
                 if (down) {
                     this.alphaLock = !this.alphaLock;
+                }
+                else {
+                    this.doDefault(evt, down);
+                    return; // Browser should handle key event
                 }
                 break;
             case 8: // Backspace
@@ -760,22 +808,7 @@ Keyboard.prototype = {
                 this.columns[0][3] = down; // =
                 break;
             default:
-                if (down) {
-                    this.keyCode = evt.keyCode;
-                }
-                else {
-                    var key = this.keyMap[evt.keyCode];
-                    if (key != null) {
-                        this.columns[key.col][key.addr] = false;
-                        if (key.shift) {
-                            this.columns[0][8] = false;
-                        }
-                        if (key.fctn) {
-                            this.columns[0][7] = false;
-                        }
-                    }
-                    this.keyCode = 0;
-                }
+                this.doDefault(evt, down);
                 return; // Browser should handle key event
         }
         // Allow Ctrl + Shift + I (Developer console), Ctrl + C (copy) or Ctrl + V (paste
@@ -785,10 +818,29 @@ Keyboard.prototype = {
         }
     },
 
+    doDefault: function (evt, down) {
+        if (down) {
+            this.keyCode = evt.keyCode;
+        }
+        else {
+            var key = this.keyMap[evt.keyCode];
+            if (key != null) {
+                this.columns[key.col][key.addr] = false;
+                if (key.shift) {
+                    this.columns[0][8] = false;
+                }
+                if (key.fctn) {
+                    this.columns[0][7] = false;
+                }
+            }
+            this.keyCode = 0;
+        }
+    },
+
     isKeyDown: function (col, addr) {
         // This is necessary in order for the Joystick in Donkey Kong to work
-        if ((col == 6 || col == 7)) {
-            this.joystickActive = 128;
+        if (col == 6 || col == 7) {
+            this.joystickActive = 250;
         }
         else if (this.joystickActive > 0) {
             this.joystickActive--;

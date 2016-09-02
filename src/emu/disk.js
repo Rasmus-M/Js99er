@@ -215,19 +215,19 @@ DiskDrive.execute = function (pc, diskDrives, memory) {
             }
             break;
         case DiskDrive.DSR_ROM_FORMAT_DISK_11:
-            Log.getLog().warn("Subprogram >11 not implemented.");
+            Log.getLog().warn("Subprogram >11: Format Disk not implemented.");
             break;
         case DiskDrive.DSR_ROM_FILE_PROTECTION_12:
-            Log.getLog().warn("Subprogram >12 not implemented.");
+            Log.getLog().warn("Subprogram >12: File Protection not implemented.");
             break;
         case DiskDrive.DSR_ROM_RENAME_FILE_13:
-            Log.getLog().warn("Subprogram >13 not implemented.");
+            Log.getLog().warn("Subprogram >13: Rename File not implemented.");
             break;
         case DiskDrive.DSR_ROM_FILE_INPUT_14:
-            Log.getLog().warn("Subprogram >14 not implemented.");
+            Log.getLog().warn("Subprogram >14: File Input not implemented.");
             break;
         case DiskDrive.DSR_ROM_FILE_OUTPUT_15:
-            Log.getLog().warn("Subprogram >15 not implemented.");
+            Log.getLog().warn("Subprogram >15: File Output not implemented.");
             break;
         case DiskDrive.DSR_ROM_FILES_16:
             DiskDrive.setFiles(memory.getPADByte(0x834C), memory);

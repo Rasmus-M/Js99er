@@ -44,9 +44,7 @@
 
         log = Log.getLog();
         log.info("Welcome to JS99'er");
-        log.info("Version 5.5.1, 18 August 2016");
-        log.info(" - Interleave CPU and VDP for both 9918A and F18A");
-        log.info(" - Fixed bug preventing Plato from running");
+        log.info("Version 5.6, 2 September 2016");
         log.info("");
         settings = new Settings(true);
         diskImages = {
@@ -395,6 +393,13 @@
         enablePCKeyboard.on('switchChange.bootstrapSwitch', function (event, state) {
             settings.setPCKeyboardEnabled(state);
             ti994a.keyboard.setPCKeyboardEnabled(state);
+        });
+
+        var enableMapArrowKeysToFctnSDEX = $("#enableMapArrowKeysToFctnSDEX");
+        enableMapArrowKeysToFctnSDEX.bootstrapSwitch("state", settings.isMapArrowKeysToFctnSDEXEnabled);
+        enableMapArrowKeysToFctnSDEX.on('switchChange.bootstrapSwitch', function (event, state) {
+            settings.setMapArrowKeysToFctnSDEXEnabled(state);
+            ti994a.keyboard.setMapArrowKeysToFctnSDEXEnabled(state);
         });
 
         var enableGoogleDrive = $("#enableGoogleDrive");

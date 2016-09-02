@@ -9,7 +9,7 @@
 
 'use strict';
 
-F18A.VERSION = 0x17;
+F18A.VERSION = 0x18;
 
 F18A.MAX_SCANLINE_SPRITES_JUMPER = true;
 F18A.SCANLINES_JUMPER = false;
@@ -210,6 +210,13 @@ function F18A(canvas, cru, tms9919, enableFlicker) {
     this.log = Log.getLog();
     this.log.info("F18A emulation enabled");
 
+    this.splashImage = null;
+    var imageObj = new Image();
+    imageObj.onload = function() {
+        this.splashImage = imageObj;
+    }.bind(this);
+    imageObj.src = '../images/f18a_bitmap_v1.8.png';
+
     this.reset();
 }
 
@@ -311,7 +318,6 @@ F18A.prototype = {
         this.counterSnap = 0;
         this.resetRegs();
 
-        this.sprites = [];
         this.collision = false;
         this.fifthSprite = false;
         this.fifthSpriteIndex = 0x1F;
@@ -396,7 +402,7 @@ F18A.prototype = {
                     }
                     if (this.gpuHsyncTrigger) {
                         this.currentScanline = y;
-                        this.runGPU(this.gpu.getPC(), true);
+                        this.runGPU(this.gpu.getPC());
                     }
                 }
                 this.updateCanvas();
@@ -420,7 +426,7 @@ F18A.prototype = {
         }
         if (this.gpuVsyncTrigger) {
             this.currentScanline = y;
-            this.runGPU(this.gpu.getPC(), true);
+            this.runGPU(this.gpu.getPC());
         }
         this.frameCounter++;
     },
@@ -446,7 +452,7 @@ F18A.prototype = {
             this._duplicateScanline();
         }
         if (this.gpuHsyncTrigger) {
-            this.runGPU(this.gpu.getPC(), true);
+            this.gpu.setIdle(false);
         }
         if (y == this.topBorder + this.drawHeight - (this.row30Enabled ? 1 : 0)) {
             this.statusRegister |= 0x80;
@@ -454,8 +460,9 @@ F18A.prototype = {
                 this.cru.writeBit(2, false);
             }
             if (this.gpuVsyncTrigger) {
-                this.runGPU(this.gpu.getPC(), true);
+                this.gpu.setIdle(false);
             }
+            this.frameCounter++;
         }
         if (this.collision) {
             this.statusRegister |= 0x20;
@@ -470,6 +477,9 @@ F18A.prototype = {
 
     updateCanvas: function () {
         this.canvasContext.putImageData(this.imagedata, 0, 0);
+        if (this.splashImage && this.frameCounter < 300) {
+            this.canvasContext.drawImage(this.splashImage, 0, 0);
+        }
     },
 
     _drawScanline: function (y) {
@@ -1054,7 +1064,7 @@ F18A.prototype = {
         }
         if (this.scanLines && (y & 1) != 0) {
             // Dim last scan line
-            var imagedataAddr2 = imagedataAddr - (this.drawWidth << 2);
+            var imagedataAddr2 = imagedataAddr - (this.canvasWidth << 2);
             for (xc = 0; xc < this.canvasWidth; xc++) {
                 imagedata[imagedataAddr2++] *= 0.75;
                 imagedata[imagedataAddr2++] *= 0.75;
@@ -1102,7 +1112,12 @@ F18A.prototype = {
                     }
                     else {
                         this.log.info("Write " + (this.addressRegister & 0x00FF).toHexByte() + " to F18A register " + reg + " (" + reg.toHexByte() + ") without unlocking.");
-                        // this.writeRegister(reg & 0x07, this.addressRegister & 0x00FF); //  & 0x07 makes TurboForth 80 column not working
+                        if ((this.registers[0] & 0x04) == 0) {  // 1.8 firmware: writes to registers > 7 are masked if 80 columns mode is not enabled
+                            this.writeRegister(reg & 0x07, this.addressRegister & 0x00FF);
+                        }
+                        else {
+                            this.log.info("Register write ignored.");
+                        }
                     }
                     break;
             }
@@ -1370,14 +1385,12 @@ F18A.prototype = {
                 if (this.gpuAddressLatch) {
                     this.gpuAddressLatch = false;
                     this.gpu.intReset();
-                    this.runGPU(this.registers[54] << 8 | this.registers[55]);
+                    this.gpu.setPC(this.registers[54] << 8 | this.registers[55]);
                 }
                 break;
             case 56:
                 if ((this.registers[56] & 1) != 0) {
-                    if (this.gpu.isIdle()) {
-                        this.runGPU(this.gpu.getPC());
-                    }
+                    this.gpu.setIdle(false);
                 }
                 else {
                     this.gpu.setIdle(true);
@@ -1420,7 +1433,7 @@ F18A.prototype = {
         return this.registers[reg];
     },
 
-    runGPU: function (gpuAddress, internal) {
+    runGPU: function (gpuAddress) {
         this.log.debug("F18A GPU triggered at " + gpuAddress.toHexWord());
         this.gpu.setPC(gpuAddress); // Set the PC, which also triggers the GPU
         if (this.gpu.atBreakpoint()) {
@@ -1455,7 +1468,7 @@ F18A.prototype = {
                     break;
                 case 2:
                     // Text mode
-                    if ((reg0 & 0x4) == 0) {
+                    if ((reg0 & 0x04) == 0) {
                         this.screenMode = F18A.MODE_TEXT;
                         this.log.info("Text mode selected");
                     }

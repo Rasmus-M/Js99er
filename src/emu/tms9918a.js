@@ -3,14 +3,8 @@
  *
  * Created 2014 by Rasmus Moustgaard <rasmus.moustgaard@gmail.com>
  *
- * This file is based on code borrowed from JSMSX - MSX Emulator in Javascript
- * Copyright (c) 2006 Marcus Granado <mrc.gran(@)gmail.com>
- *
  * TMS9918A VDP emulation.
  *
- * Not implemented:
- * - Bitmap-text mode
- * - Bitmap-multicolor mode
  */
 
 'use strict';
@@ -19,6 +13,9 @@ TMS9918A.MODE_GRAPHICS = 0;
 TMS9918A.MODE_TEXT = 1;
 TMS9918A.MODE_BITMAP = 2;
 TMS9918A.MODE_MULTICOLOR = 3;
+TMS9918A.MODE_BITMAP_TEXT = 4;
+TMS9918A.MODE_BITMAP_MULTICOLOR = 5;
+TMS9918A.MODE_ILLEGAL = 6;
 
 /**
  * @constructor
@@ -28,10 +25,9 @@ function TMS9918A(canvas, cru, enableFlicker) {
     this.canvas = canvas;
     this.cru = cru;
     this.enableflicker = enableFlicker;
-    this.scanlineRenderer = true;
 
     this.ram = new Uint8Array(16384); // VDP RAM
-    this.registers = new Array(8);
+    this.registers = new Uint8Array(8);
     this.addressRegister = null;
     this.statusRegister = null;
 
@@ -60,6 +56,8 @@ function TMS9918A(canvas, cru, enableFlicker) {
     this.displayOn = null;
     this.interruptsOn = null;
     this.screenMode = null;
+    this.bitmapMode = null;
+    this.textMode = null;
     this.colorTable = null;
     this.nameTable = null;
     this.charPatternTable = null;
@@ -76,7 +74,6 @@ function TMS9918A(canvas, cru, enableFlicker) {
     this.fifthSprite = null;
     this.fifthSpriteIndex = null;
     this.redrawRequired = null;
-    this.redrawBorder = null;
 
     this.canvasContext = this.canvas.getContext("2d");
     this.imageData = null;
@@ -105,7 +102,9 @@ TMS9918A.prototype = {
 
         this.displayOn = false;
         this.interruptsOn = false;
-        this.screenMode = 0;
+        this.screenMode = TMS9918A.MODE_GRAPHICS;
+        this.bitmapMode = false;
+        this.textMode = false;
         this.colorTable = 0;
         this.nameTable = 0;
         this.charPatternTable = 0;
@@ -122,7 +121,6 @@ TMS9918A.prototype = {
         this.fifthSprite = false;
         this.fifthSpriteIndex = 0x1F;
         this.redrawRequired = true;
-        this.redrawBorder = false;
 
         this.canvas.width = 304;
         this.canvas.height = 240;
@@ -130,14 +128,9 @@ TMS9918A.prototype = {
         this.canvasContext.fillRect(0, 0, this.canvas.width, this.canvas.height);
 
         // Build the array containing the canvas bitmap (256 * 192 * 4 bytes (r,g,b,a) format each pixel)
-        if (this.scanlineRenderer) {
-            this.imageData = this.canvasContext.getImageData(0, 0, this.canvas.width, this.canvas.height);
-            this.width = this.canvas.width;
-            this.height = this.canvas.height;
-        }
-        else {
-            this.imageData = this.canvasContext.getImageData(24, 24, 256, 192);
-        }
+        this.imageData = this.canvasContext.getImageData(0, 0, this.canvas.width, this.canvas.height);
+        this.width = this.canvas.width;
+        this.height = this.canvas.height;
     },
 
     drawFrame: function (timestamp) {
@@ -145,28 +138,10 @@ TMS9918A.prototype = {
         this.fifthSprite = false;
         this.fifthSpriteIndex = 0x1F;
         if (this.redrawRequired) {
-            if (this.scanlineRenderer) {
-                for (var y = 0; y < this.height; y++) {
-                    this.drawScanline(y);
-                }
-                this.updateCanvas();
+            for (var y = 0; y < this.height; y++) {
+                this.drawScanline(y);
             }
-            else {
-                if (this.displayOn) {
-                    if (this.redrawBorder) {
-                        this.fillCanvas();
-                        this.redrawBorder = false;
-                    }
-                    this.drawTiles();
-                    if (this.screenMode != TMS9918A.MODE_TEXT) {
-                        this.drawSprites();
-                    }
-                    this.canvasContext.putImageData(this.imageData, 24, 24);
-                }
-                else {
-                    this.fillCanvas();
-                }
-            }
+            this.updateCanvas();
             this.redrawRequired = false;
         }
         this.statusRegister = 0x80;
@@ -191,7 +166,9 @@ TMS9918A.prototype = {
             width = this.width,
             imageDataAddr = (y * width) << 2,
             screenMode = this.screenMode,
-            drawWidth = screenMode != TMS9918A.MODE_TEXT ? 256 : 240,
+            textMode = this.textMode,
+            bitmapMode = this.bitmapMode,
+            drawWidth = !textMode ? 256 : 240,
             drawHeight = 192,
             hBorder = (width - drawWidth) >> 1,
             vBorder = (this.height - drawHeight) >> 1,
@@ -211,11 +188,11 @@ TMS9918A.prototype = {
             maxSpritesOnLine = this.flicker ? 4 : 32,
             palette = this.palette,
             collision = false, fifthSprite = false, fifthSpriteIndex = 31,
-            x, color, rgbColor, name, colorByte, patternByte;
+            x, color, rgbColor, name, tableOffset, colorByte, patternByte;
         if (y >= vBorder && y < vBorder + drawHeight && this.displayOn) {
             var y1 = y - vBorder;
             // Pre-process sprites
-            if (screenMode != TMS9918A.MODE_TEXT) {
+            if (!textMode) {
                 var spriteBuffer = new Uint8Array(drawWidth);
                 var spritesOnLine = 0;
                 var endMarkerFound = false;
@@ -228,7 +205,24 @@ TMS9918A.prototype = {
                             sy -= 256;
                         }
                         sy++;
-                        if (y1 >= sy && y1 < sy + spriteDimension) {
+                        var sy1 = sy + spriteDimension;
+                        var y2 = -1;
+                        if (s < 8 || !bitmapMode) {
+                            if (y1 >= sy && y1 < sy1) {
+                                y2 = y1;
+                            }
+                        }
+                        else {
+                            // Emulate sprite duplication bug
+                            var yMasked = y1 & (((this.registers[4] & 0x03) << 6) | 0x3F);
+                            if (yMasked >= sy && yMasked < sy1) {
+                                y2 = yMasked;
+                            }
+                            else if (y1 >= 64 && y1 < 128 && y1 >= sy && y1 < sy1) {
+                                y2 = y1;
+                            }
+                        }
+                        if (y2 != -1) {
                             if (spritesOnLine < maxSpritesOnLine) {
                                 var sx = ram[spriteAttributeAddr + 1];
                                 var sPatternNo = ram[spriteAttributeAddr + 2] & (spriteSize ? 0xFC : 0xFF);
@@ -236,7 +230,7 @@ TMS9918A.prototype = {
                                 if ((ram[spriteAttributeAddr + 3] & 0x80) != 0) {
                                     sx -= 32;
                                 }
-                                var sLine = (y1 - sy) >> spriteMagnify;
+                                var sLine = (y2 - sy) >> spriteMagnify;
                                 var sPatternBase = spritePatternTable + (sPatternNo << 3) + sLine;
                                 for (var sx1 = 0; sx1 < spriteDimension; sx1++) {
                                     var sx2 = sx + sx1;
@@ -268,7 +262,7 @@ TMS9918A.prototype = {
                 }
             }
             // Draw
-            var rowOffset = screenMode != TMS9918A.MODE_TEXT  ? (y1 >> 3) << 5 : (y1 >> 3) * 40;
+            var rowOffset = !textMode ? (y1 >> 3) << 5 : (y1 >> 3) * 40;
             var lineOffset = y1 & 7;
             for (x = 0; x < width; x++) {
                 if (x >= hBorder && x < hBorder + drawWidth) {
@@ -283,7 +277,7 @@ TMS9918A.prototype = {
                             break;
                         case TMS9918A.MODE_BITMAP:
                             name = ram[nameTable + rowOffset + (x1 >> 3)];
-                            var tableOffset = ((rowOffset & 0x300) << 3) + (name << 3);
+                            tableOffset = ((y1 & 0xC0) << 5) + (name << 3);
                             colorByte = ram[colorTable + (tableOffset & colorTableMask) + lineOffset];
                             patternByte = ram[charPatternTable + (tableOffset & patternTableMask) + lineOffset];
                             color = (patternByte & (0x80 >> (x1 & 7))) != 0 ? (colorByte & 0xF0) >> 4 : colorByte & 0x0F;
@@ -299,12 +293,28 @@ TMS9918A.prototype = {
                             patternByte = ram[charPatternTable + (name << 3) + lineOffset];
                             color = (patternByte & (0x80 >> (x1 % 6))) != 0 ? fgColor : bgColor;
                             break;
+                        case TMS9918A.MODE_BITMAP_TEXT:
+                            name = ram[nameTable + rowOffset + Math.floor(x1 / 6)];
+                            tableOffset = ((y1 & 0xC0) << 5) + (name << 3);
+                            patternByte = ram[charPatternTable + (tableOffset & patternTableMask) + lineOffset];
+                            color = (patternByte & (0x80 >> (x1 % 6))) != 0 ? fgColor : bgColor;
+                            break;
+                        case TMS9918A.MODE_BITMAP_MULTICOLOR:
+                            name = ram[nameTable + rowOffset + (x1 >> 3)];
+                            lineOffset = (y1 & 0x1C) >> 2;
+                            tableOffset = ((y1 & 0xC0) << 5) + (name << 3);
+                            patternByte = ram[charPatternTable + (tableOffset & patternTableMask) + lineOffset];
+                            color = (x1 & 4) == 0 ? (patternByte & 0xF0) >> 4 : patternByte & 0x0F;
+                            break;
+                        case TMS9918A.MODE_ILLEGAL:
+                            color = (x1 & 4) == 0 ? fgColor : bgColor;
+                            break;
                     }
                     if (color == 0) {
                         color = bgColor;
                     }
                     // Sprites
-                    if (screenMode != TMS9918A.MODE_TEXT) {
+                    if (!textMode) {
                         var spriteColor = spriteBuffer[x1] - 1;
                         if (spriteColor > 0) {
                             color = spriteColor;
@@ -323,8 +333,8 @@ TMS9918A.prototype = {
         }
         // Top/bottom border
         else {
-            rgbColor = this.palette[bgColor];
-            for (x = 0; x < this.width; x++) {
+            rgbColor = palette[bgColor];
+            for (x = 0; x < width; x++) {
                 imageData[imageDataAddr++] = rgbColor[0]; // R
                 imageData[imageDataAddr++] = rgbColor[1]; // G
                 imageData[imageDataAddr++] = rgbColor[2]; // B
@@ -350,236 +360,6 @@ TMS9918A.prototype = {
 
     updateCanvas: function () {
         this.canvasContext.putImageData(this.imageData, 0, 0);
-    },
-
-    fillCanvas: function () {
-        this.canvasContext.fillStyle = 'rgb(' + this.palette[this.bgColor].join(',') + ')';
-        this.canvasContext.fillRect(0, 0, this.canvas.width, this.canvas.height);
-    },
-
-    drawTiles: function () {
-        var imageData = this.imageData.data;
-        var ram = this.ram;
-        var ramMask = this.ramMask;
-        var screenMode = this.screenMode;
-        if (screenMode != TMS9918A.MODE_MULTICOLOR) {
-            // Text, graphics and bitmap modes
-            var screenColumns = screenMode == TMS9918A.MODE_TEXT ? 40 : 32;
-            var charPixelWidth = screenMode == TMS9918A.MODE_TEXT ? 6 : 8;
-            var nameTableLength = screenMode == TMS9918A.MODE_TEXT ? 960 : 768;
-            var hMargin = screenMode == TMS9918A.MODE_TEXT ? 8 : 0;
-            var ch, row, charNo, imageDataAddr, color;
-            for (ch = 0; ch < nameTableLength; ch++) {
-                row = Math.floor(ch / screenColumns);
-                imageDataAddr = (hMargin + (ch % screenColumns) * charPixelWidth + (row << 11)) << 2;
-                var charSetOffset = screenMode == TMS9918A.MODE_BITMAP ? ((ch >> 8) << 11) : 0;
-                charNo = ram[(this.nameTable + ch) & this.ramMask];
-                var patternAddr = this.charPatternTable + ((charSetOffset + (charNo << 3)) & this.patternTableMask);
-                var colorAddr = screenMode == TMS9918A.MODE_BITMAP ? this.colorTable + ((charSetOffset + (charNo << 3)) & this.colorTableMask) : this.colorTable + (charNo >> 3);
-                for (var charRow = 0; charRow < 8; charRow++) {
-                    var charByte = ram[(patternAddr + charRow) & ramMask];
-                    for (var pix = 0; pix < charPixelWidth; pix++) {
-                        color = 0;
-                        if (((charByte & (0x80 >> pix)) != 0)) {
-                            // Pixel set
-                            switch (screenMode) {
-                                case TMS9918A.MODE_TEXT:
-                                    color = this.fgColor;
-                                    break;
-                                case TMS9918A.MODE_GRAPHICS:
-                                    color = (ram[colorAddr & ramMask] & 0xf0) >>> 4;
-                                    break;
-                                case TMS9918A.MODE_BITMAP:
-                                    color = ((ram[(colorAddr + charRow) & ramMask] & 0xf0) >>> 4);
-                                    break;
-                            }
-                        } else {
-                            // Pixel not set
-                            switch (screenMode) {
-                                case TMS9918A.MODE_TEXT:
-                                    color = this.bgColor;
-                                    break;
-                                case TMS9918A.MODE_GRAPHICS:
-                                    color = ram[colorAddr & ramMask] & 0xf;
-                                    break;
-                                case TMS9918A.MODE_BITMAP:
-                                    color = ram[(colorAddr + charRow) & ramMask] & 0xf;
-                                    break;
-                            }
-                        }
-                        if (color == 0) {
-                            color = this.bgColor;
-                        }
-                        var rgbColor = this.palette[color];
-                        imageData[imageDataAddr++] = rgbColor[0]; // R
-                        imageData[imageDataAddr++] = rgbColor[1]; // G
-                        imageData[imageDataAddr++] = rgbColor[2]; // B
-                        imageDataAddr++; // Skip alpha
-                    }
-                    imageDataAddr += (256 - charPixelWidth) << 2;
-                }
-            }
-            if (screenMode == TMS9918A.MODE_TEXT) {
-                imageDataAddr = 0;
-                var rgbBGColor = this.palette[this.bgColor];
-                for (var y = 0; y < 192; y++) {
-                    for (var x1 = 0; x1 < 8; x1++) {
-                        imageData[imageDataAddr++] = rgbBGColor[0]; //R
-                        imageData[imageDataAddr++] = rgbBGColor[1]; //G
-                        imageData[imageDataAddr++] = rgbBGColor[2]; //B
-                        imageDataAddr++;
-                    }
-                    imageDataAddr += 30 * 8 * 4;
-                    for (var x2 = 0; x2 < 8; x2++) {
-                        imageData[imageDataAddr++] = rgbBGColor[0]; //R
-                        imageData[imageDataAddr++] = rgbBGColor[1]; //G
-                        imageData[imageDataAddr++] = rgbBGColor[2]; //B
-                        imageDataAddr++;
-                    }
-                }
-            }
-        }
-        else {
-            // Multicolor mode
-            imageDataAddr = 0;
-            for (ch = 0; ch < 768; ch++) {
-                charNo = ram[this.nameTable + ch];
-                var patternOffset = charNo * 8;
-                var patternByteOffset = ((ch >> 5) & 0x03) << 1;
-                var topByte = ram[this.charPatternTable + patternOffset + patternByteOffset];
-                color = (topByte & 0xF0) >> 4;
-                this.drawMulticolorPixel(imageDataAddr, this.palette[color == 0 ? this.bgColor : color]);
-                color = topByte & 0x0F;
-                this.drawMulticolorPixel(imageDataAddr + 16, this.palette[color == 0 ? this.bgColor : color]);
-                var bottomByte = ram[this.charPatternTable + patternOffset + patternByteOffset + 1];
-                color = (bottomByte & 0xF0) >> 4;
-                this.drawMulticolorPixel(imageDataAddr + 4 * 256 * 4, this.palette[color == 0 ? this.bgColor : color]);
-                color = bottomByte & 0x0F;
-                this.drawMulticolorPixel(imageDataAddr + 4 * 256 * 4 + 16, this.palette[color == 0 ? this.bgColor : color]);
-                imageDataAddr += 8 * 4;
-                if ((ch % 32) == 31) {
-                    imageDataAddr += 7 * 256 * 4;
-                }
-            }
-        }
-    },
-
-    drawMulticolorPixel: function (imageDataAddr, rgbColor) {
-        var imageData = this.imageData.data;
-        for (var y = 0; y < 4; y++) {
-            for (var x = 0; x < 4; x++) {
-                imageData[imageDataAddr++] = rgbColor[0]; //R
-                imageData[imageDataAddr++] = rgbColor[1]; //G
-                imageData[imageDataAddr++] = rgbColor[2]; //B
-                imageDataAddr++;
-            }
-            imageDataAddr += (256 - 4) * 4;
-        }
-    },
-
-    drawSprites: function () {
-        var ram = this.ram;
-        var size = (this.registers[1] & 0x2) != 0 ? 4 : 1;
-        var magnify = (this.registers[1] & 0x1) != 0 ? 2 : 1;
-        var collisionTable = new Uint8Array(256 * 192);
-        var spriteLineCounters = new Uint8Array(192);
-        var spriteLineChecks = new Uint8Array(192 * 32);
-        var addr = this.spriteAttributeTable;
-        var endMarkerFound = false;
-        for (var spriteIndex = 0; spriteIndex < 32 && !endMarkerFound; spriteIndex++) {
-            var y0 = ram[addr];
-            if (y0 != 0xD0) {
-                if (y0 < 0xBF || y0 > 0xD0) {
-                    if (y0 > 0xD0) {
-                        y0 = y0 - 256;
-                    }
-                    y0++;
-                    var x0 = ram[addr + 1];
-                    var pattern = ram[addr + 2];
-                    var earlyClockOffset = (ram[addr + 3] & 0x80) != 0 ? -32 : 0;
-                    var color = ram[addr + 3] & 0xf;
-                    for (var quarter = 0; quarter < size; quarter++) {
-                        var patBaseAddr = this.spritePatternTable + ((pattern & (size == 4 ? 0xFC : 0xFF)) << 3) + (quarter << 3);
-                        var x1 = x0 + earlyClockOffset + (quarter == 2 || quarter == 3 ? (magnify << 3) : 0);
-                        var y1 = y0 + (quarter == 1 || quarter == 3 ? (magnify << 3) : 0);
-                        var imageDataAddr = (x1 + (y1 << 8)) << 2;
-                        var y = y1;
-                        for (var row = 0; row < 8; row++) {
-                            if (y >= 0 && y < 192) {
-                                if (!this.flicker || spriteLineCounters[y] < 4) {
-                                    var x = x1;
-                                    for (var pix = 0; pix < 8; pix++) {
-                                        if ((ram[patBaseAddr + row] & (0x80 >> pix)) != 0) { // If pattern pixel is set
-                                            this.drawSpritePixel(x, y, color, imageDataAddr, collisionTable);
-                                            if (magnify == 2) {
-                                                this.drawSpritePixel(x + 1, y, color, imageDataAddr + 4, collisionTable);
-                                                this.drawSpritePixel(x, y + 1, color, imageDataAddr + 1024, collisionTable);
-                                                this.drawSpritePixel(x + 1, y + 1, color, imageDataAddr + 4 + 1024, collisionTable);
-                                            }
-                                        }
-                                        x += magnify;
-                                        imageDataAddr += (magnify << 2);
-                                    }
-                                }
-                                else {
-                                    imageDataAddr += (magnify << 5);
-                                }
-                                if (size == 1 || quarter >= 2) {
-                                    spriteLineCounters[y]++;
-                                    spriteLineChecks[(y << 5) + spriteIndex] = 1;
-                                    if (magnify == 2) {
-                                        spriteLineCounters[y + 1]++;
-                                        spriteLineChecks[((y + 1) << 5) + spriteIndex] = 1;
-                                    }
-                                }
-                            }
-                            else {
-                                imageDataAddr += (magnify << 5);
-                            }
-                            y += magnify;
-                            imageDataAddr += (256 - 8) * (magnify << 2);
-                        }
-                    }
-                }
-                addr += 4;
-            }
-            else {
-                endMarkerFound = true;
-            }
-        }
-        // Look for fifth sprite on a line
-        for (y = 0; y < 192 && !this.fifthSprite; y++) {
-            if (spriteLineCounters[y] > 4) {
-                var n = 0;
-                for (spriteIndex = 0; spriteIndex < 32 && !this.fifthSprite; spriteIndex++) {
-                    if (spriteLineChecks[(y << 5) + spriteIndex] == 1) {
-                        n++;
-                        if (n == 5) {
-                            this.fifthSprite = true;
-                            this.fifthSpriteIndex = spriteIndex;
-                        }
-                    }
-                }
-            }
-        }
-    },
-
-    drawSpritePixel: function (x, y, color, imageDataAddr, collisionTable) {
-        if (color != 0 && x >= 0 && x < 256 && y >= 0 && y < 192) {
-            var collisionTableAddr = x + (y << 8);
-            var collisionData = collisionTable[collisionTableAddr];
-            if (collisionData == 0) {
-                var imageData = this.imageData.data;
-                var rgbColor = this.palette[color];
-                imageData[imageDataAddr] = rgbColor[0];     // R
-                imageData[imageDataAddr + 1] = rgbColor[1]; // G
-                imageData[imageDataAddr + 2] = rgbColor[2]; // B
-                collisionTable[collisionTableAddr] = 1;
-            }
-            else {
-                this.collision = true;
-            }
-        }
     },
 
     writeAddress: function (i) {
@@ -619,7 +399,7 @@ TMS9918A.prototype = {
                             break;
                         // Color table
                         case 3:
-                            if (this.screenMode == TMS9918A.MODE_BITMAP) {
+                            if (this.bitmapMode) {
                                 this.colorTable = (this.registers[3] & 0x80) << 6;
                             }
                             else {
@@ -629,7 +409,7 @@ TMS9918A.prototype = {
                             break;
                         // Pattern table
                         case 4:
-                            if (this.screenMode == TMS9918A.MODE_BITMAP) {
+                            if (this.bitmapMode) {
                                 this.charPatternTable = (this.registers[4] & 0x4) << 11;
                             }
                             else {
@@ -649,8 +429,6 @@ TMS9918A.prototype = {
                         case 7:
                             this.fgColor = (this.registers[7] & 0xf0) >> 4;
                             this.bgColor = this.registers[7] & 0x0f;
-                            // this.log.info("BG=" + this.bgColor.toHexByte() + ", FG=" + this.fgColor.toHexByte());
-                            this.redrawBorder = true;
                             break;
                     }
                     // this.logRegisters();
@@ -664,10 +442,28 @@ TMS9918A.prototype = {
     },
 
     updateMode: function (reg0, reg1) {
+        this.bitmapMode = (reg0 & 0x02) != 0;
+        this.textMode = (reg1 & 0x10) != 0;
         // Check bitmap mode bit, not text or multicolor
-        if ((reg0 & 0x2) != 0 && (reg1 & 0x18) == 0) {
-            // Bitmap mode
-            this.screenMode = TMS9918A.MODE_BITMAP;
+        if (this.bitmapMode) {
+            switch ((reg1 & 0x18) >> 3) {
+                case 0:
+                    // Bitmap mode
+                    this.screenMode = TMS9918A.MODE_BITMAP;
+                    break;
+                case 1:
+                    // Multicolor mode
+                    this.screenMode = TMS9918A.MODE_BITMAP_MULTICOLOR;
+                    break;
+                case 2:
+                    // Text mode
+                    this.screenMode = TMS9918A.MODE_BITMAP_TEXT;
+                    break;
+                case 3:
+                    // Illegal
+                    this.screenMode = TMS9918A.MODE_ILLEGAL;
+                    break;
+            }
         } else {
             switch ((reg1 & 0x18) >> 3) {
                 case 0:
@@ -682,9 +478,13 @@ TMS9918A.prototype = {
                     // Text mode
                     this.screenMode = TMS9918A.MODE_TEXT;
                     break;
+                case 3:
+                    // Illegal
+                    this.screenMode = TMS9918A.MODE_ILLEGAL;
+                    break;
             }
         }
-        if (this.screenMode == TMS9918A.MODE_BITMAP) {
+        if (this.bitmapMode) {
             this.colorTable = (this.registers[3] & 0x80) << 6;
             this.charPatternTable = (this.registers[4] & 0x4) << 11;
             this.updateTableMasks();
@@ -703,6 +503,10 @@ TMS9918A.prototype = {
             this.patternTableMask  = ((this.registers[4] & 0x03) << 11) | (this.colorTableMask & 0x7FF); // 000PPCCCCC111111
             // this.log.info("colorTableMask:" + this.colorTableMask);
             // this.log.info("patternTableMask:" + this.patternTableMask);
+        }
+        else if (this.screenMode == TMS9918A.MODE_BITMAP_TEXT || this.screenMode == TMS9918A.MODE_BITMAP_MULTICOLOR) {
+            this.colorTableMask = this.ramMask;
+            this.patternTableMask  = ((this.registers[4] & 0x03) << 11) | 0x7FF; // 000PP11111111111
         }
         else {
             this.colorTableMask = this.ramMask;
@@ -736,16 +540,19 @@ TMS9918A.prototype = {
     },
 
     colorTableSize: function () {
-        if (this.screenMode == TMS9918A.MODE_BITMAP) {
+        if (this.screenMode == TMS9918A.MODE_GRAPHICS) {
+            return 0x20;
+        }
+        else if (this.screenMode == TMS9918A.MODE_BITMAP) {
             return Math.min(this.colorTableMask + 1, 0x1800);
         }
         else {
-            return 0x20;
+            return 0;
         }
     },
 
     patternTableSize: function () {
-        if (this.screenMode == TMS9918A.MODE_BITMAP) {
+        if (this.bitmapMode) {
             return Math.min(this.patternTableMask + 1, 0x1800);
         }
         else {
@@ -794,7 +601,7 @@ TMS9918A.prototype = {
     getCharAt: function (x, y) {
         x -= 24;
         y -= 24;
-        if (this.screenMode != TMS9918A.MODE_TEXT) {
+        if (!this.textMode) {
             return this.ram[this.nameTable + Math.floor(x / 8) + Math.floor(y / 8)  * 32];
         }
         else {
