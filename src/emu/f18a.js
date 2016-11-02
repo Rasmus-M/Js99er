@@ -123,6 +123,7 @@ function F18A(canvas, cru, tms9919, enableFlicker) {
     this.gpuAddressLatch = null;
     this.currentScanline = null;
     this.fakeScanline = null;
+    this.blanking = null;
 
     this.displayOn = null;
     this.interruptsOn = null;
@@ -256,6 +257,7 @@ F18A.prototype = {
         this.gpuAddressLatch = false;
         this.currentScanline = 0;
         this.fakeScanline = null;
+        this.blanking = 0;
 
         this.displayOn = true;
         this.interruptsOn = false;
@@ -443,14 +445,16 @@ F18A.prototype = {
     },
 
     drawScanline: function (y) {
-        this.currentScanline = y - this.topBorder;
+        this.currentScanline = y >= this.topBorder ? y - this.topBorder : y - this.topBorder + 256;
         this.collision = false;
         this.fifthSprite = false;
         this.fifthSpriteIndex = 0x1F;
+        this.blanking = 0;
         this._drawScanline(y);
         if (this.screenMode == F18A.MODE_TEXT_80) {
             this._duplicateScanline();
         }
+        this.blanking = 1;
         if (this.gpuHsyncTrigger) {
             this.gpu.setIdle(false);
         }
@@ -1385,6 +1389,7 @@ F18A.prototype = {
                 if (this.gpuAddressLatch) {
                     this.gpuAddressLatch = false;
                     this.gpu.intReset();
+                    this.log.debug("F18A GPU triggered at " + (this.registers[54] << 8 | this.registers[55]).toHexWord());
                     this.gpu.setPC(this.registers[54] << 8 | this.registers[55]);
                 }
                 break;
@@ -1434,7 +1439,7 @@ F18A.prototype = {
     },
 
     runGPU: function (gpuAddress) {
-        this.log.debug("F18A GPU triggered at " + gpuAddress.toHexWord());
+        this.log.info("F18A GPU triggered at " + gpuAddress.toHexWord());
         this.gpu.setPC(gpuAddress); // Set the PC, which also triggers the GPU
         if (this.gpu.atBreakpoint()) {
             this.log.info("Breakpoint in GPU code ignored.");
@@ -1614,6 +1619,7 @@ F18A.prototype = {
 
     getCurrentScanline: function () {
         if (this.currentScanline != null) {
+            this.log.debug("Get scanline=" + this.currentScanline);
             return this.currentScanline;
         }
         else {
@@ -1630,8 +1636,14 @@ F18A.prototype = {
             if (this.fakeScanline == 240) {
                 this.fakeScanline = 0;
             }
+            this.log.debug("Get fake scanline=" + this.fakeScanline);
             return this.fakeScanline;
         }
+    },
+
+    getBlanking: function () {
+        this.log.debug("Get blanking=" + this.blanking);
+        return this.blanking;
     },
 
     colorTableSize: function () {

@@ -44,7 +44,7 @@
 
         log = Log.getLog();
         log.info("Welcome to JS99'er");
-        log.info("Version 5.6, 2 September 2016");
+        log.info("Version 5.6.1, 2 November 2016");
         log.info("");
         settings = new Settings(true);
         diskImages = {
@@ -547,6 +547,7 @@
                         var objLoader = new ObjLoader();
                         objLoader.loadObjFile(this.result);
                         ti994a.loadSoftware(objLoader.getSoftware());
+                        ti994a.memory.setPADWord(0x83C0, Math.floor(Math.random() * 0xFFFF));
                     };
                     reader.onerror = function () {
                         alert(this.error.name);

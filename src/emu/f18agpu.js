@@ -552,7 +552,7 @@ F18AGPU.prototype = {
             }
             else {
                 // Blanking
-                return 0; // TODO
+                return this.f18a.getBlanking();
             }
         }
         // DMA
