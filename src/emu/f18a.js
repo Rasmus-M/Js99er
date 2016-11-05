@@ -403,7 +403,7 @@ F18A.prototype = {
                         this._duplicateScanline();
                     }
                     if (this.gpuHsyncTrigger) {
-                        this.currentScanline = y;
+                        this.currentScanline = y >= this.topBorder ? y - this.topBorder : 255;
                         this.runGPU(this.gpu.getPC());
                     }
                 }
@@ -427,7 +427,7 @@ F18A.prototype = {
             this.redrawRequired = true;
         }
         if (this.gpuVsyncTrigger) {
-            this.currentScanline = y;
+            this.currentScanline = y - this.topBorder;
             this.runGPU(this.gpu.getPC());
         }
         this.frameCounter++;
@@ -445,7 +445,7 @@ F18A.prototype = {
     },
 
     drawScanline: function (y) {
-        this.currentScanline = y >= this.topBorder ? y - this.topBorder : y - this.topBorder + 256;
+        this.currentScanline = y >= this.topBorder ? y - this.topBorder : 255;
         this.collision = false;
         this.fifthSprite = false;
         this.fifthSpriteIndex = 0x1F;
