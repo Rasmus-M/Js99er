@@ -44,7 +44,7 @@
 
         log = Log.getLog();
         log.info("Welcome to JS99'er");
-        log.info("Version 5.6.1, 2 November 2016");
+        log.info("Version 5.6.2, 2 November 2016");
         log.info("");
         settings = new Settings(true);
         diskImages = {
@@ -109,8 +109,13 @@
             ti994a.frame();
             updateDebugger(false);
         });
-        $("#btnStep").on("click", function () {
-            ti994a.step();
+        $("#btnStep").on("click", function (evt) {
+            if (!evt.shiftKey) {
+                ti994a.step();
+            }
+            else {
+                ti994a.stepOver();
+            }
             updateDebugger(false);
         });
         $("#btnStop").on("click", function () {
@@ -892,6 +897,9 @@
     }
 
     function onBreakpoint(cpu) {
+        if (cpu.setOtherBreakpoint) {
+            cpu.setOtherBreakpoint(null);
+        }
         $("#btnStop").click();
     }
 

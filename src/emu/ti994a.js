@@ -215,9 +215,14 @@ TI994A.prototype = {
         else {
             this.tms9900.run(1);
         }
-        if (this.vdp.gpu) {
-            this.drawFrame(window.performance ? window.performance.now() : new Date().getTime());
-        }
+        // if (this.vdp.gpu) {
+        //     this.drawFrame(window.performance ? window.performance.now() : new Date().getTime());
+        // }
+    },
+
+    stepOver: function () {
+        this.tms9900.setOtherBreakpoint(this.tms9900.getPC() + 4);
+        this.start(false);
     },
 
     stop: function () {

@@ -68,6 +68,7 @@ function TMS9900(memory, cru, keyboard, diskDrives, googleDrives) {
     // Misc
     this.suspended = false;
     this.breakpoint = null;
+    this.otherBreakpoint = null;
     this.illegalCount = 0;
     this.log = Log.getLog();
 }
@@ -1746,7 +1747,11 @@ TMS9900.prototype = {
         this.breakpoint = addr;
     },
 
+    setOtherBreakpoint: function (addr) {
+        this.otherBreakpoint = addr;
+    },
+
     atBreakpoint: function () {
-        return this.breakpoint && this.PC == this.breakpoint;
+        return this.PC === this.breakpoint || this.PC === this.otherBreakpoint;
     }
 };
