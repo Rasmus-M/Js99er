@@ -163,7 +163,7 @@
                 return;
             }
             if (extension == "bin") {
-                software.loadBinModuleFromFile(file,
+                software.loadModuleFromBinFile(file,
                     function (cart) {
                         ti994a.loadSoftware(cart);
                     },

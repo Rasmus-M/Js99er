@@ -233,16 +233,26 @@ Software.prototype = {
         xhr.send();
     },
 
-    loadBinModuleFromFile: function (file, onSuccess, onError) {
+    loadModuleFromBinFile: function (file, onSuccess, onError) {
         var baseFileName = file.name.split('.')[0];
         var inverted = baseFileName && baseFileName.charAt(baseFileName.length - 1) == "3";
+        var grom = baseFileName && baseFileName.charAt(baseFileName.length - 1) == "g";
         var reader = new FileReader();
         reader.onload = function () {
             var byteArray = new Uint8Array(this.result);
-            var cart = {
-                type: inverted ? Software.TYPE_INVERTED_CART : Software.TYPE_CART,
-                rom: byteArray
-            };
+            var cart;
+            if (grom) {
+                cart = {
+                    type: Software.TYPE_CART,
+                    grom: byteArray
+                };
+            }
+            else {
+                cart = {
+                    type: inverted ? Software.TYPE_INVERTED_CART : Software.TYPE_CART,
+                    rom: byteArray
+                };
+            }
             onSuccess(cart);
         };
         reader.onerror = function () {
