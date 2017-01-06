@@ -89,6 +89,16 @@ var AMS = (function () {
         }
     };
 
+    AMS.prototype.getStatusString = function () {
+        var s = "";
+        for (var regNo = 0; regNo < this.transparentMap.length; regNo++) {
+            if (this.transparentMap[regNo] != null) {
+               s += (this.map[regNo] & (this.pages - 1)).toHex12Bit() + " ";
+            }
+        }
+        return s;
+    };
+
     return AMS;
 })();
 

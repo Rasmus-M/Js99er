@@ -54,6 +54,14 @@ Number.prototype.toHexWord = function () {
     return ">" + s;
 };
 
+Number.prototype.toHex12Bit = function () {
+    var s = this.toString(16).toUpperCase();
+    while (s.length < 3) {
+        s = "0" + s;
+    }
+    return ">" + s;
+};
+
 Number.prototype.toHexByte = function () {
     var s = this.toString(16).toUpperCase();
     if (s.length == 1) {

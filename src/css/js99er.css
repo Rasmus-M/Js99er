@@ -88,13 +88,13 @@ body {
 }
 
 #status {
-    height: 164px;
+    height: 178px;
     overflow: hidden;
     word-wrap: normal;
 }
 
 #memory {
-    height: 390px;
+    height: 376px;
     overflow: auto;
     word-wrap: normal;
     line-height: 19px;

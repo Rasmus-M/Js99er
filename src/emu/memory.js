@@ -518,7 +518,8 @@ Memory.prototype = {
     getStatusString: function () {
         return "GROM:" + this.gromAddress.toHexWord() + " (bank:" + ((this.gromAddress & 0xE000) >> 13) +
             ", addr:" + (this.gromAddress & 0x1FFF).toHexWord() + ") " +
-           (this.cartImage != null ? "CART: bank " + this.currentCartBank +" / 0-" + (this.cartBankCount - 1) : "");
+           (this.cartImage != null ? "CART: bank " + this.currentCartBank +" / 0-" + (this.cartBankCount - 1) : "") +
+           (this.enableAMS ? "\nAMS Regs: " + this.ams.getStatusString() : "")
     },
 
     hexView: function (start, length, anchorAddr) {

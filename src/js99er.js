@@ -44,7 +44,8 @@
 
         log = Log.getLog();
         log.info("Welcome to JS99'er");
-        log.info("Version 5.6.3, 20 December 2016");
+        log.info("Version 5.7, 06 January 2016");
+        log.info("- Display AMS registers");
         log.info("");
         settings = new Settings(true);
         diskImages = {
