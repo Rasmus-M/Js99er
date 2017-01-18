@@ -567,7 +567,7 @@ TMS9918A.prototype = {
         }
         s += "\nSIT:" + this.nameTable.toHexWord() + " PDT:" + this.charPatternTable.toHexWord() + " (" + this.patternTableSize().toHexWord() + ")" +
              " CT:" + this.colorTable.toHexWord() + " (" + this.colorTableSize().toHexWord() + ") SDT:" + this.spritePatternTable.toHexWord() +
-             " SAL:" + this.spriteAttributeTable.toHexWord();
+             " SAL:" + this.spriteAttributeTable.toHexWord() + "\nVDP: " + this.addressRegister.toHexWord();
         return s;
     },
 

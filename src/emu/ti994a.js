@@ -282,7 +282,7 @@ TI994A.prototype = {
             this.vdp.gpu && !this.vdp.gpu.isIdle() ?
                 this.vdp.gpu.getInternalRegsString() + " F18A GPU\n" + this.vdp.gpu.getRegsStringFormatted() :
                 this.tms9900.getInternalRegsString() + "\n" + this.tms9900.getRegsStringFormatted()
-        ) + this.vdp.getRegsString() + "\n" + this.memory.getStatusString();
+        ) + this.vdp.getRegsString() + " " + this.memory.getStatusString();
     },
 
     getDiskDrives: function () {
