@@ -44,8 +44,9 @@
 
         log = Log.getLog();
         log.info("Welcome to JS99'er");
-        log.info("Version 5.7, 06 January 2016");
+        log.info("Version 5.8, 21 January 2016");
         log.info("- Display AMS registers");
+        log.info("- Display VDP address");
         log.info("");
         settings = new Settings(true);
         diskImages = {
