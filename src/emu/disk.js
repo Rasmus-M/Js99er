@@ -324,15 +324,18 @@ DiskDrive.prototype = {
                 switch (opCode) {
                     case TI_FILE.OP_CODE_OPEN:
                         this.log.info("Op-code " + opCode + ": OPEN");
-                        if (operationMode == TI_FILE.OPERATION_MODE_OUTPUT) {
+                        if (operationMode == TI_FILE.OPERATION_MODE_OUTPUT || operationMode == TI_FILE.OPERATION_MODE_UPDATE) {
                             // Create a new file
                             if (recordLength == 0) {
                                 recordLength = 128;
                                 // Write default record length to PAB
                                 this.ram[pabAddr + 4] = recordLength;
                             }
-                            file = new DiskFile(fileName, TI_FILE.FILE_TYPE_DATA, recordType, recordLength, datatype);
-                            this.diskImage.putFile(file);
+                            file = this.diskImage.getFile(fileName);
+                            if (file == null || operationMode == TI_FILE.OPERATION_MODE_OUTPUT) {
+                                file = new DiskFile(fileName, TI_FILE.FILE_TYPE_DATA, recordType, recordLength, datatype);
+                                this.diskImage.putFile(file);
+                            }
                         }
                         else {
                             if (fileName.length > 0) {
