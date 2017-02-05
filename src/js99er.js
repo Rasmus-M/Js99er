@@ -44,10 +44,8 @@
 
         log = Log.getLog();
         log.info("Welcome to JS99'er");
-        log.info("Version 5.8.1, 25 January 2016");
-        log.info("- Display AMS registers");
-        log.info("- Display VDP address");
-        log.info("- Create file in UPDATE mode");
+        log.info("Version 5.8.2, 5 February 2016");
+        log.info("- Added Megademo");
         log.info("");
         settings = new Settings(true);
         diskImages = {

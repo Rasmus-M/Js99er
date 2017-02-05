@@ -458,6 +458,11 @@ Software.programs = [
         type: Software.TYPE_GROUP,
         programs: [
             {
+                name: "Megademo",
+                type: Software.TYPE_CART,
+                url: "software/ti99demo.rpk"
+            },
+            {
                 name: "Horizontal scrolling demo",
                 type: Software.TYPE_MEMORY_DUMP,
                 url: "software/hscroll.json"
