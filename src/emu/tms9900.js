@@ -11,7 +11,8 @@
 
 'use strict';
 
-TMS9900.FRAME_CYCLES = 50000;
+TMS9900.CYCLES_PER_FRAME = 50000;
+TMS9900.CYCLES_PER_SCANLINE = 183;
 
 function TMS9900(memory, cru, keyboard, diskDrives, googleDrives) {
     this.memory = memory;
@@ -602,7 +603,7 @@ TMS9900.prototype = {
 
     // This sets A0-A2 to 010, and pulses CRUCLK until an interrupt is received.
     idle: function () {
-        return TMS9900.FRAME_CYCLES - this.cycles % TMS9900.FRAME_CYCLES;
+        return TMS9900.CYCLES_PER_FRAME - this.cycles % TMS9900.CYCLES_PER_FRAME;
     },
 
     // This will set A0-A2 to 011 and pulse CRUCLK (so not emulated)

@@ -9,7 +9,6 @@
 TI994A.FRAMES_TO_RUN = Number.MAX_VALUE;
 TI994A.FRAME_MS = 16.66;
 TI994A.FPS_MS = 4000;
-TI994A.FRAMES_PER_SCANLINE = 183;
 
 function TI994A(canvas, diskImages, settings, onBreakpoint) {
     this.canvas = canvas;
@@ -141,7 +140,7 @@ TI994A.prototype = {
     frameFullScreen: function () {
         var cpuSpeed = this.cpuSpeed;
         if (this.vdp.gpu && !this.vdp.gpu.isIdle()) {
-            this.vdp.gpu.run(F18AGPU.FRAME_CYCLES * cpuSpeed);
+            this.vdp.gpu.run(F18AGPU.CYCLES_PER_FRAME * cpuSpeed);
             if (this.vdp.gpu.atBreakpoint()) {
                 if (this.onBreakpoint) {
                     this.onBreakpoint(this.vdp.gpu);
@@ -150,7 +149,7 @@ TI994A.prototype = {
             cpuSpeed *= 0.5; // Reduce CPU cycles when GPU is running
         }
         if (!this.tms9900.isSuspended()) {
-            this.tms9900.run(TMS9900.FRAME_CYCLES * cpuSpeed);
+            this.tms9900.run(TMS9900.CYCLES_PER_FRAME * cpuSpeed);
             if (this.tms9900.atBreakpoint()) {
                 if (this.onBreakpoint) {
                     this.onBreakpoint(this.tms9900);
@@ -171,7 +170,7 @@ TI994A.prototype = {
         for (var y = 0; y < 240; y++) {
             this.vdp.drawScanline(y);
             if (!this.tms9900.isSuspended()) {
-                extraCycles = this.tms9900.run((TI994A.FRAMES_PER_SCANLINE - extraCycles) * cpuSpeed);
+                extraCycles = this.tms9900.run((TMS9900.CYCLES_PER_SCANLINE - extraCycles) * cpuSpeed);
                 if (this.tms9900.atBreakpoint() && this.onBreakpoint) {
                     this.onBreakpoint(this.tms9900);
                     return;
@@ -179,7 +178,7 @@ TI994A.prototype = {
             }
             // F18A GPU
             if (this.vdp.gpu && !this.vdp.gpu.isIdle()) {
-                this.vdp.gpu.run(F18AGPU.FRAMES_PER_SCANLINE * cpuSpeed);
+                this.vdp.gpu.run(F18AGPU.CYCLES_PER_SCANLINE * cpuSpeed);
                 if (this.vdp.gpu.atBreakpoint() && this.onBreakpoint) {
                     this.onBreakpoint(this.vdp.gpu);
                     return;
@@ -189,7 +188,7 @@ TI994A.prototype = {
         this.vdp.updateCanvas();
         // Blanking
         if (!this.tms9900.isSuspended()) {
-            this.tms9900.run((TMS9900.FRAME_CYCLES - (this.tms9900.cycles - startCycles)) * cpuSpeed);
+            this.tms9900.run((TMS9900.CYCLES_PER_FRAME - (this.tms9900.cycles - startCycles)) * cpuSpeed);
             if (this.tms9900.atBreakpoint() && this.onBreakpoint) {
                 this.onBreakpoint(this.tms9900);
                 return;
@@ -197,7 +196,7 @@ TI994A.prototype = {
         }
         // F18A GPU
         if (this.vdp.gpu && !this.vdp.gpu.isIdle()) {
-            this.vdp.gpu.run((F18AGPU.FRAME_CYCLES - (240 * F18AGPU.FRAMES_PER_SCANLINE)) * cpuSpeed);
+            this.vdp.gpu.run((F18AGPU.CYCLES_PER_FRAME - (240 * F18AGPU.CYCLES_PER_SCANLINE)) * cpuSpeed);
             if (this.vdp.gpu.atBreakpoint() && this.onBreakpoint) {
                 this.onBreakpoint(this.vdp.gpu);
                 return;
