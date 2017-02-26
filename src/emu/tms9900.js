@@ -1343,15 +1343,12 @@ TMS9900.prototype = {
             x3 = x3 << 1;
         }
 
-        if (this.D <= 8) {
-            this.resetLGT_AGT_EQ();
-            if (this.D < 9) {
-                this.resetOP();
-                this.ST |= this.bStatusLookup[x1 & 0xff] & this.maskLGT_AGT_EQ_OP;
-            } else {
-                // Will never get here
-                this.ST |= this.wStatusLookup[x1] & this.maskLGT_AGT_EQ;
-            }
+        this.resetLGT_AGT_EQ();
+        if (this.D < 9) {
+            this.resetOP();
+            this.ST |= this.bStatusLookup[x1 & 0xff] & this.maskLGT_AGT_EQ_OP;
+        } else {
+            this.ST |= this.wStatusLookup[x1] & this.maskLGT_AGT_EQ;
         }
 
         return 20 + 2 * this.D;
@@ -1373,25 +1370,20 @@ TMS9900.prototype = {
             x3 <<= 1;
         }
 
-        if (this.D < 9)
-        {
+        if (this.D < 9) {
             this.writeMemoryByte(this.S, x1 & 0xff);
         }
-        else
-        {
+        else {
             this.writeMemoryWord(this.S, x1);
         }
         this.postIncrement(this.SRC);
 
-        if (this.D <= 8) {
-            this.resetLGT_AGT_EQ();
-            if (this.D < 9) {
-                this.resetOP();
-                this.ST |= this.bStatusLookup[x1 & 0xff] & this.maskLGT_AGT_EQ_OP;
-            } else {
-                // Will never get here
-                this.ST |= this.wStatusLookup[x1] & this.maskLGT_AGT_EQ;
-            }
+        this.resetLGT_AGT_EQ();
+        if (this.D < 9) {
+            this.resetOP();
+            this.ST |= this.bStatusLookup[x1 & 0xff] & this.maskLGT_AGT_EQ_OP;
+        } else {
+            this.ST |= this.wStatusLookup[x1] & this.maskLGT_AGT_EQ;
         }
 
         var cycles;
