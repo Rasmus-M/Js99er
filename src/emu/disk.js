@@ -324,7 +324,7 @@ DiskDrive.prototype = {
                 switch (opCode) {
                     case TI_FILE.OP_CODE_OPEN:
                         this.log.info("Op-code " + opCode + ": OPEN");
-                        if (operationMode == TI_FILE.OPERATION_MODE_OUTPUT || operationMode == TI_FILE.OPERATION_MODE_UPDATE) {
+                        if (operationMode == TI_FILE.OPERATION_MODE_OUTPUT || operationMode == TI_FILE.OPERATION_MODE_APPEND || operationMode == TI_FILE.OPERATION_MODE_UPDATE) {
                             // Create a new file
                             if (recordLength == 0) {
                                 recordLength = 128;
@@ -406,7 +406,7 @@ DiskDrive.prototype = {
                         }
                         if (file != null) {
                             if (file.getFileType() == TI_FILE.FILE_TYPE_DATA) {
-                                if (fileName.length > 0) { // && file.getAccessType() == TI_FILE.ACCESS_TYPE_RELATIVE
+                                if (fileName.length > 0 && file.getAccessType() == TI_FILE.ACCESS_TYPE_RELATIVE) {
                                     file.setRecordPointer(recordNumber);
                                 }
                                 record = file.getRecord();

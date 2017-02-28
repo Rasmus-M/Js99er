@@ -44,8 +44,7 @@
 
         log = Log.getLog();
         log.info("Welcome to JS99'er");
-        log.info("Version 5.8.4, 18 February 2016");
-        log.info("- Added Megademo");
+        log.info("Version 5.8.5, 28 February 2017");
         log.info("");
         settings = new Settings(true);
         diskImages = {
