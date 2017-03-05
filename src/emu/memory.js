@@ -25,6 +25,7 @@ function Memory(vdp, tms9919, tms5220, settings) {
 
     this.enable32KRAM = settings && settings.is32KRAMEnabled();
     this.enableAMS = settings && settings.isAMSEnabled();
+    this.enableGRAM = settings && settings.isGRAMEnabled();
 
     this.ram = new Uint8Array(0x10000);
     this.rom = new Uint8Array(SYSTEM.ROM);
@@ -375,15 +376,17 @@ Memory.prototype = {
         cpu.addCycles(23);
         addr = addr & 0x9C02;
         if (addr == Memory.GRMWD) {
-            // Write data to GROM
-            // var base = !this.multiGROMBases || this.gromAddress - 1 < 0x6000 ? 0 : (addr & 0x003C) >> 2;
-            // this.gromAccess = 2;
-            // this.groms[base][this.gromAddress-1] = w >> 8;
-            // // Prefetch for all bases
-            // for (var i = 0; i < Memory.GROM_BASES; i++) {
-            //     this.gromPrefetch[i] = this.groms[i][this.gromAddress];
-            // }
-            // this.gromAddress++;
+            if (this.enableGRAM) {
+                // Write data to GROM
+                var base = !this.multiGROMBases || this.gromAddress - 1 < 0x6000 ? 0 : (addr & 0x003C) >> 2;
+                this.gromAccess = 2;
+                this.groms[base][this.gromAddress-1] = w >> 8;
+                // Prefetch for all bases
+                for (var i = 0; i < Memory.GROM_BASES; i++) {
+                    this.gromPrefetch[i] = this.groms[i][this.gromAddress];
+                }
+                this.gromAddress++;
+            }
         }
         else if (addr == Memory.GRMWA) {
             // Set GROM address
@@ -559,5 +562,9 @@ Memory.prototype = {
 
     setAMSEnabled: function (enabled) {
         this.enableAMS = enabled;
+    },
+
+    setGRAMEnabled: function (enabled) {
+        this.enableGRAM = enabled;
     }
 };

@@ -17,6 +17,7 @@ function Settings(persistent) {
     this.enableMapArrowKeysToFctnSDEX = true;
     this.enableGoogleDrive = false;
     this.enableAMS = false;
+    this.enableGRAM = false;
     this.enablePixelated = false;
     if (persistent && window.localStorage) {
         this.storage = window.localStorage;
@@ -46,6 +47,9 @@ function Settings(persistent) {
         }
         if (this.storage.getItem("enableAMS") != null) {
             this.enableAMS = this.storage.getItem("enableAMS") == "true";
+        }
+        if (this.storage.getItem("enableGRAM") != null) {
+            this.enableGRAM = this.storage.getItem("enableGRAM") == "true";
         }
         if (this.storage.getItem("enablePixelated") != null) {
             this.enablePixelated = this.storage.getItem("enablePixelated") == "true";
@@ -151,6 +155,17 @@ Settings.prototype =  {
         this.enableAMS = enabled;
         if (this.persistent && this.storage) {
             this.storage.setItem("enableAMS", enabled);
+        }
+    },
+
+    isGRAMEnabled: function () {
+        return this.enableGRAM;
+    },
+
+    setGRAMEnabled: function (enabled) {
+        this.enableGRAM = enabled;
+        if (this.persistent && this.storage) {
+            this.storage.setItem("enableGRAM", enabled);
         }
     },
 

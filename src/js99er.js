@@ -374,6 +374,16 @@
             }
         });
 
+        var enableGRAM = $("#enableGRAM");
+        enableGRAM.bootstrapSwitch("state", settings.isGRAMEnabled());
+        enableGRAM.on('switchChange.bootstrapSwitch', function (event, state) {
+            if (state != settings.isGRAMEnabled()) {
+                settings.setGRAMEnabled(state);
+                ti994a.memory.setGRAMEnabled(state);
+                $("#btnReset").click();
+            }
+        });
+
         var enableFlicker = $("#enableFlicker");
         enableFlicker.bootstrapSwitch("state", settings.isFlickerEnabled());
         enableFlicker.on('switchChange.bootstrapSwitch', function (event, state) {
