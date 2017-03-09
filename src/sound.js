@@ -45,6 +45,7 @@ function Sound(enabled, psgDev, speechDev) {
             this.filter.frequency.value = speechSampleRate / 2;
         }
         this.setSoundEnabled(enabled);
+        this.iOSLoadInitSound();
     }
     else {
         this.log.warn("Web Audio API not supported by this browser.");
@@ -109,6 +110,51 @@ Sound.prototype = {
                     this.scriptProcessor2.disconnect();
                     this.filter.disconnect();
                 }
+            }
+        }
+    },
+
+    iOSLoadInitSound: function() {
+        this.ios_sound_init_ok = false;
+        this.ios = /iPad|iPhone|iPod/.test(navigator.userAgent) && !window.MSStream;
+        if (this.ios) {
+            var rq = new XMLHttpRequest();
+            rq.open("GET", "sound/click.mp3");
+            rq.responseType="arraybuffer";
+            var ac = Sound.audioContext;
+            var that = this;
+            rq.onload = function() {
+                ac.decodeAudioData(rq.response,
+                    function(buf) {
+                        that.init_sound = buf;
+                    },
+                    function () {
+                        that.log.error("decode error " + e.file);
+                    }
+                );
+            };
+            rq.send();
+        }
+    },
+
+    iOSUserTriggeredSound: function() {
+        if (!this.ios_sound_init_ok) {
+            if (!this.ios) {
+                this.ios_sound_init_ok = true;
+            }
+            else if (this.init_sound) {
+                this.ios_sound_init_ok = true;
+                var ac = Sound.audioContext;
+                var src = ac.createBufferSource();
+                src.buffer = this.init_sound;
+                var g = ac.createGain();
+                src.connect(g);
+                g.connect(ac.destination);
+                g.gain.value = 0;
+                if (src.start) {
+                    src.start(0);
+                }
+                else src.noteOn(0);
             }
         }
     }

@@ -76,6 +76,7 @@
         ///////////////
 
         $("#canvas").on("click touchstart", function (evt) {
+            sound.iOSUserTriggeredSound();
             var rect = this.getBoundingClientRect();
             var scale = this.clientHeight / 240;
             var tiX = Math.floor((evt.clientX - rect.left) / scale);
@@ -918,6 +919,7 @@
     /////////////////////////////
 
     function virtualKeyPress(keyCode) {
+        sound.iOSUserTriggeredSound();
         ti994a.keyboard.virtualKeyPress(keyCode);
     }
 
