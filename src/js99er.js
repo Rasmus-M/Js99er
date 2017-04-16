@@ -44,7 +44,7 @@
 
         log = Log.getLog();
         log.info("Welcome to JS99'er");
-        log.info("Version 5.8.6, 09 March 2017");
+        log.info("Version 5.8.7, 15 April 2017");
         log.info("");
         settings = new Settings(true);
         diskImages = {

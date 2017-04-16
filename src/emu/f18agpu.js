@@ -82,6 +82,7 @@ function F18AGPU(f18a) {
 
     // Misc
     this.breakpoint = null;
+    this.otherBreakpoint = null;
     this.illegalCount = 0;
     this.log = Log.getLog();
 
@@ -469,26 +470,42 @@ F18AGPU.prototype = {
                 var src = (this.vdpRAM[0x8000] << 8) | this.vdpRAM[0x8001];
                 var dst = (this.vdpRAM[0x8002] << 8) | this.vdpRAM[0x8003];
                 var width = this.vdpRAM[0x8004];
+                // if (width == 0) {
+                //     width = 0x100;
+                // }
                 var height = this.vdpRAM[0x8005];
+                // if (height == 0) {
+                //     height = 0x100;
+                // }
                 var stride = this.vdpRAM[0x8006];
+                // if (stride == 0) {
+                //     stride = 0x100;
+                // }
                 var dir = (this.vdpRAM[0x8007] & 0x02) == 0 ? 1 : -1;
                 var diff = dir * (stride - width);
                 var copy = (this.vdpRAM[0x8007] & 0x01) == 0;
-                this.log.debug("DMA triggered src=" + src.toHexWord() + " dst=" + dst.toHexWord() + " width=" + width.toHexByte() + " height=" + height.toHexByte());
                 var srcByte = this.vdpRAM[src];
-                for (var y = 0; y < height; y++) {
-                    for (var x = 0; x < width; x++) {
-                        if (copy) {
+                this.log.debug("DMA triggered src=" + src.toHexWord() + " dst=" + dst.toHexWord() + " width=" + width.toHexByte() + " height=" + height.toHexByte() + " stride=" + stride + " copy=" + copy + " dir=" + dir + " srcByte=" + srcByte);
+                var x,y;
+                if (copy) {
+                    for (y = 0; y < height; y++) {
+                        for (x = 0; x < width; x++) {
                             this.vdpRAM[dst] = this.vdpRAM[src];
                             src += dir;
+                            dst += dir;
                         }
-                        else {
-                            this.vdpRAM[dst] = srcByte;
-                        }
-                        dst += dir;
+                        src += diff;
+                        dst += diff;
                     }
-                    src += copy ? diff : 0;
-                    dst += diff;
+                }
+                else {
+                    for (y = 0; y < height; y++) {
+                        for (x = 0; x < width; x++) {
+                            this.vdpRAM[dst] = srcByte;
+                            dst += dir;
+                        }
+                        dst += diff;
+                    }
                 }
                 this.addCycles(width * height); // ?
                 this.f18a.redrawRequired = true;
@@ -1844,8 +1861,12 @@ F18AGPU.prototype = {
         this.breakpoint = addr;
     },
 
+    setOtherBreakpoint: function (addr) {
+        this.otherBreakpoint = addr;
+    },
+
     atBreakpoint: function () {
-        return this.breakpoint && this.PC == this.breakpoint;
+        return this.PC === this.breakpoint || this.PC === this.otherBreakpoint;
     },
 
     hexArrayToBin: function (hexArray) {

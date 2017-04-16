@@ -220,7 +220,12 @@ TI994A.prototype = {
     },
 
     stepOver: function () {
-        this.tms9900.setOtherBreakpoint(this.tms9900.getPC() + 4);
+        if (this.vdp.gpu && !this.vdp.gpu.isIdle()) {
+            this.vdp.gpu.setOtherBreakpoint(this.vdp.gpu.getPC() + 4);
+        }
+        else {
+            this.tms9900.setOtherBreakpoint(this.tms9900.getPC() + 4);
+        }
         this.start(false);
     },
 
