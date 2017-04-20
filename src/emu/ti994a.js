@@ -171,16 +171,18 @@ TI994A.prototype = {
             this.vdp.drawScanline(y);
             if (!this.tms9900.isSuspended()) {
                 extraCycles = this.tms9900.run((TMS9900.CYCLES_PER_SCANLINE - extraCycles) * cpuSpeed);
-                if (this.tms9900.atBreakpoint() && this.onBreakpoint) {
-                    this.onBreakpoint(this.tms9900);
+                if (this.tms9900.atBreakpoint()) {
+                    this.tms9900.setOtherBreakpoint(null);
+                    if (this.onBreakpoint) this.onBreakpoint(this.tms9900);
                     return;
                 }
             }
             // F18A GPU
             if (this.vdp.gpu && !this.vdp.gpu.isIdle()) {
                 this.vdp.gpu.run(F18AGPU.CYCLES_PER_SCANLINE * cpuSpeed);
-                if (this.vdp.gpu.atBreakpoint() && this.onBreakpoint) {
-                    this.onBreakpoint(this.vdp.gpu);
+                if (this.vdp.gpu.atBreakpoint()) {
+                    this.vdp.gpu.setOtherBreakpoint(null);
+                    if (this.onBreakpoint) this.onBreakpoint(this.vdp.gpu);
                     return;
                 }
             }
@@ -189,16 +191,18 @@ TI994A.prototype = {
         // Blanking
         if (!this.tms9900.isSuspended()) {
             this.tms9900.run((TMS9900.CYCLES_PER_FRAME - (this.tms9900.cycles - startCycles)) * cpuSpeed);
-            if (this.tms9900.atBreakpoint() && this.onBreakpoint) {
-                this.onBreakpoint(this.tms9900);
+            if (this.tms9900.atBreakpoint()) {
+                this.tms9900.setOtherBreakpoint(null);
+                if (this.onBreakpoint) this.onBreakpoint(this.tms9900);
                 return;
             }
         }
         // F18A GPU
         if (this.vdp.gpu && !this.vdp.gpu.isIdle()) {
             this.vdp.gpu.run((F18AGPU.CYCLES_PER_FRAME - (240 * F18AGPU.CYCLES_PER_SCANLINE)) * cpuSpeed);
-            if (this.vdp.gpu.atBreakpoint() && this.onBreakpoint) {
-                this.onBreakpoint(this.vdp.gpu);
+            if (this.vdp.gpu.atBreakpoint()) {
+                this.vdp.gpu.setOtherBreakpoint(null);
+                if (this.onBreakpoint) this.onBreakpoint(this.vdp.gpu);
                 return;
             }
         }

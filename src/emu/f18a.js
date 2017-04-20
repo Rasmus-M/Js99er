@@ -1568,7 +1568,7 @@ F18A.prototype = {
                 return 0xe0;
             case 2:
                 // GPU status
-                return (this.gpu.isIdle() ? 0 : 0x80) | this.ram[0xb000];
+                return (this.gpu.isIdle() ? 0 : 0x80) | (this.ram[0xb000] & 0x7f);
             case 3:
                 // Current scanline
                 return this.getCurrentScanline();
