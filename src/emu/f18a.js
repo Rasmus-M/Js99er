@@ -1275,6 +1275,7 @@ F18A.prototype = {
                 if (this.maxScanlineSprites == 31) {
                     this.maxScanlineSprites = 32;
                 }
+                this.log.info("Max scanline sprites set to " + this.maxScanlineSprites);
                 break;
             // Bitmap control
             case 31:
@@ -1378,7 +1379,7 @@ F18A.prototype = {
             // Defaults to 32, i.e. no stop sprite
             case 51:
                 this.maxSprites = this.registers[51] & 0x3F;
-                this.log.info("Max sprites set to " + this.maxSprites);
+                this.log.info("Max processed sprites set to " + this.maxSprites);
                 break;
             // GPU address MSB
             case 54:
