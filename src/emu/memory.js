@@ -55,6 +55,9 @@ function Memory(vdp, tms9919, tms5220, settings) {
         this.loadPeripheralROM(GoogleDrive.DSR_ROM, 2);
     }
 
+    this.ramAt6000 = false;
+    this.ramAt7000 = false;
+
     this.buildMemoryMap();
 
     this.log = Log.getLog();
@@ -157,6 +160,15 @@ Memory.prototype = {
         var accessors = enabled ? [this.readCartridgeRAM, this.writeCartridgeRAM] : [this.readCartridgeROM, this.writeCartridgeROM];
         for (var i = addr; i < addr + length; i++) {
             this.memoryMap[i] = accessors;
+        }
+        // For debugging
+        if (addr == 0x6000) {
+            this.log.info("RAM at >6000: " + enabled);
+            this.ramAt6000 = enabled;
+        }
+        if (addr == 0x7000) {
+            this.log.info("RAM at >7000: " + enabled);
+            this.ramAt7000 = enabled;
         }
     },
 
@@ -444,8 +456,21 @@ Memory.prototype = {
                 return 0;
             }
         }
+        if (addr < 0x7000) {
+            if (this.ramAt6000) {
+                return this.ram[addr];
+            }
+            else {
+                return this.cartImage != null ? this.cartImage[addr + this.cartAddrOffset] : this.ram[addr];
+            }
+        }
         if (addr < 0x8000) {
-            return this.cartImage != null ? this.cartImage[addr + this.cartAddrOffset] : this.ram[addr];
+            if (this.ramAt7000) {
+                return this.ram[addr];
+            }
+            else {
+                return this.cartImage != null ? this.cartImage[addr + this.cartAddrOffset] : this.ram[addr];
+            }
         }
         if (addr < 0x8400) {
             addr = addr | 0x0300;
@@ -486,8 +511,21 @@ Memory.prototype = {
                 return 0;
             }
         }
-        if (addr < 0x8000) {
-            return this.cartImage != null ? (this.cartImage[addr + this.cartAddrOffset] << 8) | this.cartImage[addr + this.cartAddrOffset + 1] : this.ram[addr] << 8 | this.ram[addr + 1];
+        if (addr < 0x7000) {
+            if (this.ramAt6000) {
+                return this.ram[addr] << 8 | this.ram[addr + 1];
+            }
+            else {
+                return this.cartImage != null ? (this.cartImage[addr + this.cartAddrOffset] << 8) | this.cartImage[addr + this.cartAddrOffset + 1] : this.ram[addr] << 8 | this.ram[addr + 1];
+            }
+        }
+        if (addr < 0x7000) {
+            if (this.ramAt6000) {
+                return this.ram[addr] << 8 | this.ram[addr + 1];
+            }
+            else {
+                return this.cartImage != null ? (this.cartImage[addr + this.cartAddrOffset] << 8) | this.cartImage[addr + this.cartAddrOffset + 1] : this.ram[addr] << 8 | this.ram[addr + 1];
+            }
         }
         if (addr < 0x8400) {
             addr = addr | 0x0300;

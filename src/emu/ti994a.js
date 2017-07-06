@@ -320,8 +320,12 @@ TI994A.prototype = {
                 this.memory.loadGROM(sw.groms[g], 3, g);
             }
         }
-        this.memory.toggleCartridgeRAM(0x6000, 0x1000, sw.ramAt6000);
-        this.memory.toggleCartridgeRAM(0x7000, 0x1000, sw.ramAt7000);
+        if (sw.ramAt6000 !== undefined) {
+            this.memory.toggleCartridgeRAM(0x6000, 0x1000, sw.ramAt6000);
+        }
+        if (sw.ramAt7000 !== undefined) {
+            this.memory.toggleCartridgeRAM(0x7000, 0x1000, sw.ramAt7000);
+        }
         this.tms9900.setWP(sw.workspaceAddress != null ? sw.workspaceAddress : (SYSTEM.ROM[0] << 8 | SYSTEM.ROM[1]));
         this.tms9900.setPC(sw.startAddress != null ? sw.startAddress : (SYSTEM.ROM[2] << 8 | SYSTEM.ROM[3]));
         if (wasRunning) {

@@ -44,7 +44,7 @@
 
         log = Log.getLog();
         log.info("Welcome to JS99'er");
-        log.info("Version 5.8.7, 15 April 2017");
+        log.info("Version 5.9, 6 July 2017");
         log.info("");
         settings = new Settings(true);
         diskImages = {
@@ -307,7 +307,7 @@
             ti994a.keyboard.removeListeners();
         }).on("blur", function () {
             var val = this.value.parseHexWord();
-            if (val) {
+            if (typeof(val) === "number") {
                 this.value = val.toHexWord();
                 ti994a.tms9900.setBreakpoint(val);
                 if (ti994a.vdp.gpu) {
@@ -328,7 +328,7 @@
             ti994a.keyboard.removeListeners();
         }).on("blur", function () {
             var val = this.value.parseHexWord();
-            if (val) {
+            if (typeof(val) === "number") {
                 this.value = val.toHexWord();
                 debuggerAddress = val;
             }
@@ -437,9 +437,9 @@
             }
         });
 
-        // Load editor/assembler
-        software.loadProgram("software/editor-assembler.json", null, function (cart) {
-            if (cart != null) {
+        // Load supercart
+        software.loadProgram("software/supercart.json", null, function (cart) {
+            if (cart) {
                 ti994a.loadSoftware(cart);
             }
             // Start TI
@@ -865,11 +865,11 @@
                     // Hex view
                     if (memoryType == 0) {
                         // CPU
-                        viewObj = ti994a.memory.hexView(debuggerAddress || 0x8300, 320, debuggerAddress);
+                        viewObj = ti994a.memory.hexView(typeof(debuggerAddress) === "number" ? debuggerAddress : 0x8300, 320, debuggerAddress);
                     }
                     else {
                         // VDP
-                        viewObj = ti994a.vdp.hexView(debuggerAddress || 0, 320, debuggerAddress);
+                        viewObj = ti994a.vdp.hexView(typeof(debuggerAddress) === "number" ? debuggerAddress : 0, 320, debuggerAddress);
                     }
                 }
             }
@@ -880,23 +880,23 @@
                     if (memoryType == 0) {
                         // CPU
                         disassembler.setMemory(ti994a.memory);
-                        viewObj = disassembler.disassemble(0, 0x10000, null, debuggerAddress || pc);
+                        viewObj = disassembler.disassemble(0, 0x10000, null, typeof(debuggerAddress) === "number" ? debuggerAddress : pc);
                     }
                     else {
                         // VDP
                         disassembler.setMemory(ti994a.vdp);
-                        viewObj = disassembler.disassemble(0, ti994a.vdp.gpu ? 0x4800 : 0x4000, null, debuggerAddress || pc);
+                        viewObj = disassembler.disassemble(0, ti994a.vdp.gpu ? 0x4800 : 0x4000, null, typeof(debuggerAddress) === "number" ? debuggerAddress : pc);
                     }
                 }
                 else {
                     // Hex view
                     if (memoryType == 0) {
                         // CPU
-                        viewObj = ti994a.memory.hexView(0, 0x10000, debuggerAddress || pc);
+                        viewObj = ti994a.memory.hexView(0, 0x10000, typeof(debuggerAddress) === "number" ? debuggerAddress : pc);
                     }
                     else {
                         // VDP
-                        viewObj = ti994a.vdp.hexView(0, ti994a.vdp.gpu ? 0x4800: 0x4000, debuggerAddress || pc);
+                        viewObj = ti994a.vdp.hexView(0, ti994a.vdp.gpu ? 0x4800: 0x4000, typeof(debuggerAddress) === "number" ? debuggerAddress : pc);
                     }
                 }
             }
