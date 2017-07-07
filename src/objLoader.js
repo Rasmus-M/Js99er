@@ -39,7 +39,7 @@ var ObjLoader = (function () {
                     char = this.file.charAt(this.pos);
                 }
             }
-            console.log(line);
+            // console.log(line);
             return line;
         }
         else {
@@ -95,6 +95,8 @@ var ObjLoader = (function () {
         var lowRAMEndAddress = 0;
         var highRAMStartAddress = 0x10000;
         var highRAMEndAddress = 0;
+        var cartRAMStartAddress = 0x10000;
+        var cartRAMEndAddress = 0;
         var rom = new Uint8Array(0x10000);
         var romBank = -1;
         var eof = false;
@@ -172,7 +174,7 @@ var ObjLoader = (function () {
                                     loadAddress -= 0x5F00;
                                 }
                             }
-                            console.log("Load address set to: " + loadAddress.toHexWord());
+                            // console.log("Load address set to: " + loadAddress.toHexWord());
                         }
                         else {
                             throw "Invalid load address at line " + lineNumber + " position " + tagNumber + ".";
@@ -193,7 +195,7 @@ var ObjLoader = (function () {
                     case 'B':
                         var word = lineReader.readWord();
                         if (word != -1) {
-                            if (loadAddress >= 0x2000 && loadAddress < 0x4000 || loadAddress >= 0xA000 && loadAddress < 0x10000) {
+                            if (loadAddress >= 0x2000 && loadAddress < 0x4000 || loadAddress >= 0x6000 && loadAddress < 0x8000 || loadAddress >= 0xA000 && loadAddress < 0x10000) {
                                 if (loadAddress >= 0x2000 && loadAddress < 0x4000) {
                                     // Low RAM
                                     if (loadAddress < lowRAMStartAddress) {
@@ -204,6 +206,16 @@ var ObjLoader = (function () {
                                         lowRAMEndAddress = loadAddress;
                                     }
 
+                                }
+                                else if (loadAddress >= 0x6000 && loadAddress < 0x8000) {
+                                    // Cartridge RAM
+                                    if (loadAddress < cartRAMStartAddress) {
+                                        console.log("Cart ram start set to " + loadAddress.toHexWord());
+                                        cartRAMStartAddress = loadAddress;
+                                    }
+                                    if (loadAddress > cartRAMEndAddress) {
+                                        cartRAMEndAddress = loadAddress;
+                                    }
                                 }
                                 else {
                                     // High RAM
@@ -275,6 +287,8 @@ var ObjLoader = (function () {
         this.lowRAMEndAddress = lowRAMEndAddress;
         this.highRAMStartAddress = highRAMStartAddress;
         this.highRAMEndAddress = highRAMEndAddress;
+        this.cartRAMStartAddress = cartRAMStartAddress;
+        this.cartRAMEndAddress = cartRAMEndAddress;
         this.autoStartAddress = autoStartAddress;
         this.ram = ram;
         this.rom = rom;
@@ -308,6 +322,7 @@ var ObjLoader = (function () {
             sw.startAddress = this.autoStartAddress;
             var highRAMLength = this.highRAMEndAddress - this.highRAMStartAddress + 2;
             if (highRAMLength > 0) {
+                console.log(highRAMLength.toHexWord() + " bytes of upper RAM");
                 sw.memoryBlocks.push({
                     address: this.highRAMStartAddress,
                     data: this.getRAMBlock(this.highRAMStartAddress, highRAMLength)
@@ -315,10 +330,21 @@ var ObjLoader = (function () {
             }
             var lowRAMLength = this.lowRAMEndAddress - this.lowRAMStartAddress + 2;
             if (lowRAMLength > 0) {
+                console.log(lowRAMLength.toHexWord() + " bytes of lower RAM");
                 sw.memoryBlocks.push({
                     address: this.lowRAMStartAddress,
                     data: this.getRAMBlock(this.lowRAMStartAddress, lowRAMLength)
                 });
+            }
+            var cartRAMLength = this.cartRAMEndAddress - this.cartRAMStartAddress + 2;
+            if (cartRAMLength > 0) {
+                console.log(cartRAMLength.toHexWord() + " bytes of cartridge RAM");
+                sw.memoryBlocks.push({
+                    address: this.cartRAMStartAddress,
+                    data: this.getRAMBlock(this.cartRAMStartAddress, cartRAMLength)
+                });
+                sw.ramAt6000 = true;
+                sw.ramAt7000 = true;
             }
         }
         else {
