@@ -146,7 +146,10 @@ Software.prototype = {
                         // log.info(txt);
                         var parser = new DOMParser();
                         var xmlDoc = parser.parseFromString(txt, "text/xml");
-                        var sw = {};
+                        var sw = {
+                            ramAt6000: false,
+                            ramAt7000: false
+                        };
                         var pcb = xmlDoc.getElementsByTagName("pcb")[0];
                         var pcbType = pcb.getAttribute("type").toLowerCase();
                         sw.type = pcbType == "paged379i" ? Software.TYPE_INVERTED_CART : Software.TYPE_CART;
@@ -244,13 +247,17 @@ Software.prototype = {
             if (grom) {
                 cart = {
                     type: Software.TYPE_CART,
-                    grom: byteArray
+                    grom: byteArray,
+                    ramAt6000: false,
+                    ramAt7000: false
                 };
             }
             else {
                 cart = {
                     type: inverted ? Software.TYPE_INVERTED_CART : Software.TYPE_CART,
-                    rom: byteArray
+                    rom: byteArray,
+                    ramAt6000: false,
+                    ramAt7000: false
                 };
             }
             onSuccess(cart);

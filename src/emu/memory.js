@@ -174,6 +174,7 @@ Memory.prototype = {
 
     loadRAM: function (addr, byteArray) {
         for (var i = 0; i < byteArray.length; i++) {
+            // TODO: handle cartridge RAM
             if (this.enableAMS) {
                 this.ams.setByte(addr + i, byteArray[i]);
             }
