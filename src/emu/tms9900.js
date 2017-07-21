@@ -258,6 +258,9 @@ TMS9900.prototype = {
     },
 
     setPC: function (value) {
+        if (value & 1) {
+            this.log.warn("Setting odd PC from " + this.PC.toHexWord());
+        }
         this.PC = value & 0xFFFE;
         if ((this.PC & 0xfc00) == 0x8000) {
             this.PC |= 0x300;
