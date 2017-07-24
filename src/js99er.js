@@ -865,11 +865,11 @@
                     // Hex view
                     if (memoryType == 0) {
                         // CPU
-                        viewObj = ti994a.memory.hexView(typeof(debuggerAddress) === "number" ? debuggerAddress : 0x8300, 320, debuggerAddress);
+                        viewObj = ti994a.memory.hexView(typeof(debuggerAddress) === "number" ? debuggerAddress : 0x8300, 304, debuggerAddress);
                     }
                     else {
                         // VDP
-                        viewObj = ti994a.vdp.hexView(typeof(debuggerAddress) === "number" ? debuggerAddress : 0, 320, debuggerAddress);
+                        viewObj = ti994a.vdp.hexView(typeof(debuggerAddress) === "number" ? debuggerAddress : 0, 304, debuggerAddress);
                     }
                 }
             }

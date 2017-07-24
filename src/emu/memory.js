@@ -45,7 +45,9 @@ function Memory(vdp, tms9919, tms5220, settings) {
     this.cartInverted = false;
     this.cartBankCount = 0;
     this.currentCartBank = 0;
-    this.cartAddrOffset = 0x6000;
+    this.cartAddrOffset = -0x6000;
+    this.currentCartBank2 = 0;
+    this.cartAddrOffset2 = -0x6000;
 
     this.peripheralROMs = [];
     this.peripheralROMEnabled  = false;
@@ -54,9 +56,6 @@ function Memory(vdp, tms9919, tms5220, settings) {
     if (settings && settings.isGoogleDriveEnabled()) {
         this.loadPeripheralROM(GoogleDrive.DSR_ROM, 2);
     }
-
-    this.ramAt6000 = false;
-    this.ramAt7000 = false;
 
     this.buildMemoryMap();
 
@@ -162,24 +161,25 @@ Memory.prototype = {
             this.memoryMap[i] = accessors;
         }
         // For debugging
-        if (addr == 0x6000) {
+        if (addr === 0x6000) {
             this.log.info("RAM at >6000: " + enabled);
-            this.ramAt6000 = enabled;
         }
-        if (addr == 0x7000) {
+        if (addr === 0x7000) {
             this.log.info("RAM at >7000: " + enabled);
-            this.ramAt7000 = enabled;
         }
     },
 
     loadRAM: function (addr, byteArray) {
         for (var i = 0; i < byteArray.length; i++) {
-            // TODO: handle cartridge RAM
-            if (this.enableAMS) {
-                this.ams.setByte(addr + i, byteArray[i]);
+            var a = addr + i;
+            if (this.enableAMS && (a >= 0x2000 && a < 0x4000 || a >= 0xa000 && a < 0x10000)) {
+                this.ams.setByte(a, byteArray[i]);
+            }
+            else if (a >= 0x6000 && a < 0x8000) {
+                this.cartImage[a + this.cartAddrOffset] = byteArray[i];
             }
             else {
-                this.ram[addr + i] = byteArray[i];
+                this.ram[a] = byteArray[i];
             }
         }
     },
@@ -240,9 +240,6 @@ Memory.prototype = {
     },
 
     writeRAM: function (addr, w, cpu) {
-        //if (addr == 0xb6f4) {
-        //    this.log.info("Write RAM " + addr.toHexWord() + ": " + w.toHexWord() + " from PC=" + cpu.getPC().toHexWord());
-        //}
         cpu.addCycles(4);
         if (this.enableAMS) {
             this.ams.writeWord(addr, w);
@@ -261,7 +258,7 @@ Memory.prototype = {
         }
         else if (this.peripheralROMEnabled) {
             var peripheralROM = this.peripheralROMs[this.peripheralROMNumber];
-            if (peripheralROM != null) {
+            if (peripheralROM) {
                 // this.log.info("Read peripheral ROM " + addr.toHexWord() + ": " + (peripheralROM[addr - 0x4000] << 8 | peripheralROM[addr + 1 - 0x4000]).toHexWord());
                 return peripheralROM[addr - 0x4000] << 8 | peripheralROM[addr + 1 - 0x4000];
             }
@@ -278,7 +275,7 @@ Memory.prototype = {
 
     readCartridgeROM: function (addr, cpu) {
         cpu.addCycles(4);
-        return this.cartImage != null ? (this.cartImage[addr + this.cartAddrOffset] << 8) | this.cartImage[addr + this.cartAddrOffset + 1] : 0;
+        return this.cartImage  ? (this.cartImage[addr + this.cartAddrOffset] << 8) | this.cartImage[addr + this.cartAddrOffset + 1] : 0;
     },
 
     writeCartridgeROM: function (addr, w, cpu) {
@@ -293,13 +290,15 @@ Memory.prototype = {
 
     readCartridgeRAM: function (addr, cpu) {
         cpu.addCycles(4);
-        return (this.ram[addr] << 8) | this.ram[addr + 1];
+        return this.cartImage ? (this.cartImage[addr + this.cartAddrOffset] << 8) | this.cartImage[addr + this.cartAddrOffset + 1] : 0;
     },
 
     writeCartridgeRAM: function (addr, w, cpu) {
         cpu.addCycles(4);
-        this.ram[addr] = w >> 8;
-        this.ram[addr + 1] = w & 0xFF;
+        if (this.cartImage) {
+            this.cartImage[addr + this.cartAddrOffset] = w >> 8;
+            this.cartImage[addr + this.cartAddrOffset + 1] = w & 0xFF;
+        }
     },
 
     readPAD: function (addr, cpu) {
@@ -326,10 +325,10 @@ Memory.prototype = {
     readVDP: function (addr, cpu) {
         cpu.addCycles(4);
         addr = addr & 0x8802;
-        if (addr == Memory.VDPRD) {
+        if (addr === Memory.VDPRD) {
             return this.vdp.readData() << 8;
         }
-        else if (addr == Memory.VDPSTA) {
+        else if (addr === Memory.VDPSTA) {
             return this.vdp.readStatus() << 8;
         }
         return 0;
@@ -338,10 +337,10 @@ Memory.prototype = {
     writeVDP: function (addr, w, cpu) {
         cpu.addCycles(4);
         addr = addr & 0x8C02;
-        if (addr == Memory.VDPWD) {
+        if (addr === Memory.VDPWD) {
             this.vdp.writeData(w >> 8);
         }
-        else if (addr == Memory.VDPWA) {
+        else if (addr === Memory.VDPWA) {
             this.vdp.writeAddress(w >> 8);
         }
     },
@@ -360,7 +359,7 @@ Memory.prototype = {
         cpu.addCycles(4);
         var base = !this.multiGROMBases || this.gromAddress - 1 < 0x6000 ? 0 : (addr & 0x003C) >> 2;
         addr = addr & 0x9802;
-        if (addr == Memory.GRMRD) {
+        if (addr === Memory.GRMRD) {
             // Read data from GROM
             this.gromAccess = 2;
             var w = this.gromPrefetch[base] << 8;
@@ -374,7 +373,7 @@ Memory.prototype = {
             this.gromAddress++;
             return w;
         }
-        else if (addr == Memory.GRMRA) {
+        else if (addr === Memory.GRMRA) {
             // Get GROM address
             this.gromAccess = 2;
             var wa = this.gromAddress & 0xFF00;
@@ -388,7 +387,7 @@ Memory.prototype = {
     writeGROM: function (addr, w, cpu) {
         cpu.addCycles(23);
         addr = addr & 0x9C02;
-        if (addr == Memory.GRMWD) {
+        if (addr === Memory.GRMWD) {
             if (this.enableGRAM) {
                 // Write data to GROM
                 var base = !this.multiGROMBases || this.gromAddress - 1 < 0x6000 ? 0 : (addr & 0x003C) >> 2;
@@ -401,11 +400,11 @@ Memory.prototype = {
                 this.gromAddress++;
             }
         }
-        else if (addr == Memory.GRMWA) {
+        else if (addr === Memory.GRMWA) {
             // Set GROM address
             this.gromAddress = ((this.gromAddress << 8) | w >> 8) & 0xFFFF;
             this.gromAccess--;
-            if (this.gromAccess == 0) {
+            if (this.gromAccess === 0) {
                 this.gromAccess = 2;
                 // Prefetch for all bases
                 for (var b = 0; b < Memory.GROM_BASES; b++) {
@@ -434,7 +433,7 @@ Memory.prototype = {
         this.memoryMap[addr][1].call(this, addr, w, cpu);
     },
 
-    // Fast methods that doesn't produce wait states. For debugger etc.
+    // Fast methods that don't produce wait states. For debugger etc.
 
     getByte: function (addr) {
         if (addr < 0x2000) {
@@ -451,27 +450,14 @@ Memory.prototype = {
         if (addr < 0x6000) {
             if (this.peripheralROMEnabled) {
                 var peripheralROM = this.peripheralROMs[this.peripheralROMNumber];
-                return peripheralROM != null ? peripheralROM[addr - 0x4000] : 0;
+                return peripheralROM ? peripheralROM[addr - 0x4000] : 0;
             }
             else {
                 return 0;
             }
         }
-        if (addr < 0x7000) {
-            if (this.ramAt6000) {
-                return this.ram[addr];
-            }
-            else {
-                return this.cartImage != null ? this.cartImage[addr + this.cartAddrOffset] : this.ram[addr];
-            }
-        }
         if (addr < 0x8000) {
-            if (this.ramAt7000) {
-                return this.ram[addr];
-            }
-            else {
-                return this.cartImage != null ? this.cartImage[addr + this.cartAddrOffset] : this.ram[addr];
-            }
+            return this.cartImage ? this.cartImage[addr + this.cartAddrOffset] : 0;
         }
         if (addr < 0x8400) {
             addr = addr | 0x0300;
@@ -506,27 +492,14 @@ Memory.prototype = {
         if (addr < 0x6000) {
             if (this.peripheralROMEnabled) {
                 var peripheralROM = this.peripheralROMs[this.peripheralROMNumber];
-                return peripheralROM != null ? peripheralROM[addr - 0x4000] << 8 | peripheralROM[addr + 1 - 0x4000] : 0;
+                return peripheralROM ? peripheralROM[addr - 0x4000] << 8 | peripheralROM[addr + 1 - 0x4000] : 0;
             }
             else {
                 return 0;
             }
         }
-        if (addr < 0x7000) {
-            if (this.ramAt6000) {
-                return this.ram[addr] << 8 | this.ram[addr + 1];
-            }
-            else {
-                return this.cartImage != null ? (this.cartImage[addr + this.cartAddrOffset] << 8) | this.cartImage[addr + this.cartAddrOffset + 1] : this.ram[addr] << 8 | this.ram[addr + 1];
-            }
-        }
-        if (addr < 0x7000) {
-            if (this.ramAt6000) {
-                return this.ram[addr] << 8 | this.ram[addr + 1];
-            }
-            else {
-                return this.cartImage != null ? (this.cartImage[addr + this.cartAddrOffset] << 8) | this.cartImage[addr + this.cartAddrOffset + 1] : this.ram[addr] << 8 | this.ram[addr + 1];
-            }
+        if (addr < 0x8000) {
+            return this.cartImage ? (this.cartImage[addr + this.cartAddrOffset] << 8) | this.cartImage[addr + this.cartAddrOffset + 1] : 0;
         }
         if (addr < 0x8400) {
             addr = addr | 0x0300;
@@ -568,7 +541,7 @@ Memory.prototype = {
     getStatusString: function () {
         return "GROM:" + this.gromAddress.toHexWord() + " (bank:" + ((this.gromAddress & 0xE000) >> 13) +
             ", addr:" + (this.gromAddress & 0x1FFF).toHexWord() + ") " +
-           (this.cartImage != null ? "CART: bank " + this.currentCartBank +" / 0-" + (this.cartBankCount - 1) : "") +
+           (this.cartImage ? "CART: bank " + this.currentCartBank +" / 0-" + (this.cartBankCount - 1) : "") +
            (this.enableAMS ? "\nAMS Regs: " + this.ams.getStatusString() : "")
     },
 
@@ -578,16 +551,16 @@ Memory.prototype = {
         var addr = start;
         var line = 0;
         for (var i = 0; i < length; addr++, i++) {
-            if ((i & 0x000F) == 0) {
+            if ((i & 0x000F) === 0) {
                 text += "\n" + addr.toHexWord() + ":";
                 line++;
             }
             text += " ";
-            if (anchorAddr && anchorAddr == addr) {
+            if (anchorAddr && anchorAddr === addr) {
                 anchorLine = line;
             }
             var hex = this.getByte(addr).toString(16).toUpperCase();
-            if (hex.length == 1) {
+            if (hex.length === 1) {
                 text += "0";
             }
             text += hex;
