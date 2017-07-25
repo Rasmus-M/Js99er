@@ -240,6 +240,7 @@ TI994A.prototype = {
         this.tms9919.mute();
         this.vdp.updateCanvas();
         this.running = false;
+        this.tms9900.dumpProfile();
     },
 
     drawFrame: function () {
@@ -302,32 +303,30 @@ TI994A.prototype = {
         if (wasRunning) {
             this.stop();
         }
-        this.reset(sw.memoryBlocks != null);
-        if (sw.memoryBlocks != null) {
+        this.reset(sw.memoryBlocks);
+        if (sw.memoryBlocks) {
             for (var i = 0; i < sw.memoryBlocks.length; i++) {
                 var memoryBlock = sw.memoryBlocks[i];
                 this.memory.loadRAM(memoryBlock.address, memoryBlock.data);
             }
         }
-        if (sw.rom != null) {
-            this.memory.setCartridgeImage(sw.rom, sw.type == Software.TYPE_INVERTED_CART);
+        if (sw.rom) {
+            this.memory.setCartridgeImage(
+                sw.rom,
+                sw.type === Software.TYPE_INVERTED_CART,
+                sw.ramAt6000, sw.ramAt7000, sw.ramPaged
+            );
         }
-        if (sw.grom != null) {
+        if (sw.grom) {
             this.memory.loadGROM(sw.grom, 3, 0);
         }
-        if (sw.groms != null) {
+        if (sw.groms) {
             for (var g = 0; g < sw.groms.length; g++) {
                 this.memory.loadGROM(sw.groms[g], 3, g);
             }
         }
-        if (sw.ramAt6000 !== undefined) {
-            this.memory.toggleCartridgeRAM(0x6000, 0x1000, sw.ramAt6000);
-        }
-        if (sw.ramAt7000 !== undefined) {
-            this.memory.toggleCartridgeRAM(0x7000, 0x1000, sw.ramAt7000);
-        }
-        this.tms9900.setWP(sw.workspaceAddress != null ? sw.workspaceAddress : (SYSTEM.ROM[0] << 8 | SYSTEM.ROM[1]));
-        this.tms9900.setPC(sw.startAddress != null ? sw.startAddress : (SYSTEM.ROM[2] << 8 | SYSTEM.ROM[3]));
+        this.tms9900.setWP(sw.workspaceAddress ? sw.workspaceAddress : (SYSTEM.ROM[0] << 8 | SYSTEM.ROM[1]));
+        this.tms9900.setPC(sw.startAddress ? sw.startAddress : (SYSTEM.ROM[2] << 8 | SYSTEM.ROM[3]));
         if (wasRunning) {
             this.start();
         }

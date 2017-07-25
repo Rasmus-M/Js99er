@@ -253,11 +253,13 @@ Software.prototype = {
                 };
             }
             else {
+                var ramPaged = (byteArray[3] === 0x52);
                 cart = {
                     type: inverted ? Software.TYPE_INVERTED_CART : Software.TYPE_CART,
                     rom: byteArray,
                     ramAt6000: false,
-                    ramAt7000: false
+                    ramAt7000: ramPaged,
+                    ramPaged: ramPaged
                 };
             }
             onSuccess(cart);

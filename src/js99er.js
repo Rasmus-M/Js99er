@@ -44,8 +44,8 @@
 
         log = Log.getLog();
         log.info("Welcome to JS99'er");
-        log.info("Version 5.9, 6 July 2017");
-        log.info("");
+        log.info("Version 5.10, 25 July 2017");
+        log.info("- Support for paged RAM carts");
         settings = new Settings(true);
         diskImages = {
             FLOPPY1: new DiskImage("FLOPPY1"),

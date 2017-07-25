@@ -46,8 +46,9 @@ function Memory(vdp, tms9919, tms5220, settings) {
     this.cartBankCount = 0;
     this.currentCartBank = 0;
     this.cartAddrOffset = -0x6000;
-    this.currentCartBank2 = 0;
-    this.cartAddrOffset2 = -0x6000;
+    this.cartRAMPaged = false;
+    this.currentCartRAMBank = 0;
+    this.cartAddrRAMOffset = -0x6000;
 
     this.peripheralROMs = [];
     this.peripheralROMEnabled  = false;
@@ -128,10 +129,7 @@ Memory.prototype = {
     reset: function (keepCart) {
         var i;
         for (i = 0; i < this.ram.length; i++) {
-            // Don't erase cartridge RAM for Mini Memory etc.
-            if (!keepCart || i >= 0x2000 && i < 0x4000 || i >= 0xa000 && i < 0x10000) {
-                this.ram[i] = 0; // i & 0xFF;
-            }
+            this.ram[i] = 0;
         }
         if (!keepCart) {
             var grom = this.groms[0];
@@ -155,20 +153,6 @@ Memory.prototype = {
         }
     },
 
-    toggleCartridgeRAM: function (addr, length, enabled) {
-        var accessors = enabled ? [this.readCartridgeRAM, this.writeCartridgeRAM] : [this.readCartridgeROM, this.writeCartridgeROM];
-        for (var i = addr; i < addr + length; i++) {
-            this.memoryMap[i] = accessors;
-        }
-        // For debugging
-        if (addr === 0x6000) {
-            this.log.info("RAM at >6000: " + enabled);
-        }
-        if (addr === 0x7000) {
-            this.log.info("RAM at >7000: " + enabled);
-        }
-    },
-
     loadRAM: function (addr, byteArray) {
         for (var i = 0; i < byteArray.length; i++) {
             var a = addr + i;
@@ -176,7 +160,7 @@ Memory.prototype = {
                 this.ams.setByte(a, byteArray[i]);
             }
             else if (a >= 0x6000 && a < 0x8000) {
-                this.cartImage[a + this.cartAddrOffset] = byteArray[i];
+                this.cartImage[a + this.cartAddrRAMOffset] = byteArray[i];
             }
             else {
                 this.ram[a] = byteArray[i];
@@ -195,12 +179,29 @@ Memory.prototype = {
         }
     },
 
-    setCartridgeImage: function (byteArray, inverted) {
+    setCartridgeImage: function (byteArray, inverted, ramAt6000, ramAt7000, ramPaged) {
         this.cartImage = new Uint8Array(byteArray);
         this.cartInverted = inverted;
         this.cartBankCount = this.cartImage.length / 0x2000;
         this.currentCartBank = 0;
         this.cartAddrOffset = -0x6000;
+        this.cartRAMPaged = ramPaged;
+        if (ramPaged) {
+            this.log.info("Paged RAM cart found.");
+            this.currentCartRAMBank = 0;
+            this.cartAddrRAMOffset = -0x6000;
+        }
+        var ramAccessors = [this.readCartridgeRAM, this.writeCartridgeRAM];
+        var romAccessors = [this.readCartridgeROM, this.writeCartridgeROM];
+        var i;
+        this.log.info("RAM at >6000: " + ramAt6000);
+        for (i = 0x6000; i < 0x7000; i++) {
+            this.memoryMap[i] = ramAt6000 ? ramAccessors :  romAccessors;
+        }
+        this.log.info("RAM at >7000: " + ramAt7000);
+        for (i = 0x7000; i < 0x8000; i++) {
+            this.memoryMap[i] = ramAt7000 ? ramAccessors :  romAccessors;
+        }
     },
 
     loadPeripheralROM: function (byteArray, number) {
@@ -280,24 +281,33 @@ Memory.prototype = {
 
     writeCartridgeROM: function (addr, w, cpu) {
         cpu.addCycles(4);
-        this.currentCartBank = (addr >> 1) & (this.cartBankCount - 1);
-        if (this.cartInverted) {
-            this.currentCartBank = this.cartBankCount - this.currentCartBank - 1;
+        if (!this.cartRAMPaged || addr < 0x6800) {
+            this.currentCartBank = (addr >> 1) & (this.cartBankCount - 1);
+            if (this.cartInverted) {
+                this.currentCartBank = this.cartBankCount - this.currentCartBank - 1;
+            }
+            this.cartAddrOffset = this.currentCartBank * 0x2000 - 0x6000;
+            // this.log.info("Cartridge ROM bank selected: " + this.currentCartBank);
         }
-        this.cartAddrOffset = this.currentCartBank * 0x2000 - 0x6000;
-        // this.log.info("Cartridge bank selected: " + this.currentCartBank);
+        else {
+            this.currentCartRAMBank = (addr >> 1) & (this.cartBankCount - 1);
+            this.cartAddrRAMOffset = this.currentCartRAMBank * 0x2000 - 0x6000;
+            // this.log.info("Cartridge RAM bank selected: " + this.currentCartRAMBank);
+        }
     },
 
     readCartridgeRAM: function (addr, cpu) {
+        // this.log.info("Read cartridge RAM: " + addr.toHexWord());
         cpu.addCycles(4);
-        return this.cartImage ? (this.cartImage[addr + this.cartAddrOffset] << 8) | this.cartImage[addr + this.cartAddrOffset + 1] : 0;
+        return this.cartImage ? (this.cartImage[addr + this.cartAddrRAMOffset] << 8) | this.cartImage[addr + this.cartAddrRAMOffset + 1] : 0;
     },
 
     writeCartridgeRAM: function (addr, w, cpu) {
+        // this.log.info("Write cartridge RAM: " + addr.toHexWord());
         cpu.addCycles(4);
         if (this.cartImage) {
-            this.cartImage[addr + this.cartAddrOffset] = w >> 8;
-            this.cartImage[addr + this.cartAddrOffset + 1] = w & 0xFF;
+            this.cartImage[addr + this.cartAddrRAMOffset] = w >> 8;
+            this.cartImage[addr + this.cartAddrRAMOffset + 1] = w & 0xFF;
         }
     },
 
@@ -456,8 +466,16 @@ Memory.prototype = {
                 return 0;
             }
         }
-        if (addr < 0x8000) {
+        if (addr < 0x7000) {
             return this.cartImage ? this.cartImage[addr + this.cartAddrOffset] : 0;
+        }
+        if (addr < 0x8000) {
+            if (this.cartRAMPaged) {
+                return this.cartImage ? this.cartImage[addr + this.cartAddrRAMOffset] : 0;
+            }
+            else {
+                return this.cartImage ? this.cartImage[addr + this.cartAddrOffset] : 0;
+            }
         }
         if (addr < 0x8400) {
             addr = addr | 0x0300;
@@ -498,8 +516,16 @@ Memory.prototype = {
                 return 0;
             }
         }
-        if (addr < 0x8000) {
+        if (addr < 0x7000) {
             return this.cartImage ? (this.cartImage[addr + this.cartAddrOffset] << 8) | this.cartImage[addr + this.cartAddrOffset + 1] : 0;
+        }
+        if (addr < 0x8000) {
+            if (this.cartRAMPaged) {
+                return this.cartImage ? (this.cartImage[addr + this.cartAddrRAMOffset] << 8) | this.cartImage[addr + this.cartAddrRAMOffset + 1] : 0;
+            }
+            else {
+                return this.cartImage ? (this.cartImage[addr + this.cartAddrOffset] << 8) | this.cartImage[addr + this.cartAddrOffset + 1] : 0;
+            }
         }
         if (addr < 0x8400) {
             addr = addr | 0x0300;

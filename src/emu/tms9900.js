@@ -37,7 +37,7 @@ function TMS9900(memory, cru, keyboard, diskDrives, googleDrives) {
 
     // Counters
     this.cycles = 0;
-    this.cruCycles = 0;
+    // this.cruCycles = 0;
 
     // Constants
     this.SRC             = 0;
@@ -71,6 +71,7 @@ function TMS9900(memory, cru, keyboard, diskDrives, googleDrives) {
     this.breakpoint = null;
     this.otherBreakpoint = null;
     this.illegalCount = 0;
+    this.profile = null;
     this.log = Log.getLog();
 }
 
@@ -88,8 +89,9 @@ TMS9900.prototype = {
         this.B = 0;
         this.nPostInc = [0, 0];
         this.cycles = 0;
-        this.cruCycles = 0;
+        // this.cruCycles = 0;
         this.illegalCount = 0;
+        this.profile = new Uint32Array(0x10000);
 
         // Reset
         this.WP = this.readMemoryWord(0x0000);
@@ -242,6 +244,7 @@ TMS9900.prototype = {
             else {
                 this.log.info(((this.PC - 2) & 0xFFFF).toHexWord() + " " + instruction.toHexWord() + " " + opcode.id + ": Not implemented");
             }
+            this.profile[(this.PC - 2) & 0xFFFF] += cycles;
             return cycles;
         }
         else {
@@ -1749,5 +1752,21 @@ TMS9900.prototype = {
 
     atBreakpoint: function () {
         return this.PC === this.breakpoint || this.PC === this.otherBreakpoint;
+    },
+
+    dumpProfile: function () {
+        var sortedProfile = [];
+        for (var i = 0; i < 0x10000; i++) {
+            sortedProfile[i] = {addr: i, count: this.profile[i]};
+        }
+        sortedProfile.sort(function (p1, p2) {
+            return p2.count - p1.count;
+        });
+        this.log.info("Profile:");
+        for (var j = 0; j < 16; j++) {
+            this.log.info(sortedProfile[j].addr.toHexWord() + ": " + sortedProfile[j].count + " cycles.");
+        }
+        this.profile = new Uint32Array(0x10000);
+        this.log.info("--------");
     }
 };
