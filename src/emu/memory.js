@@ -567,7 +567,7 @@ Memory.prototype = {
     getStatusString: function () {
         return "GROM:" + this.gromAddress.toHexWord() + " (bank:" + ((this.gromAddress & 0xE000) >> 13) +
             ", addr:" + (this.gromAddress & 0x1FFF).toHexWord() + ") " +
-           (this.cartImage ? "CART: bank " + this.currentCartBank +" / 0-" + (this.cartBankCount - 1) : "") +
+           (this.cartImage ? "CART: bank " + this.currentCartBank + (this.cartRAMPaged ? "/" + this.currentCartRAMBank : "") + " of " + this.cartBankCount : "") +
            (this.enableAMS ? "\nAMS Regs: " + this.ams.getStatusString() : "")
     },
 
