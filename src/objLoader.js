@@ -90,7 +90,7 @@ var ObjLoader = (function () {
         var ram = new Uint8Array(0x10000);
         var psegOffset = 0xA000;
         var loadAddress = psegOffset;
-        var autoStartAddress = loadAddress;
+        var autoStartAddress = -1;
         var lowRAMStartAddress = 0x10000;
         var lowRAMEndAddress = 0;
         var highRAMStartAddress = 0x10000;
@@ -146,12 +146,18 @@ var ObjLoader = (function () {
                     case '5':
                         offset = lineReader.readWord();
                         label = lineReader.readString(6).trim();
+                        if (autoStartAddress === -1) {
+                            autoStartAddress = psegOffset + offset;
+                        }
                         console.log("DEF " + label + " offset " + offset.toHexWord() + ": " + (psegOffset + offset).toHexWord());
                         break;
                     // DEF label in AORG
                     case '6':
                         address = lineReader.readWord();
                         label = lineReader.readString(6).trim();
+                        if (autoStartAddress === -1) {
+                            autoStartAddress = address;
+                        }
                         console.log("DEF " + label + ": " + address.toHexWord());
                         break;
                     // Checksum
@@ -289,7 +295,7 @@ var ObjLoader = (function () {
         this.highRAMEndAddress = highRAMEndAddress;
         this.cartRAMStartAddress = cartRAMStartAddress;
         this.cartRAMEndAddress = cartRAMEndAddress;
-        this.autoStartAddress = autoStartAddress;
+        this.autoStartAddress = autoStartAddress !== -1 ? autoStartAddress : loadAddress;
         this.ram = ram;
         this.rom = rom;
         this.action = action;
