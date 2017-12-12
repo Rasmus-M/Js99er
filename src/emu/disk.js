@@ -327,7 +327,7 @@ DiskDrive.prototype = {
                         if (operationMode == TI_FILE.OPERATION_MODE_OUTPUT || operationMode == TI_FILE.OPERATION_MODE_APPEND || operationMode == TI_FILE.OPERATION_MODE_UPDATE) {
                             // Create a new file
                             if (recordLength == 0) {
-                                recordLength = 128;
+                                recordLength = 80;
                                 // Write default record length to PAB
                                 this.ram[pabAddr + 4] = recordLength;
                             }
@@ -470,9 +470,9 @@ DiskDrive.prototype = {
                                     }
                                     switch (file.getOperationMode()) {
                                         case TI_FILE.OPERATION_MODE_UPDATE:
+                                        case TI_FILE.OPERATION_MODE_OUTPUT:
                                             file.putRecord(record);
                                             break;
-                                        case TI_FILE.OPERATION_MODE_OUTPUT:
                                         case TI_FILE.OPERATION_MODE_APPEND:
                                             if (file.isEOF()) {
                                                 file.putRecord(record);
