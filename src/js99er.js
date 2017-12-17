@@ -158,11 +158,11 @@
             }
             var extension = file.name.split('.').pop();
             extension = extension ? extension.toLowerCase() : "";
-            if (extension != null && extension != "rpk" && extension != "zip" && extension != "bin") {
+            if (extension != null && extension !== "rpk" && extension !== "zip" && extension !== "bin") {
                 log.error("File name extension '" + extension + "' not supported.");
                 return;
             }
-            if (extension == "bin") {
+            if (extension === "bin") {
                 software.loadModuleFromBinFile(file,
                     function (cart) {
                         ti994a.loadSoftware(cart);
@@ -277,7 +277,7 @@
         ///////////////////
 
         $("#debuggerTab").on("click", function () { updateDebugger(true); });
-        $("#disassembly").on("click", function (evt) {
+        $("#disassembly").on("click", function () {
             $("#disassemblyCheck").addClass("glyphicon glyphicon-ok");
             $("#hexViewCheck").removeClass("glyphicon glyphicon-ok");
             memoryView = 0;
@@ -367,7 +367,7 @@
         var enableAMS = $("#enableAMS");
         enableAMS.bootstrapSwitch("state", settings.isAMSEnabled());
         enableAMS.on('switchChange.bootstrapSwitch', function (event, state) {
-            if (state != settings.isAMSEnabled()) {
+            if (state !== settings.isAMSEnabled()) {
                 settings.setAMSEnabled(state);
                 ti994a.memory.setAMSEnabled(state);
                 $("#btnReset").click();
@@ -377,7 +377,7 @@
         var enableGRAM = $("#enableGRAM");
         enableGRAM.bootstrapSwitch("state", settings.isGRAMEnabled());
         enableGRAM.on('switchChange.bootstrapSwitch', function (event, state) {
-            if (state != settings.isGRAMEnabled()) {
+            if (state !== settings.isGRAMEnabled()) {
                 settings.setGRAMEnabled(state);
                 ti994a.memory.setGRAMEnabled(state);
                 $("#btnReset").click();
@@ -396,7 +396,7 @@
         var enableF18A = $("#enableF18A");
         enableF18A.bootstrapSwitch("state", settings.isF18AEnabled());
         enableF18A.on('switchChange.bootstrapSwitch', function (event, state) {
-            if (state != settings.isF18AEnabled()) {
+            if (state !== settings.isF18AEnabled()) {
                 settings.setF18AEnabled(state);
                 ti994a.setVDP(settings);
                 window.setTimeout(function () { $("#btnReset").click(); }, 500);
@@ -420,7 +420,7 @@
         var enableGoogleDrive = $("#enableGoogleDrive");
         enableGoogleDrive.bootstrapSwitch("state", settings.isGoogleDriveEnabled());
         enableGoogleDrive.on('switchChange.bootstrapSwitch', function (event, state) {
-            if (state != settings.isGoogleDriveEnabled()) {
+            if (state !== settings.isGoogleDriveEnabled()) {
                 settings.setGoogleDriveEnabled(state);
                 ti994a.setGoogleDrive(settings);
                 $("#btnReset").click();
@@ -430,7 +430,7 @@
         var enablePixelated = $("#enablePixelated");
         enablePixelated.bootstrapSwitch("state", settings.isPixelatedEnabled());
         enablePixelated.on('switchChange.bootstrapSwitch', function (event, state) {
-            if (state != settings.isPixelatedEnabled()) {
+            if (state !== settings.isPixelatedEnabled()) {
                 settings.setPixelatedEnabled(state);
                 $("#canvas").toggleClass("pixelated", state);
             }
@@ -453,7 +453,7 @@
     function buildPreloads(list, programs) {
         var item, link, subList;
         for (var i = 0; i < programs.length; i++) {
-            if (programs[i].type == Software.TYPE_GROUP) {
+            if (programs[i].type === Software.TYPE_GROUP) {
                 item = $("<li class=\"dropdown-submenu\">");
                 item.appendTo(list);
                 link = $("<a href=\"#\" class=\"dropdown-toggle\" data-toggle=\"dropdown\">" + programs[i].name + "</a>");
@@ -462,10 +462,10 @@
                 subList.appendTo(item);
                 buildPreloads(subList, programs[i].programs);
             }
-            else if (programs[i].type == Software.TYPE_DIVIDER) {
+            else if (programs[i].type === Software.TYPE_DIVIDER) {
                 list.append("<li class=\"divider\"></li>");
             }
-            else if (programs[i].type == Software.TYPE_MORE) {
+            else if (programs[i].type === Software.TYPE_MORE) {
                 item = $("<li></li>");
                 item.appendTo(list);
                 link = $("<a href=\"#\">" + programs[i].name + "</a>");
@@ -517,15 +517,15 @@
                 if (cart != null) {
                     ti994a.loadSoftware(cart);
                 }
-            }, function (msg) {
+            }, function () {
                 log.error("Failed to load '" + name + "' (" + filename + ").");
             });
         });
     }
 
     function fileToName(filename) {
-        filename = filename.replace(/^(ag|as|aw|co|cy|db|dc|de|dlm|dv|fw|im|jp|mb|mi|na|ni|pb|ro|se|sf|sm|so|sp|ss|th|tv|vm|wd|wl)\_/, "");
-        filename = filename.replace(/\_/g, " ");
+        filename = filename.replace(/^(ag|as|aw|co|cy|db|dc|de|dlm|dv|fw|im|jp|mb|mi|na|ni|pb|ro|se|sf|sm|so|sp|ss|th|tv|vm|wd|wl)_/, "");
+        filename = filename.replace(/_/g, " ");
         filename = filename.substr(0, 1).toUpperCase() + filename.substr(1);
         return filename;
     }
@@ -535,7 +535,7 @@
             var file = files[i];
             if (file != null) {
                 var extension = file.name.split('.').pop();
-                if (extension != null && extension.toLowerCase() == "zip") {
+                if (extension != null && extension.toLowerCase() === "zip") {
                     zip.createReader(new zip.BlobReader(file), function (zipReader) {
                         zipReader.getEntries(function (entries) {
                             entries.forEach(function (entry) {
@@ -555,7 +555,7 @@
                         log.error(message);
                     });
                 }
-                else if (extension != null && extension.toLowerCase() == "obj") {
+                else if (extension != null && extension.toLowerCase() === "obj") {
                     log.info("Loading object file.");
                     var reader = new FileReader();
                     reader.onload = function () {
@@ -584,7 +584,7 @@
             // reader.result contains the contents of blob as a typed array
             var fileBuffer = new Uint8Array(this.result);
             var diskImage;
-            if (fileBuffer.length >= 16 && fileBuffer[0x0D] == 0x44 &&  fileBuffer[0x0E] == 0x53 && fileBuffer[0x0F] == 0x4B) {
+            if (fileBuffer.length >= 16 && fileBuffer[0x0D] === 0x44 &&  fileBuffer[0x0E] === 0x53 && fileBuffer[0x0F] === 0x4B) {
                 diskImage = diskDrive.loadDSKFile(filename, fileBuffer);
                 if (diskImage) {
                     diskImages[diskImage.getName()] = diskImage;
@@ -645,7 +645,7 @@
     }
 
     function saveDiskImages(diskImages, index, callback) {
-        if (index == diskImages.length) {
+        if (index === diskImages.length) {
             callback(true);
             return;
         }
@@ -661,7 +661,7 @@
     }
 
     function saveDiskDrives(diskDrives, index, callback) {
-        if (index == diskDrives.length) {
+        if (index === diskDrives.length) {
             callback(true);
             return;
         }
@@ -699,7 +699,7 @@
     }
 
     function loadDiskDrives(diskDrives, diskImages, index, callback) {
-        if (index == diskDrives.length) {
+        if (index === diskDrives.length) {
             callback(true);
             return;
         }
@@ -730,7 +730,7 @@
             if (diskImages.hasOwnProperty(diskImageName)) {
                 var diskDriveList = "";
                 for (var i = 0; i < diskDrives.length; i++) {
-                    if (diskDrives[i].getDiskImage() && diskDrives[i].getDiskImage().getName() == diskImageName) {
+                    if (diskDrives[i].getDiskImage() && diskDrives[i].getDiskImage().getName() === diskImageName) {
                         diskDriveList += (diskDriveList.length > 0 ? ", " : "") + diskDrives[i].getName();
                     }
                 }
@@ -756,11 +756,11 @@
                     row = "<tr>" +
                         "<td><input type=\"checkbox\" name=\"" + fileName + "\"/></td>" +
                         "<td>" + fileName + "</td>" +
-                        "<td>" + (file.getFileType() == TI_FILE.FILE_TYPE_DATA ? "Data" : "Program") + "</td>";
-                    if (file.getFileType() == TI_FILE.FILE_TYPE_DATA) {
+                        "<td>" + (file.getFileType() === TI_FILE.FILE_TYPE_DATA ? "Data" : "Program") + "</td>";
+                    if (file.getFileType() === TI_FILE.FILE_TYPE_DATA) {
                         row +=
-                            "<td>" + (file.getDatatype() == TI_FILE.DATATYPE_DISPLAY ? "DIS" : "INT") + "</td>" +
-                            "<td>" + (file.getRecordType() == TI_FILE.RECORD_TYPE_FIXED ? "FIX" : "VAR") + "</td>" +
+                            "<td>" + (file.getDatatype() === TI_FILE.DATATYPE_DISPLAY ? "DIS" : "INT") + "</td>" +
+                            "<td>" + (file.getRecordType() === TI_FILE.RECORD_TYPE_FIXED ? "FIX" : "VAR") + "</td>" +
                             "<td>" + (file.getRecordLength() > 0 ? file.getRecordLength() : "") + "</td>";
                     }
                     else {
@@ -805,7 +805,7 @@
         if (diskImageName && diskImageName.length > 0 && confirm("Are you sure you want to delete the disk '" + diskImageName + "' from memory?")) {
             var diskDrives = ti994a.getDiskDrives();
             for (var i = 0; i < diskDrives.length; i++) {
-                if (diskDrives[i].getDiskImage() && diskDrives[i].getDiskImage().getName() == diskImageName) {
+                if (diskDrives[i].getDiskImage() && diskDrives[i].getDiskImage().getName() === diskImageName) {
                     diskDrives[i].setDiskImage(null);
                 }
             }
@@ -815,15 +815,16 @@
     }
 
     function deleteFiles() {
-        var nSelected = $("input:checked").length;
+        var selection = $("#diskFileTable").find("input:checked");
+        var nSelected = selection.length;
         if (nSelected > 0) {
             var diskImageName = $("#diskImageList").val();
             if (diskImageName && diskImageName.length > 0 && confirm("Are you sure you want to delete the " + nSelected + " selected file" + (nSelected > 1 ? "s" : "") + " from '" + diskImageName + "'?")) {
                 var diskImage = diskImages[diskImageName];
-                $("input:checked").each(
+                selection.each(
                     function (index) {
                         diskImage.deleteFile(this.name);
-                        if (index == nSelected - 1) {
+                        if (index === nSelected - 1) {
                             updateDiskFileTable(diskImageName);
                         }
                     }
@@ -840,16 +841,16 @@
     /////////////////////////////
 
     function updateDebugger(force) {
-        if (activeTab && activeTab.id == "debuggerTab" || force) {
+        if (activeTab && activeTab.id === "debuggerTab" || force) {
             $("#status").text(ti994a.getStatusString());
             var $memory = $("#memory");
             var viewObj;
             var pc = ti994a.getPC();
             if (ti994a.isRunning()) {
                 // Running
-                if (memoryView == 0) {
+                if (memoryView === 0) {
                     // Disassemble
-                    if (memoryType == 0) {
+                    if (memoryType === 0) {
                         // CPU
                         disassembler.setMemory(ti994a.memory);
                         viewObj = disassembler.disassemble(pc, null, 19, pc);
@@ -862,7 +863,7 @@
                 }
                 else {
                     // Hex view
-                    if (memoryType == 0) {
+                    if (memoryType === 0) {
                         // CPU
                         viewObj = ti994a.memory.hexView(typeof(debuggerAddress) === "number" ? debuggerAddress : 0x8300, 304, debuggerAddress);
                     }
@@ -874,9 +875,9 @@
             }
             else {
                 // Stopped
-                if (memoryView == 0) {
+                if (memoryView === 0) {
                     // Disassemble
-                    if (memoryType == 0) {
+                    if (memoryType === 0) {
                         // CPU
                         disassembler.setMemory(ti994a.memory);
                         viewObj = disassembler.disassemble(0, 0x10000, null, typeof(debuggerAddress) === "number" ? debuggerAddress : pc);
@@ -889,7 +890,7 @@
                 }
                 else {
                     // Hex view
-                    if (memoryType == 0) {
+                    if (memoryType === 0) {
                         // CPU
                         viewObj = ti994a.memory.hexView(0, 0x10000, typeof(debuggerAddress) === "number" ? debuggerAddress : pc);
                     }
