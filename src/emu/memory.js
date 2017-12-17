@@ -591,7 +591,7 @@ Memory.prototype = {
             }
             text += hex;
         }
-        return {text: text.substr(1), anchorLine: anchorLine - 1};
+        return {text: text.substr(1), lineCount: line, anchorLine: anchorLine - 1};
     },
 
     set32KRAMEnabled: function (enabled) {

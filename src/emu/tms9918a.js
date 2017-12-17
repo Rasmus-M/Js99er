@@ -591,7 +591,7 @@ TMS9918A.prototype = {
             }
             text += hex;
         }
-        return {text: text.substr(1), anchorLine: anchorLine - 1};
+        return {text: text.substr(1), lineCount: line, anchorLine: anchorLine - 1};
     },
 
     getWord: function (addr) {

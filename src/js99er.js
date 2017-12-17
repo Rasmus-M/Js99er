@@ -902,7 +902,7 @@
             }
             $memory.text(viewObj.text);
             if (viewObj.anchorLine) {
-                $memory.scrollTop(viewObj.anchorLine * 19);
+                $memory.scrollTop(viewObj.anchorLine * ($memory.prop('scrollHeight') / viewObj.lineCount)); // 1.0326
             }
         }
     }

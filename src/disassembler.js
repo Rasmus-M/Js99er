@@ -26,6 +26,7 @@ var Disassembler = (function () {
         maxInstructions = maxInstructions || 0x10000;
         var decoderTable = new Decoder().getDecoderTable();
         var disassembly = "";
+        var lineCount = 0;
         var anchorLine = null;
         var ts, td, s, d, b, c, w, disp, imm, word;
         for (var i = 0; i < maxInstructions && this.addr < end; i++) {
@@ -149,11 +150,12 @@ var Disassembler = (function () {
             }
             this.addr += 2;
             disassembly += "\n";
+            lineCount++;
             if (anchorAddr && anchorLine == null && addr >= anchorAddr) {
                 anchorLine = i;
             }
         }
-        return {text: disassembly, anchorLine: anchorLine};
+        return {text: disassembly, lineCount: lineCount, anchorLine: anchorLine};
     };
 
     function ga(type, val, disassembler) {
