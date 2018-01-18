@@ -70,9 +70,6 @@ function TMS9918A(canvas, cru, enableFlicker) {
     this.bgColor = null;
 
     this.flicker = null;
-    this.collision = null;
-    this.fifthSprite = null;
-    this.fifthSpriteIndex = null;
     this.redrawRequired = null;
 
     this.canvasContext = this.canvas.getContext("2d");
@@ -117,9 +114,6 @@ TMS9918A.prototype = {
         this.bgColor = 0;
 
         this.flicker = this.enableflicker;
-        this.collision = false;
-        this.fifthSprite = false;
-        this.fifthSpriteIndex = 0x1F;
         this.redrawRequired = true;
 
         this.canvas.width = 304;
@@ -134,9 +128,6 @@ TMS9918A.prototype = {
     },
 
     drawFrame: function (timestamp) {
-        this.collision = false;
-        this.fifthSprite = false;
-        this.fifthSpriteIndex = 0x1F;
         if (this.redrawRequired) {
             for (var y = 0; y < this.height; y++) {
                 this.drawScanline(y);
@@ -144,18 +135,6 @@ TMS9918A.prototype = {
             this.updateCanvas();
             this.redrawRequired = false;
         }
-        this.statusRegister = 0x80;
-        if (this.collision) {
-            this.statusRegister |= 0x20;
-        }
-        if (this.fifthSprite) {
-            this.statusRegister |= 0x40;
-        }
-        this.statusRegister |= this.fifthSpriteIndex;
-        if (this.interruptsOn) {
-            this.cru.writeBit(2, false);
-        }
-        this.updateCanvas();
     },
 
     initFrame: function (timestamp) {
