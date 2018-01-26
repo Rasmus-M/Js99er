@@ -7,7 +7,7 @@
  'use strict';
 
 TI994A.FRAMES_TO_RUN = Number.MAX_VALUE;
-TI994A.FRAME_MS = 16.66;
+TI994A.FRAME_MS = 17;
 TI994A.FPS_MS = 4000;
 
 function TI994A(canvas, diskImages, settings, onBreakpoint) {
@@ -244,15 +244,16 @@ TI994A.prototype = {
     },
 
     drawFrame: function () {
+        var timestamp = window.performance ? window.performance.now() : new Date().getTime();
         if (false && window.requestAnimationFrame) {
             var that = this;
-            requestAnimationFrame(function (timestamp) {
+            requestAnimationFrame(function () {
                 that.vdp.drawFrame(timestamp);
                 that.fpsFrameCount++;
             });
         }
         else {
-            this.vdp.drawFrame(window.performance ? window.performance.now() : new Date().getTime());
+            this.vdp.drawFrame(timestamp);
             this.fpsFrameCount++;
         }
     },

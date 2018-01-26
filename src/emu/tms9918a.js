@@ -161,7 +161,7 @@ TMS9918A.prototype = {
             patternTableMask = this.patternTableMask,
             spriteAttributeTable = this.spriteAttributeTable,
             spritePatternTable = this.spritePatternTable,
-            spriteSize = (this.registers[1] & 0x2) != 0,
+            spriteSize = (this.registers[1] & 0x2) !== 0,
             spriteMagnify = this.registers[1] & 0x1,
             spriteDimension = (spriteSize ? 16 : 8) << (spriteMagnify ? 1 : 0),
             maxSpritesOnLine = this.flicker ? 4 : 32,
@@ -179,7 +179,7 @@ TMS9918A.prototype = {
                 var s;
                 for (s = 0; s < 32 && spritesOnLine <= maxSpritesOnLine && !endMarkerFound; s++) {
                     var sy = ram[spriteAttributeAddr];
-                    if (sy != 0xD0) {
+                    if (sy !== 0xD0) {
                         if (sy > 0xD0) {
                             sy -= 256;
                         }
@@ -201,12 +201,12 @@ TMS9918A.prototype = {
                                 y2 = y1;
                             }
                         }
-                        if (y2 != -1) {
+                        if (y2 !== -1) {
                             if (spritesOnLine < maxSpritesOnLine) {
                                 var sx = ram[spriteAttributeAddr + 1];
                                 var sPatternNo = ram[spriteAttributeAddr + 2] & (spriteSize ? 0xFC : 0xFF);
                                 var sColor = ram[spriteAttributeAddr + 3] & 0x0F;
-                                if ((ram[spriteAttributeAddr + 3] & 0x80) != 0) {
+                                if ((ram[spriteAttributeAddr + 3] & 0x80) !== 0) {
                                     sx -= 32;
                                 }
                                 var sLine = (y2 - sy) >> spriteMagnify;
@@ -216,8 +216,8 @@ TMS9918A.prototype = {
                                     if (sx2 >= 0 && sx2 < drawWidth) {
                                         var sx3 = sx1 >> spriteMagnify;
                                         var sPatternByte = ram[sPatternBase + (sx3 >= 8 ? 16 : 0)];
-                                        if ((sPatternByte & (0x80 >> (sx3 & 0x07))) != 0) {
-                                            if (spriteBuffer[sx2] == 0) {
+                                        if ((sPatternByte & (0x80 >> (sx3 & 0x07))) !== 0) {
+                                            if (spriteBuffer[sx2] === 0) {
                                                 spriteBuffer[sx2] = sColor + 1;
                                             }
                                             else {
@@ -252,44 +252,44 @@ TMS9918A.prototype = {
                             name = ram[nameTable + rowOffset + (x1 >> 3)];
                             colorByte = ram[colorTable + (name >> 3)];
                             patternByte = ram[charPatternTable + (name << 3) + lineOffset];
-                            color = (patternByte & (0x80 >> (x1 & 7))) != 0 ? (colorByte & 0xF0) >> 4 : colorByte & 0x0F;
+                            color = (patternByte & (0x80 >> (x1 & 7))) !== 0 ? (colorByte & 0xF0) >> 4 : colorByte & 0x0F;
                             break;
                         case TMS9918A.MODE_BITMAP:
                             name = ram[nameTable + rowOffset + (x1 >> 3)];
                             tableOffset = ((y1 & 0xC0) << 5) + (name << 3);
                             colorByte = ram[colorTable + (tableOffset & colorTableMask) + lineOffset];
                             patternByte = ram[charPatternTable + (tableOffset & patternTableMask) + lineOffset];
-                            color = (patternByte & (0x80 >> (x1 & 7))) != 0 ? (colorByte & 0xF0) >> 4 : colorByte & 0x0F;
+                            color = (patternByte & (0x80 >> (x1 & 7))) !== 0 ? (colorByte & 0xF0) >> 4 : colorByte & 0x0F;
                             break;
                         case TMS9918A.MODE_MULTICOLOR:
                             name = ram[nameTable + rowOffset + (x1 >> 3)];
                             lineOffset = (y1 & 0x1C) >> 2;
                             patternByte = ram[charPatternTable + (name << 3) + lineOffset];
-                            color = (x1 & 4) == 0 ? (patternByte & 0xF0) >> 4 : patternByte & 0x0F;
+                            color = (x1 & 4) === 0 ? (patternByte & 0xF0) >> 4 : patternByte & 0x0F;
                             break;
                         case TMS9918A.MODE_TEXT:
                             name = ram[nameTable + rowOffset + Math.floor(x1 / 6)];
                             patternByte = ram[charPatternTable + (name << 3) + lineOffset];
-                            color = (patternByte & (0x80 >> (x1 % 6))) != 0 ? fgColor : bgColor;
+                            color = (patternByte & (0x80 >> (x1 % 6))) !== 0 ? fgColor : bgColor;
                             break;
                         case TMS9918A.MODE_BITMAP_TEXT:
                             name = ram[nameTable + rowOffset + Math.floor(x1 / 6)];
                             tableOffset = ((y1 & 0xC0) << 5) + (name << 3);
                             patternByte = ram[charPatternTable + (tableOffset & patternTableMask) + lineOffset];
-                            color = (patternByte & (0x80 >> (x1 % 6))) != 0 ? fgColor : bgColor;
+                            color = (patternByte & (0x80 >> (x1 % 6))) !== 0 ? fgColor : bgColor;
                             break;
                         case TMS9918A.MODE_BITMAP_MULTICOLOR:
                             name = ram[nameTable + rowOffset + (x1 >> 3)];
                             lineOffset = (y1 & 0x1C) >> 2;
                             tableOffset = ((y1 & 0xC0) << 5) + (name << 3);
                             patternByte = ram[charPatternTable + (tableOffset & patternTableMask) + lineOffset];
-                            color = (x1 & 4) == 0 ? (patternByte & 0xF0) >> 4 : patternByte & 0x0F;
+                            color = (x1 & 4) === 0 ? (patternByte & 0xF0) >> 4 : patternByte & 0x0F;
                             break;
                         case TMS9918A.MODE_ILLEGAL:
-                            color = (x1 & 4) == 0 ? fgColor : bgColor;
+                            color = (x1 & 4) === 0 ? fgColor : bgColor;
                             break;
                     }
-                    if (color == 0) {
+                    if (color === 0) {
                         color = bgColor;
                     }
                     // Sprites
@@ -320,7 +320,7 @@ TMS9918A.prototype = {
                 imageDataAddr++; // Skip alpha
             }
         }
-        if (y == vBorder + drawHeight) {
+        if (y === vBorder + drawHeight) {
             this.statusRegister |= 0x80;
             if (this.interruptsOn) {
                 this.cru.writeBit(2, false);
@@ -329,7 +329,7 @@ TMS9918A.prototype = {
         if (collision) {
             this.statusRegister |= 0x20;
         }
-        if ((this.statusRegister & 0x40) == 0) {
+        if ((this.statusRegister & 0x40) === 0) {
             this.statusRegister |= fifthSpriteIndex;
         }
         if (fifthSprite) {
@@ -367,9 +367,9 @@ TMS9918A.prototype = {
                             this.updateMode(this.registers[0], this.registers[1]);
                             break;
                         case 1:
-                            this.ramMask = (this.registers[1] & 0x80) != 0 ? 0x3FFF : 0x1FFF;
-                            this.displayOn = (this.registers[1] & 0x40) != 0;
-                            this.interruptsOn = (this.registers[1] & 0x20) != 0;
+                            this.ramMask = (this.registers[1] & 0x80) !== 0 ? 0x3FFF : 0x1FFF;
+                            this.displayOn = (this.registers[1] & 0x40) !== 0;
+                            this.interruptsOn = (this.registers[1] & 0x20) !== 0;
                             this.updateMode(this.registers[0], this.registers[1]);
                             break;
                         // Name table
@@ -421,8 +421,8 @@ TMS9918A.prototype = {
     },
 
     updateMode: function (reg0, reg1) {
-        this.bitmapMode = (reg0 & 0x02) != 0;
-        this.textMode = (reg1 & 0x10) != 0;
+        this.bitmapMode = (reg0 & 0x02) !== 0;
+        this.textMode = (reg1 & 0x10) !== 0;
         // Check bitmap mode bit, not text or multicolor
         if (this.bitmapMode) {
             switch ((reg1 & 0x18) >> 3) {
@@ -477,13 +477,13 @@ TMS9918A.prototype = {
     },
 
     updateTableMasks: function () {
-        if (this.screenMode == TMS9918A.MODE_BITMAP) {
+        if (this.screenMode === TMS9918A.MODE_BITMAP) {
             this.colorTableMask = ((this.registers[3] & 0x7F) << 6) | 0x3F; // 000CCCCCCC111111
             this.patternTableMask  = ((this.registers[4] & 0x03) << 11) | (this.colorTableMask & 0x7FF); // 000PPCCCCC111111
             // this.log.info("colorTableMask:" + this.colorTableMask);
             // this.log.info("patternTableMask:" + this.patternTableMask);
         }
-        else if (this.screenMode == TMS9918A.MODE_BITMAP_TEXT || this.screenMode == TMS9918A.MODE_BITMAP_MULTICOLOR) {
+        else if (this.screenMode === TMS9918A.MODE_BITMAP_TEXT || this.screenMode === TMS9918A.MODE_BITMAP_MULTICOLOR) {
             this.colorTableMask = this.ramMask;
             this.patternTableMask  = ((this.registers[4] & 0x03) << 11) | 0x7FF; // 000PP11111111111
         }
@@ -502,7 +502,9 @@ TMS9918A.prototype = {
     readStatus: function () {
         var i = this.statusRegister;
         this.statusRegister = 0x1F;
-        this.cru.writeBit(2, true);
+        if (this.interruptsOn) {
+            this.cru.writeBit(2, true);
+        }
         this.latch = false;
         return i;
     },
@@ -519,10 +521,10 @@ TMS9918A.prototype = {
     },
 
     colorTableSize: function () {
-        if (this.screenMode == TMS9918A.MODE_GRAPHICS) {
+        if (this.screenMode === TMS9918A.MODE_GRAPHICS) {
             return 0x20;
         }
-        else if (this.screenMode == TMS9918A.MODE_BITMAP) {
+        else if (this.screenMode === TMS9918A.MODE_BITMAP) {
             return Math.min(this.colorTableMask + 1, 0x1800);
         }
         else {
@@ -556,16 +558,16 @@ TMS9918A.prototype = {
         var addr = start;
         var line = 0;
         for (var i = 0; i < length && addr < 0x4000; addr++, i++) {
-            if ((i & 0x000F) == 0) {
+            if ((i & 0x000F) === 0) {
                 text += "\n" + addr.toHexWord() + ":";
                 line++;
             }
             text += " ";
-            if (anchorAddr && anchorAddr == addr) {
+            if (anchorAddr && anchorAddr === addr) {
                 anchorLine = line;
             }
             var hex = this.ram[addr].toString(16).toUpperCase();
-            if (hex.length == 1) {
+            if (hex.length === 1) {
                 text += "0";
             }
             text += hex;

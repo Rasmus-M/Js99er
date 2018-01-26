@@ -151,6 +151,7 @@ Memory.prototype = {
                 this.ams = new AMS(1024);
             }
         }
+        this.gromAccess = 2;
     },
 
     loadRAM: function (addr, byteArray) {
@@ -467,7 +468,7 @@ Memory.prototype = {
             }
         }
         if (addr < 0x7000) {
-            return this.cartImage ? this.cartImage[addr + this.cartAddrOffset] : 0;
+            return this.cartImage ? this.cartImage[addr + this.cartAddrOffset] || 0 : 0;
         }
         if (addr < 0x8000) {
             if (this.cartRAMPaged) {
@@ -585,7 +586,11 @@ Memory.prototype = {
             if (anchorAddr && anchorAddr === addr) {
                 anchorLine = line;
             }
-            var hex = this.getByte(addr).toString(16).toUpperCase();
+            var hex;
+            var byte = this.getByte(addr);
+            if (byte) {
+                hex = toString(16).toUpperCase();
+            }
             if (hex.length === 1) {
                 text += "0";
             }
