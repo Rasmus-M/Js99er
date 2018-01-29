@@ -589,7 +589,7 @@ Memory.prototype = {
             var hex;
             var byte = this.getByte(addr);
             if (byte) {
-                hex = toString(16).toUpperCase();
+                hex = byte.toString(16).toUpperCase();
             }
             if (hex.length === 1) {
                 text += "0";

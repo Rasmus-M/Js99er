@@ -44,7 +44,7 @@
 
         log = Log.getLog();
         log.info("Welcome to JS99'er");
-        log.info("Version 5.10.3, 26 January 2018");
+        log.info("Version 5.10.4, 29 January 2018");
         settings = new Settings(true);
         diskImages = {
             FLOPPY1: new DiskImage("FLOPPY1"),
