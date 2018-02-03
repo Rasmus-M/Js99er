@@ -128,51 +128,23 @@ TI994A.prototype = {
     },
 
     frame: function () {
-        if (this.vdp.gpu) {
-            // this.frameFullScreen();
-            this.frameScanline();
-        }
-        else {
-            this.frameScanline();
-        }
-    },
-
-    frameFullScreen: function () {
         var cpuSpeed = this.cpuSpeed;
-        if (this.vdp.gpu && !this.vdp.gpu.isIdle()) {
-            this.vdp.gpu.run(F18AGPU.CYCLES_PER_FRAME * cpuSpeed);
-            if (this.vdp.gpu.atBreakpoint()) {
-                if (this.onBreakpoint) {
-                    this.onBreakpoint(this.vdp.gpu);
-                }
-            }
-            cpuSpeed *= 0.5; // Reduce CPU cycles when GPU is running
-        }
-        if (!this.tms9900.isSuspended()) {
-            this.tms9900.run(TMS9900.CYCLES_PER_FRAME * cpuSpeed);
-            if (this.tms9900.atBreakpoint()) {
-                if (this.onBreakpoint) {
-                    this.onBreakpoint(this.tms9900);
-                }
-            }
-        }
-        this.drawFrame();
-        this.cru.decrementTimer(CRU.TIMER_DECREMENT_PER_FRAME);
-        this.frameCount++;
-    },
-
-    frameScanline: function () {
-        var cpuSpeed = this.cpuSpeed;
-        // Draw screen
+        var cyclesToRun = TMS9900.CYCLES_PER_FRAME * cpuSpeed;
+        var cyclesPerScanline = TMS9900.CYCLES_PER_SCANLINE * cpuSpeed;
+        var f18ACyclesPerScanline = F18AGPU.CYCLES_PER_SCANLINE;
         var startCycles = this.tms9900.cycles;
         var extraCycles = 0;
         var cruTimerDecrementFrame = CRU.TIMER_DECREMENT_PER_FRAME;
         var cruTimerDecrementScanline = CRU.TIMER_DECREMENT_PER_SCANLINE;
+        var y = 0;
         this.vdp.initFrame(window.performance ? window.performance.now() : new Date().getTime());
-        for (var y = 0; y < 240; y++) {
-            this.vdp.drawScanline(y);
+        while (cyclesToRun > 0) {
+            if (y < 240) {
+                this.vdp.drawScanline(y);
+            }
+            y = y + 1;
             if (!this.tms9900.isSuspended()) {
-                extraCycles = this.tms9900.run((TMS9900.CYCLES_PER_SCANLINE - extraCycles) * cpuSpeed);
+                extraCycles = this.tms9900.run(cyclesPerScanline - extraCycles);
                 if (this.tms9900.atBreakpoint()) {
                     this.tms9900.setOtherBreakpoint(null);
                     if (this.onBreakpoint) this.onBreakpoint(this.tms9900);
@@ -181,7 +153,7 @@ TI994A.prototype = {
             }
             // F18A GPU
             if (this.vdp.gpu && !this.vdp.gpu.isIdle()) {
-                this.vdp.gpu.run(F18AGPU.CYCLES_PER_SCANLINE * cpuSpeed);
+                this.vdp.gpu.run(f18ACyclesPerScanline);
                 if (this.vdp.gpu.atBreakpoint()) {
                     this.vdp.gpu.setOtherBreakpoint(null);
                     if (this.onBreakpoint) this.onBreakpoint(this.vdp.gpu);
@@ -189,32 +161,15 @@ TI994A.prototype = {
                 }
             }
             this.cru.decrementTimer(cruTimerDecrementScanline);
-            cruTimerDecrementFrame-= cruTimerDecrementScanline;
-        }
-        this.vdp.updateCanvas();
-        // Blanking
-        if (!this.tms9900.isSuspended()) {
-            this.tms9900.run((TMS9900.CYCLES_PER_FRAME - (this.tms9900.cycles - startCycles)) * cpuSpeed);
-            if (this.tms9900.atBreakpoint()) {
-                this.tms9900.setOtherBreakpoint(null);
-                if (this.onBreakpoint) this.onBreakpoint(this.tms9900);
-                return;
-            }
-        }
-        // F18A GPU
-        if (this.vdp.gpu && !this.vdp.gpu.isIdle()) {
-            this.vdp.gpu.run((F18AGPU.CYCLES_PER_FRAME - (240 * F18AGPU.CYCLES_PER_SCANLINE)) * cpuSpeed);
-            if (this.vdp.gpu.atBreakpoint()) {
-                this.vdp.gpu.setOtherBreakpoint(null);
-                if (this.onBreakpoint) this.onBreakpoint(this.vdp.gpu);
-                return;
-            }
+            cruTimerDecrementFrame -= cruTimerDecrementScanline;
+            cyclesToRun -= cyclesPerScanline;
         }
         if (cruTimerDecrementFrame > 0) {
             this.cru.decrementTimer(cruTimerDecrementFrame);
         }
         this.fpsFrameCount++;
         this.frameCount++;
+        this.vdp.updateCanvas();
     },
 
     step: function () {
@@ -224,9 +179,6 @@ TI994A.prototype = {
         else {
             this.tms9900.run(1);
         }
-        // if (this.vdp.gpu) {
-        //     this.drawFrame(window.performance ? window.performance.now() : new Date().getTime());
-        // }
     },
 
     stepOver: function () {
