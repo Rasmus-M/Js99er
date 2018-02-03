@@ -19,8 +19,8 @@ function CRU(keyboard) {
     this.reset();
 }
 
-CRU.TIMER_DECREMENT_PER_FRAME = 50000 / 64;
-CRU.TIMER_DECREMENT_PER_SCANLINE = 2.8;
+CRU.TIMER_DECREMENT_PER_FRAME = 781; // 50000 / 64;
+CRU.TIMER_DECREMENT_PER_SCANLINE = 2.85;
 
 CRU.prototype = {
 
@@ -137,9 +137,9 @@ CRU.prototype = {
     },
 
     decrementTimer: function (value) {
-        if (this.decrementer > 0) {
-            this.decrementer -= value;
-            if (this.decrementer < 1) {
+        if (this.clockRegister > 0) {
+            this.decrementer -= (value * 0.7);
+            if (this.decrementer < 0) {
                 this.decrementer = this.clockRegister; // Reload decrementer
                 this.timerInterrupt = this.timerInterruptEnabled;
                 this.timerInterruptEnabled = false;
