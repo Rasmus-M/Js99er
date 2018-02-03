@@ -52,7 +52,7 @@ CRU.prototype = {
                 return this.timerMode;
             }
             else if (addr > 0 && addr < 15) {
-                return this.readRegister & (1 << (addr - 1)) !== 0;
+                return (this.readRegister & (1 << (addr - 1))) !== 0;
             }
             else if (addr === 15) {
                 var tmp = this.timerInterrupt;
@@ -128,7 +128,7 @@ CRU.prototype = {
             if (this.clockRegister > 0) {
                 this.decrementer = this.clockRegister;
                 this.timerInterruptEnabled = true;
-                // this.log.info("Timer started at " + this.decrementer);
+                // this.log.info("Timer started at " + this.decrementer.toHexWord());
             }
             this.timerMode = false;
             // this.log.info("9901 timer mode off");
