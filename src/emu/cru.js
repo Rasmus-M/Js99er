@@ -138,7 +138,7 @@ CRU.prototype = {
 
     decrementTimer: function (value) {
         if (this.clockRegister > 0) {
-            this.decrementer -= (value * 0.7);
+            this.decrementer -= value;
             if (this.decrementer < 0) {
                 this.decrementer = this.clockRegister; // Reload decrementer
                 this.timerInterrupt = this.timerInterruptEnabled;
