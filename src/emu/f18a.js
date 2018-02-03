@@ -417,7 +417,7 @@ F18A.prototype = {
         }
         this.statusRegister = 0x80;
         if (this.interruptsOn) {
-            this.cru.writeBit(2, false);
+            this.cru.setVDPInterrupt(true);
         }
         if (this.collision) {
             this.statusRegister |= 0x20;
@@ -461,7 +461,7 @@ F18A.prototype = {
         if (y == this.topBorder + this.drawHeight - (this.row30Enabled ? 1 : 0)) {
             this.statusRegister |= 0x80;
             if (this.interruptsOn) {
-                this.cru.writeBit(2, false);
+                this.cru.setVDPInterrupt(true);
             }
             if (this.gpuVsyncTrigger) {
                 this.gpu.setIdle(false);
@@ -1562,7 +1562,7 @@ F18A.prototype = {
                 // Normal status
                 var i = this.statusRegister;
                 this.statusRegister = 0x1F;
-                this.cru.writeBit(2, true);
+                this.cru.setVDPInterrupt(false);
                 return i;
             case 1:
                 // ID

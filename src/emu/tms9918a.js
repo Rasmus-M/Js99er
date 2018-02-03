@@ -323,7 +323,7 @@ TMS9918A.prototype = {
         if (y === vBorder + drawHeight) {
             this.statusRegister |= 0x80;
             if (this.interruptsOn) {
-                this.cru.writeBit(2, false);
+                this.cru.setVDPInterrupt(true);
             }
         }
         if (collision) {
@@ -503,7 +503,7 @@ TMS9918A.prototype = {
         var i = this.statusRegister;
         this.statusRegister = 0x1F;
         if (this.interruptsOn) {
-            this.cru.writeBit(2, true);
+            this.cru.setVDPInterrupt(false);
         }
         this.latch = false;
         return i;

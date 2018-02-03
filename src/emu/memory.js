@@ -588,8 +588,10 @@ Memory.prototype = {
             }
             var hex;
             var byte = this.getByte(addr);
-            if (byte) {
+            if (typeof(byte) === 'number') {
                 hex = byte.toString(16).toUpperCase();
+            } else {
+                hex = "??";
             }
             if (hex.length === 1) {
                 text += "0";

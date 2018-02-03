@@ -204,16 +204,14 @@ TMS9900.prototype = {
                     }
                     this.pasteToggle = !this.pasteToggle;
                 }
-                // Execute interrupt routine
-                var interruptLevel = this.getInterruptLevel();
-                if (interruptLevel > 1 && this.cru.isVDPInterrupt()) {
-                    // this.log.info("* Interrupt *");
-                    this.addCycles(this.doInterrupt(4));
-                }
                 // Execute instruction
                 var instruction = this.readMemoryWord(this.PC);
                 this.inctPC();
                 this.addCycles(this.execute(instruction));
+                // Execute interrupt routine
+                if (this.getInterruptMask() >= 2 && this.cru.isVDPInterrupt() || this.cru.isTimerInterrupt()) {
+                    this.addCycles(this.doInterrupt(4));
+                }
             }
             if (this.PC == countStartPC) {
                 this.countStart = this.cycles;
@@ -288,7 +286,7 @@ TMS9900.prototype = {
         return this.ST;
     },
 
-    getInterruptLevel: function () {
+    getInterruptMask: function () {
         return this.ST & 0x000F;
     },
 
