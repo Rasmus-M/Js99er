@@ -157,7 +157,7 @@ TI994A.prototype = {
             }
         }
         this.drawFrame();
-        this.cru.decrementCounter(781);
+        this.cru.decrementTimer(CRU.TIMER_DECREMENT_PER_FRAME);
         this.frameCount++;
     },
 
@@ -166,6 +166,8 @@ TI994A.prototype = {
         // Draw screen
         var startCycles = this.tms9900.cycles;
         var extraCycles = 0;
+        var cruTimerDecrementFrame = CRU.TIMER_DECREMENT_PER_FRAME;
+        var cruTimerDecrementScanline = CRU.TIMER_DECREMENT_PER_SCANLINE;
         this.vdp.initFrame(window.performance ? window.performance.now() : new Date().getTime());
         for (var y = 0; y < 240; y++) {
             this.vdp.drawScanline(y);
@@ -186,6 +188,8 @@ TI994A.prototype = {
                     return;
                 }
             }
+            this.cru.decrementTimer(cruTimerDecrementScanline);
+            cruTimerDecrementFrame-= cruTimerDecrementScanline;
         }
         this.vdp.updateCanvas();
         // Blanking
@@ -206,7 +210,9 @@ TI994A.prototype = {
                 return;
             }
         }
-        this.cru.decrementCounter(781);
+        if (cruTimerDecrementFrame > 0) {
+            this.cru.decrementTimer(cruTimerDecrementFrame);
+        }
         this.fpsFrameCount++;
         this.frameCount++;
     },

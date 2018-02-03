@@ -225,11 +225,6 @@ TMS9900.prototype = {
                 }
                 this.log.info("Cycle count: " + count + " max: " + this.maxCount);
             }
-            // if (this.cruCycles > 64) {
-            //     var decr = this.cruCycles >> 6;
-            //     this.cruCycles -= (decr << 6);
-            //     this.cru.decrementCounter(decr);
-            // }
         }
         return (this.cycles - startCycles) - cyclesToRun;
     },
