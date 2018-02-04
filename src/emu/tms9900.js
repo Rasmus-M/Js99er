@@ -209,7 +209,7 @@ TMS9900.prototype = {
                 this.inctPC();
                 this.addCycles(this.execute(instruction));
                 // Execute interrupt routine
-                if (this.getInterruptMask() >= 2 && this.cru.isVDPInterrupt() || this.cru.isTimerInterrupt()) {
+                if (this.getInterruptMask() >= 1 && (this.cru.isVDPInterrupt() || this.cru.isTimerInterrupt())) {
                     this.addCycles(this.doInterrupt(4));
                 }
             }

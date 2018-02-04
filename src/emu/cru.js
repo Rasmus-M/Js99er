@@ -70,6 +70,7 @@ CRU.prototype = {
                 return (this.readRegister & (1 << (addr - 1))) !== 0;
             }
             else if (addr === 15) {
+                this.log.info("Read timer interrupt status");
                 return this.timerInterrupt;
             }
         }
@@ -125,7 +126,10 @@ CRU.prototype = {
                 }
             }
             else {
-                if (addr === 22) {
+                if (addr === 3) {
+                    this.timerInterrupt = false;
+                }
+                else if (addr === 22) {
                     this.log.info("Cassette motor " + (value ? "on" : "off"));
                 }
             }
@@ -178,8 +182,6 @@ CRU.prototype = {
     },
 
     isTimerInterrupt: function () {
-        var tmp = this.timerInterrupt && this.cru[3];
-        this.timerInterrupt = false;
-        return tmp;
+        return this.timerInterrupt && this.cru[3];
     }
 };
