@@ -539,7 +539,7 @@ TMS5220.prototype = {
 
         /* BE is set if neither byte 15 nor 14 of the fifo are in use; this
          translates to having fifo_count equal to exactly 0 */
-        if (this.m_fifo_count == 0) {
+        if (this.m_fifo_count === 0) {
             // generate an interrupt if necessary; if /BE was inactive and is now active, set int.
             if (!this.m_buffer_empty) {
                 this.set_interrupt_state(1);
@@ -564,7 +564,7 @@ TMS5220.prototype = {
          frame is encountered; this is handled in the sample generator code and not here */
 
         if (this.m_speak_external && this.tms9900) {
-            this.tms9900.setSuspended(this.m_fifo_count == TMS5220.FIFO_SIZE);
+            this.tms9900.setSuspended(this.m_fifo_count === TMS5220.FIFO_SIZE);
         }
     },
 
@@ -658,7 +658,7 @@ TMS5220.prototype = {
             if (this.m_fifo_bits_taken < 4) {
                 // read energy
                 val = (this.m_fifo[this.m_fifo_head] >> this.m_fifo_bits_taken) & 0xf;
-                if (val == 0)
+                if (val === 0)
                 /* 0 -> silence frame: we will only read 4 bits, and we will
                  * therefore need to read another frame before the FIFO is not
                  * full any more */
@@ -712,16 +712,16 @@ TMS5220.prototype = {
                  * i.e. when IP=7, PC=12, T=17, subcycle=2, do so. Since IP=7 PC=12 T=17
                  * is JUST BEFORE the transition to IP=0 PC=0 T=0 sybcycle=(0 or 1),
                  * which happens 4 T-cycles later), we change on the latter.*/
-                if ((this.m_IP == 0) && (this.m_PC == 0) && (this.m_subcycle < 2)) {
-                    this.m_OLDE = (this.m_new_frame_energy_idx == 0);
-                    this.m_OLDP = (this.m_new_frame_pitch_idx == 0);
+                if ((this.m_IP === 0) && (this.m_PC === 0) && (this.m_subcycle < 2)) {
+                    this.m_OLDE = (this.m_new_frame_energy_idx === 0);
+                    this.m_OLDP = (this.m_new_frame_pitch_idx === 0);
                 }
 
                 /* if we're ready for a new frame to be applied, i.e. when IP=0, PC=12, Sub=1
                  * (In reality, the frame was really loaded incrementally during the entire IP=0
                  * PC=x time period, but it doesn't affect anything until IP=0 PC=12 happens)
                  */
-                if ((this.m_IP == 0) && (this.m_PC == 12) && (this.m_subcycle == 1)) {
+                if ((this.m_IP === 0) && (this.m_PC === 12) && (this.m_subcycle === 1)) {
                     /* appropriately override the interp count if needed; this will be incremented after the frame parse! */
                     this.m_IP = TMS5220.reload_table[this.m_c_variant_rate & 0x3];
 
@@ -736,7 +736,7 @@ TMS5220.prototype = {
                     this.parse_frame();
 
                     /* if the new frame is a stop frame, set an interrupt and set talk status to 0 */
-                    var NEW_FRAME_STOP_FLAG = (this.m_new_frame_energy_idx == 0xF);     // 1 if this is a stop (Energy = 0xF) frame
+                    var NEW_FRAME_STOP_FLAG = (this.m_new_frame_energy_idx === 0xF);     // 1 if this is a stop (Energy = 0xF) frame
                     if (NEW_FRAME_STOP_FLAG) {
                         this.m_talk_status = this.m_speak_external = false;
                         this.set_interrupt_state(1);
@@ -751,8 +751,8 @@ TMS5220.prototype = {
                      */
                     var OLD_FRAME_SILENCE_FLAG = this.m_OLDE;   // 1 if E=0, 0 otherwise.
                     var OLD_FRAME_UNVOICED_FLAG = this.m_OLDP;  // 1 if P=0 (unvoiced), 0 if voiced
-                    var NEW_FRAME_SILENCE_FLAG = (this.m_new_frame_energy_idx == 0);    // ditto as above
-                    var NEW_FRAME_UNVOICED_FLAG = (this.m_new_frame_pitch_idx == 0);    // ditto as above
+                    var NEW_FRAME_SILENCE_FLAG = (this.m_new_frame_energy_idx === 0);    // ditto as above
+                    var NEW_FRAME_UNVOICED_FLAG = (this.m_new_frame_pitch_idx === 0);    // ditto as above
                     if (
                         (!OLD_FRAME_UNVOICED_FLAG && NEW_FRAME_UNVOICED_FLAG)
                         || (OLD_FRAME_UNVOICED_FLAG && !NEW_FRAME_UNVOICED_FLAG) /* this line needs further investigation, starwars tie fighters may sound better without it */
@@ -781,9 +781,9 @@ TMS5220.prototype = {
                     }
                 }
                 else { // Not a new frame, just interpolate the existing frame.
-                    var inhibit_state = this.m_inhibit && (this.m_IP != 0) ? 1 : 0; // disable inhibit when reaching the last interp period, but don't overwrite the m_inhibit value
+                    var inhibit_state = this.m_inhibit && (this.m_IP !== 0) ? 1 : 0; // disable inhibit when reaching the last interp period, but don't overwrite the m_inhibit value
                     // Updates to parameters only happen on subcycle '2' (B cycle) of PCs.
-                    if (this.m_subcycle == 2) {
+                    if (this.m_subcycle === 2) {
                         switch (this.m_PC) {
                             case 0: /* PC = 0, B cycle, write updated energy */
                                 this.m_current_energy += (((this.m_target_energy - this.m_current_energy) * (1 - inhibit_state)) >> this.m_coeff.interp_coeff[this.m_IP]);
@@ -813,7 +813,7 @@ TMS5220.prototype = {
                 // calculate the output
                 if (this.m_OLDP) {
                     // generate unvoiced samples here
-                    if ((this.m_RNG & 1) != 0) {
+                    if ((this.m_RNG & 1) !== 0) {
                         this.m_excitation_data = 0xC0; // ~0x3F; /* according to the patent it is (either + or -) half of the maximum value in the chirp table, so either 01000000(0x40) or 11000000(0xC0)*/
                     }
                     else {
@@ -885,7 +885,7 @@ TMS5220.prototype = {
                 }
                 // Update all counts
                 this.m_subcycle++;
-                if ((this.m_subcycle == 2) && (this.m_PC == 12)) {
+                if ((this.m_subcycle === 2) && (this.m_PC === 12)) {
                     /* Circuit 412 in the patent acts a reset, resetting the pitch counter to 0
                      * if INHIBIT was true during the most recent frame transition.
                      * The exact time this occurs is betwen IP=7, PC=12 sub=0, T=t12
@@ -894,7 +894,7 @@ TMS5220.prototype = {
                      * (and hence INHIBIT itself 2 t-cycles later). We do it here because it is
                      * convenient and should make no difference in output.
                      */
-                    if ((this.m_IP == 7) && (this.m_inhibit)) {
+                    if ((this.m_IP === 7) && (this.m_inhibit)) {
                         this.m_pitch_count = 0;
                     }
                     this.m_subcycle = this.m_subc_reload;
@@ -902,7 +902,7 @@ TMS5220.prototype = {
                     this.m_IP++;
                     this.m_IP &= 0x7;
                 }
-                else if (this.m_subcycle == 3) {
+                else if (this.m_subcycle === 3) {
                     this.m_subcycle = this.m_subc_reload;
                     this.m_PC++;
                 }
@@ -919,13 +919,13 @@ TMS5220.prototype = {
         // empty:
         while (size > 0) {
             this.m_subcycle++;
-            if ((this.m_subcycle == 2) && (this.m_PC == 12)) {
+            if ((this.m_subcycle === 2) && (this.m_PC === 12)) {
                 this.m_subcycle = this.m_subc_reload;
                 this.m_PC = 0;
                 this.m_IP++;
                 this.m_IP &= 0x7;
             }
-            else if (this.m_subcycle == 3) {
+            else if (this.m_subcycle === 3) {
                 this.m_subcycle = this.m_subc_reload;
                 this.m_PC++;
             }
@@ -1071,7 +1071,7 @@ TMS5220.prototype = {
         switch (cmd & 0x70) {
             case 0x10 : /* read byte */
                 this.log.info("Speech: read byte");
-                if (this.m_talk_status == 0) { /* TALKST must be clear for RDBY */
+                if (this.m_talk_status === 0) { /* TALKST must be clear for RDBY */
                     if (this.m_schedule_dummy_read) {
                         this.m_schedule_dummy_read = false;
                         this.rom_read(1);
@@ -1176,7 +1176,7 @@ TMS5220.prototype = {
 
         /* if the chip is a tms5220C, and the rate mode is set to that each frame (0x04 bit set)
          has a 2 bit rate preceding it, grab two bits here and store them as the rate; */
-        if ((this.m_c_variant_rate & 0x04) != 0) {
+        if ((this.m_c_variant_rate & 0x04) !== 0) {
             indx = this.extract_bits(2);
             this.m_IP = TMS5220.reload_table[indx];
         }
@@ -1200,7 +1200,7 @@ TMS5220.prototype = {
             return;
         }
         // if the energy index is 0 or 15, we're done
-        if ((this.m_new_frame_energy_idx == 0) || (this.m_new_frame_energy_idx == 15)) {
+        if ((this.m_new_frame_energy_idx === 0) || (this.m_new_frame_energy_idx === 15)) {
             return;
         }
 
@@ -1233,7 +1233,7 @@ TMS5220.prototype = {
         }
 
         // if the pitch index was zero, we only need 4 K's...
-        if (this.m_new_frame_pitch_idx == 0) {
+        if (this.m_new_frame_pitch_idx === 0) {
             /* and the rest of the coefficients are zeroed, but that's done in the generator code */
             return;
         }
@@ -1267,7 +1267,7 @@ TMS5220.prototype = {
      ***********************************************************************************************/
 
     set_interrupt_state: function (state) {
-        if (this.m_irq_handler != null && state != this.m_irq_pin) {
+        if (this.m_irq_handler && state !== this.m_irq_pin) {
             this.m_irq_handler(!state);
         }
         this.m_irq_pin = state;
@@ -1281,7 +1281,7 @@ TMS5220.prototype = {
 
     update_ready_state: function () {
         var state = this.ready_read();
-        if (this.m_readyq_handler != null && state != this.m_ready_pin) {
+        if (this.m_readyq_handler && state !== this.m_ready_pin) {
             this.m_readyq_handler(!state);
         }
         this.m_ready_pin = state;
@@ -1350,7 +1350,7 @@ TMS5220.prototype = {
     rom_read: function (count) {
         var val;
 
-        if (this.m_load_pointer != 0) {   /* first read after load address is ignored */
+        if (this.m_load_pointer !== 0) {   /* first read after load address is ignored */
             this.m_load_pointer = 0;
             count--;
         }
@@ -1406,7 +1406,7 @@ TMS5220.prototype = {
                 | ((((TMS5220.ROM[this.m_speechROMaddr]) << 8)
                 | TMS5220.ROM[this.m_speechROMaddr + 1]) & 0x3fff);
         }
-        else if (this.m_speechROMaddr == this.m_speechROMlen - 1) {
+        else if (this.m_speechROMaddr === this.m_speechROMlen - 1) {
             this.m_speechROMaddr = (this.m_speechROMaddr & 0x3c000)
                 | (((TMS5220.ROM[this.m_speechROMaddr]) << 8) & 0x3fff);
         }

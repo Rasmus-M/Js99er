@@ -176,7 +176,7 @@ SN76489.prototype.init = function (clockSpeed, sampleRate) {
         this.freqPolarity[i] = 1;
 
         // Do not use intermediate positions
-        if (i != 3) this.freqPos[i] = this.NO_ANTIALIAS;
+        if (i !== 3) this.freqPos[i] = this.NO_ANTIALIAS;
     }
 };
 
@@ -195,7 +195,7 @@ SN76489.prototype.write = function (value) {
     //    ``------- Channel
     // ----------------------------------------------------------------------------------------
 
-    if ((value & 0x80) != 0)
+    if ((value & 0x80) !== 0)
     {
         // Bits 6 and 5 ("cc") give the channel to be latched, ALWAYS.
         // Bit 4 ("t") determines whether to latch volume (1) or tone/noise (0) data -
@@ -219,7 +219,7 @@ SN76489.prototype.write = function (value) {
         // TONE REGISTERS
         // If the currently latched register is a tone register then the low 6
         // bits of the byte are placed into the high 6 bits of the latched register.
-        if (this.regLatch == 0 || this.regLatch == 2 || this.regLatch == 4)
+        if (this.regLatch === 0 || this.regLatch === 2 || this.regLatch === 4)
         {
             // ddddDDDDDD (10 bits total) - keep lower 4 bits and replace upper 6 bits.
             // ddddDDDDDD gives the 10-bit half-wave counter reset value.
@@ -242,7 +242,7 @@ SN76489.prototype.write = function (value) {
         case 0:
         case 2:
         case 4:
-            if (this.reg[this.regLatch] == 0)
+            if (this.reg[this.regLatch] === 0)
                 this.reg[this.regLatch] = 1;
             break;
 
@@ -271,7 +271,7 @@ SN76489.prototype.update = function (buffer, offset, samplesToGenerate) {
         // ------------------------------------------------------------------------------------
         for (var i = 0; i < 3; i++)
         {
-            if (this.freqPos[i] != this.NO_ANTIALIAS)
+            if (this.freqPos[i] !== this.NO_ANTIALIAS)
                 this.outputChannel[i] = (this.PSG_VOLUME[this.reg[(i << 1) + 1]] * this.freqPos[i]) >> SN76489.SCALE;
             else
                 this.outputChannel[i] = this.PSG_VOLUME[this.reg[(i << 1) + 1]] * this.freqPolarity[i];
@@ -318,7 +318,7 @@ SN76489.prototype.update = function (buffer, offset, samplesToGenerate) {
         this.freqCounter[2] -= clockCycles;
 
         // Decrement Noise Counter OR Match to Tone 2
-        if (this.noiseFreq == 0x80)
+        if (this.noiseFreq === 0x80)
             this.freqCounter[3] = this.freqCounter[2];
         else
             this.freqCounter[3] -= clockCycles;
@@ -377,21 +377,21 @@ SN76489.prototype.update = function (buffer, offset, samplesToGenerate) {
             this.freqPolarity[3] = -this.freqPolarity[3];
 
             // Not matching Tone 2 Value, so reload counter
-            if (this.noiseFreq != 0x80)
+            if (this.noiseFreq !== 0x80)
                 this.freqCounter[3] += this.noiseFreq * (Math.floor(clockCycles / this.noiseFreq) + 1);
 
             // Positive Amplitude i.e. We only want to do this once per cycle
-            if (this.freqPolarity[3] == 1)
+            if (this.freqPolarity[3] === 1)
             {
                 var feedback;
 
                 // White Noise Selected
-                if ((this.reg[6] & 0x04) != 0)
+                if ((this.reg[6] & 0x04) !== 0)
                 {
                     // If two bits fed back, I can do Feedback=(nsr & fb) && (nsr & fb ^ fb)
                     // since that's (one or more bits set) && (not all bits set)
-                    feedback = (this.noiseShiftReg & this.FEEDBACK_PATTERN) != 0 &&
-                               ((this.noiseShiftReg & this.FEEDBACK_PATTERN) ^ this.FEEDBACK_PATTERN) != 0
+                    feedback = (this.noiseShiftReg & this.FEEDBACK_PATTERN) !== 0 &&
+                               ((this.noiseShiftReg & this.FEEDBACK_PATTERN) ^ this.FEEDBACK_PATTERN) !== 0
                                ? 1 : 0;
                     this.noiseShiftReg = (this.noiseShiftReg >> 1) | (feedback << 15);
                 }
