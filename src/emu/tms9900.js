@@ -971,7 +971,7 @@ TMS9900.prototype = {
 
     // Jump if Less Than: JLT dsp
     jlt: function () {
-        if (((!this.getAGT()) && (!this.getEQ())) != 0) {
+        if (this.getAGT() === 0 && this.getEQ() === 0) {
             if (this.flagX !== 0) {
                 this.setPC(this.flagX);	// Update offset - it's relative to the X, not the opcode
             }
@@ -991,7 +991,7 @@ TMS9900.prototype = {
 
     // Jump if Low or Equal: JLE dsp
     jle: function () {
-        if ((this.getLGT() === 0) || (this.getEQ() != 0)) {
+        if ((this.getLGT() === 0) || (this.getEQ() !== 0)) {
             if (this.flagX !== 0) {
                 this.setPC(this.flagX);	// Update offset - it's relative to the X, not the opcode
             }
@@ -1013,7 +1013,7 @@ TMS9900.prototype = {
     // Conditional relative branch. The displacement is a signed byte representing
     // the number of words to branch
     jeq: function () {
-        if (this.getEQ() != 0) {
+        if (this.getEQ() !== 0) {
             if (this.flagX !== 0) {
                 this.setPC(this.flagX);	// Update offset - it's relative to the X, not the opcode
             }
@@ -1032,7 +1032,7 @@ TMS9900.prototype = {
 
     // Jump if High or Equal: JHE dsp
     jhe: function () {
-        if ((this.getLGT() != 0) || (this.getEQ() != 0)) {
+        if ((this.getLGT() !== 0) || (this.getEQ() !== 0)) {
             if (this.flagX !== 0) {
                 this.setPC(this.flagX);	// Update offset - it's relative to the X, not the opcode
             }
@@ -1051,7 +1051,7 @@ TMS9900.prototype = {
 
     // Jump if Greater Than: JGT dsp
     jgt: function () {
-        if (this.getAGT() != 0) {
+        if (this.getAGT() !== 0) {
             if (this.flagX !== 0) {
                 this.setPC(this.flagX);	// Update offset - it's relative to the X, not the opcode
             }
@@ -1109,7 +1109,7 @@ TMS9900.prototype = {
 
     // Jump On Carry: JOC dsp
     joc: function () {
-        if (this.getC() != 0) {
+        if (this.getC() !== 0) {
             if (this.flagX !== 0) {
                 this.setPC(this.flagX);	// Update offset - it's relative to the X, not the opcode
             }
@@ -1168,7 +1168,7 @@ TMS9900.prototype = {
 
     // Jump if High: JH dsp
     jh: function () {
-        if ((this.getLGT() != 0) && (this.getEQ() === 0))
+        if ((this.getLGT() !== 0) && (this.getEQ() === 0))
         {
             if (this.flagX !== 0) {
                 this.setPC(this.flagX);	// Update offset - it's relative to the X, not the opcode
@@ -1188,7 +1188,7 @@ TMS9900.prototype = {
 
     // Jump on Odd Parity: JOP dsp
     jop: function () {
-        if (this.getOP() != 0) {
+        if (this.getOP() !== 0) {
             if (this.flagX !== 0) {
                 this.setPC(this.flagX);	// Update offset - it's relative to the X, not the opcode
             }
