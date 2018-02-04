@@ -526,7 +526,7 @@ TMS9900.prototype = {
         this.ST |= this.wStatusLookup[x3] & this.maskLGT_AGT_EQ;
 
         if (x3 < x1) this.setC();
-        if (((x1 & 0x8000) === (this.S & 0x8000)) && ((x3 & 0x8000) != (this.S & 0x8000))) this.setOV();
+        if (((x1 & 0x8000) === (this.S & 0x8000)) && ((x3 & 0x8000) !== (this.S & 0x8000))) this.setOV();
 
         return 14;
     },
@@ -565,7 +565,7 @@ TMS9900.prototype = {
         if ((x3 & 0x8000) === (this.S & 0x8000)) {
             if (x3 > this.S) this.setAGT();
         } else {
-            if ((this.S & 0x8000) != 0) this.setAGT();
+            if ((this.S & 0x8000) !== 0) this.setAGT();
         }
 
         return 14;
@@ -670,7 +670,7 @@ TMS9900.prototype = {
     // eXecute: X src
     // The argument is interpreted as an instruction and executed
     x: function () {
-        if (this.flagX != 0) {
+        if (this.flagX !== 0) {
             this.log.info("Recursive X instruction!");
         }
 
@@ -763,7 +763,7 @@ TMS9900.prototype = {
         this.resetEQ_LGT_AGT_C_OV();
         this.ST |= this.wStatusLookup[x1] & this.maskLGT_AGT_EQ;
 
-        if (x1 != 0xffff) this.setC();
+        if (x1 !== 0xffff) this.setC();
         if (x1 === 0x7fff) this.setOV();
 
         return 10;
@@ -826,7 +826,7 @@ TMS9900.prototype = {
         var cycles = 0;
         var x1 = this.readMemoryWord(this.S);
 
-        if ((x1 & 0x8000) != 0) {
+        if ((x1 & 0x8000) !== 0) {
             var x2 = ((~x1) + 1) & 0xFFFF;	// if negative, make positive
             this.writeMemoryWord(this.S, x2);
             cycles += 2;
@@ -864,7 +864,7 @@ TMS9900.prototype = {
         this.resetEQ_LGT_AGT_C();
         this.ST |= this.wStatusLookup[x1] & this.maskLGT_AGT_EQ;
 
-        if (x3 != 0) this.setC();
+        if (x3 !== 0) this.setC();
 
         return cycles + 12 + 2 * this.D;
     },
@@ -890,7 +890,7 @@ TMS9900.prototype = {
         this.resetEQ_LGT_AGT_C();
         this.ST |= this.wStatusLookup[x1] & this.maskLGT_AGT_EQ;
 
-        if (x3 != 0) this.setC();
+        if (x3 !== 0) this.setC();
 
         return cycles + 12 + 2 * this.D;
     },
@@ -911,14 +911,14 @@ TMS9900.prototype = {
         for (var x2 = 0; x2 < this.D; x2++) {
             x3 = x1 & 0x8000;
             x1 = x1 << 1;
-            if ((x1 & 0x8000) != x4) this.setOV();
+            if ((x1 & 0x8000) !== x4) this.setOV();
         }
         x1 = x1 & 0xFFFF;
         this.writeMemoryWord(this.S , x1);
 
         this.ST |= this.wStatusLookup[x1] & this.maskLGT_AGT_EQ;
 
-        if (x3 != 0) this.setC();
+        if (x3 !== 0) this.setC();
 
         return cycles + 12 + 2 * this.D;
     },
@@ -939,7 +939,7 @@ TMS9900.prototype = {
         for (var x2 = 0; x2 < this.D; x2++) {
             var x4 = x1 & 0x1;
             x1 = x1 >> 1;
-            if (x4 != 0) {
+            if (x4 !== 0) {
                 x1 = x1 | 0x8000;
             }
         }
@@ -948,7 +948,7 @@ TMS9900.prototype = {
         this.resetEQ_LGT_AGT_C();
         this.ST |= this.wStatusLookup[x1] & this.maskLGT_AGT_EQ;
 
-        if (x4 != 0) this.setC();
+        if (x4 !== 0) this.setC();
 
         return cycles + 12 + 2 * this.D;
     },
@@ -956,10 +956,10 @@ TMS9900.prototype = {
     // JuMP: JMP dsp
     // (unconditional)
     jmp: function () {
-        if (this.flagX != 0) {
+        if (this.flagX !== 0) {
             this.setPC(this.flagX);	// Update offset - it's relative to the X, not the opcode
         }
-        if ((this.D & 0x80) != 0) {
+        if ((this.D & 0x80) !== 0) {
             this.D = 128 - (this.D & 0x7f);
             this.addPC(-(this.D + this.D));
         }
@@ -972,11 +972,11 @@ TMS9900.prototype = {
     // Jump if Less Than: JLT dsp
     jlt: function () {
         if (((!this.getAGT()) && (!this.getEQ())) != 0) {
-            if (this.flagX != 0) {
+            if (this.flagX !== 0) {
                 this.setPC(this.flagX);	// Update offset - it's relative to the X, not the opcode
             }
 
-            if ((this.D & 0x80) != 0) {
+            if ((this.D & 0x80) !== 0) {
                 this.D = 128 - (this.D & 0x7f);
                 this.addPC(-(this.D + this.D));
             }
@@ -992,11 +992,11 @@ TMS9900.prototype = {
     // Jump if Low or Equal: JLE dsp
     jle: function () {
         if ((this.getLGT() === 0) || (this.getEQ() != 0)) {
-            if (this.flagX != 0) {
+            if (this.flagX !== 0) {
                 this.setPC(this.flagX);	// Update offset - it's relative to the X, not the opcode
             }
 
-            if ((this.D & 0x80) != 0) {
+            if ((this.D & 0x80) !== 0) {
                 this.D = 128 - (this.D & 0x7f);
                 this.addPC(-(this.D + this.D));
             }
@@ -1014,11 +1014,11 @@ TMS9900.prototype = {
     // the number of words to branch
     jeq: function () {
         if (this.getEQ() != 0) {
-            if (this.flagX != 0) {
+            if (this.flagX !== 0) {
                 this.setPC(this.flagX);	// Update offset - it's relative to the X, not the opcode
             }
 
-            if ((this.D & 0x80) != 0) {
+            if ((this.D & 0x80) !== 0) {
                 this.D = 128 - (this.D & 0x7f);
                 this.addPC(-(this.D + this.D));
             } else {
@@ -1033,11 +1033,11 @@ TMS9900.prototype = {
     // Jump if High or Equal: JHE dsp
     jhe: function () {
         if ((this.getLGT() != 0) || (this.getEQ() != 0)) {
-            if (this.flagX != 0) {
+            if (this.flagX !== 0) {
                 this.setPC(this.flagX);	// Update offset - it's relative to the X, not the opcode
             }
 
-            if ((this.D & 0x80) != 0) {
+            if ((this.D & 0x80) !== 0) {
                 this.D = 128 - (this.D & 0x7f);
                 this.addPC(-(this.D + this.D));
             } else {
@@ -1052,11 +1052,11 @@ TMS9900.prototype = {
     // Jump if Greater Than: JGT dsp
     jgt: function () {
         if (this.getAGT() != 0) {
-            if (this.flagX != 0) {
+            if (this.flagX !== 0) {
                 this.setPC(this.flagX);	// Update offset - it's relative to the X, not the opcode
             }
 
-            if ((this.D & 0x80) != 0) {
+            if ((this.D & 0x80) !== 0) {
                 this.D = 128-(this.D & 0x7f);
                 this.addPC(-(this.D + this.D));
             } else {
@@ -1071,10 +1071,10 @@ TMS9900.prototype = {
     // Jump if Not Equal: JNE dsp
     jne: function () {
         if (this.getEQ() === 0) {
-            if (this.flagX != 0) {
+            if (this.flagX !== 0) {
                 this.setPC(this.flagX);	// Update offset - it's relative to the X, not the opcode
             }
-            if ((this.D & 0x80) != 0) {
+            if ((this.D & 0x80) !== 0) {
                 this.D = 128 - (this.D & 0x7f);
                 this.addPC(-(this.D + this.D));
             } else {
@@ -1090,11 +1090,11 @@ TMS9900.prototype = {
     // Jump if No Carry: JNC dsp
     jnc: function () {
         if (this.getC() === 0) {
-            if (this.flagX != 0) {
+            if (this.flagX !== 0) {
                 this.setPC(this.flagX);	// Update offset - it's relative to the X, not the opcode
             }
 
-            if ((this.D & 0x80) != 0) {
+            if ((this.D & 0x80) !== 0) {
                 this.D = 128 - (this.D & 0x7f);
                 this.addPC(-(this.D + this.D));
             } else {
@@ -1110,11 +1110,11 @@ TMS9900.prototype = {
     // Jump On Carry: JOC dsp
     joc: function () {
         if (this.getC() != 0) {
-            if (this.flagX != 0) {
+            if (this.flagX !== 0) {
                 this.setPC(this.flagX);	// Update offset - it's relative to the X, not the opcode
             }
 
-            if ((this.D & 0x80) != 0) {
+            if ((this.D & 0x80) !== 0) {
                 this.D = 128 - (this.D & 0x7f);
                 this.addPC(-(this.D + this.D));
             } else {
@@ -1130,11 +1130,11 @@ TMS9900.prototype = {
     // Jump if No Overflow: JNO dsp
     jno: function () {
         if (this.getOV() === 0) {
-            if (this.flagX != 0) {
+            if (this.flagX !== 0) {
                 this.setPC(this.flagX);	// Update offset - it's relative to the X, not the opcode
             }
 
-            if ((this.D & 0x80) != 0) {
+            if ((this.D & 0x80) !== 0) {
                 this.D = 128 - (this.D & 0x7f);
                 this.addPC(-(this.D + this.D));
             } else {
@@ -1149,11 +1149,11 @@ TMS9900.prototype = {
 
     jl: function () {
         if ((this.getLGT() === 0) && (this.getEQ() === 0)) {
-            if (this.flagX != 0) {
+            if (this.flagX !== 0) {
                 this.setPC(this.flagX);	// Update offset - it's relative to the X, not the opcode
             }
 
-            if ((this.D & 0x80) != 0) {
+            if ((this.D & 0x80) !== 0) {
                 this.D = 128 - (this.D & 0x7f);
                 this.addPC(-(this.D + this.D));
             } else {
@@ -1170,11 +1170,11 @@ TMS9900.prototype = {
     jh: function () {
         if ((this.getLGT() != 0) && (this.getEQ() === 0))
         {
-            if (this.flagX != 0) {
+            if (this.flagX !== 0) {
                 this.setPC(this.flagX);	// Update offset - it's relative to the X, not the opcode
             }
 
-            if ((this.D & 0x80) != 0) {
+            if ((this.D & 0x80) !== 0) {
                 this.D = 128 - (this.D & 0x7f);
                 this.addPC(-(this.D + this.D));
             } else {
@@ -1189,11 +1189,11 @@ TMS9900.prototype = {
     // Jump on Odd Parity: JOP dsp
     jop: function () {
         if (this.getOP() != 0) {
-            if (this.flagX != 0) {
+            if (this.flagX !== 0) {
                 this.setPC(this.flagX);	// Update offset - it's relative to the X, not the opcode
             }
 
-            if ((this.D & 0x80) != 0) {
+            if ((this.D & 0x80) !== 0) {
                 this.D = 128 - (this.D & 0x7f);
                 this.addPC(-(this.D + this.D));
             } else {
@@ -1210,7 +1210,7 @@ TMS9900.prototype = {
     // Sets a bit in the CRU
     sbo: function () {
         var addr = (this.readMemoryWord(this.WP + 24) >> 1) & 0xfff;
-        if ((this.D & 0x80) != 0) {
+        if ((this.D & 0x80) !== 0) {
             addr -= 128 - (this.D & 0x7f);
         } else {
             addr += this.D;
@@ -1224,7 +1224,7 @@ TMS9900.prototype = {
     // Zeros a bit in the CRU
     sbz: function () {
         var addr = (this.readMemoryWord(this.WP + 24) >> 1) & 0xfff;
-        if ((this.D & 0x80) != 0) {
+        if ((this.D & 0x80) !== 0) {
             addr -= 128-(this.D & 0x7f);
         } else {
             addr += this.D;
@@ -1238,7 +1238,7 @@ TMS9900.prototype = {
     // Tests a CRU bit
     tb: function () {
         var add = (this.readMemoryWord(this.WP + 24) >> 1) & 0xfff;
-        if ((this.D & 0x80) != 0) {
+        if ((this.D & 0x80) !== 0) {
             add -= 128 - (this.D & 0x7f);
         } else {
             add += this.D;
@@ -1337,7 +1337,7 @@ TMS9900.prototype = {
         var x3 = 1;
         var cruBase = (this.readMemoryWord(this.WP + 24) >> 1) & 0xfff;
         for (var x2 = 0; x2 < this.D; x2++) {
-            this.writeCruBit(cruBase + x2, (x1 & x3) != 0);
+            this.writeCruBit(cruBase + x2, (x1 & x3) !== 0);
             x3 = x3 << 1;
         }
 
@@ -1490,7 +1490,7 @@ TMS9900.prototype = {
         // any number minus 0 sets carry.. Tursi's theory is that converting 0 to the two's complement
         // is causing the carry flag to be set.
         if ((x3 < x2) || (x1 === 0)) this.setC();
-        if (((x1 & 0x8000) != (x2 & 0x8000)) && ((x3 & 0x8000) != (x2 & 0x8000))) this.setOV();
+        if (((x1 & 0x8000) !== (x2 & 0x8000)) && ((x3 & 0x8000) !== (x2 & 0x8000))) this.setOV();
 
         return 14;
     },
@@ -1512,7 +1512,7 @@ TMS9900.prototype = {
         // any number minus 0 sets carry.. Tursi's theory is that converting 0 to the two's complement
         // is causing the carry flag to be set.
         if ((x3 < x2) || (x1 === 0)) this.setC();
-        if (((x1 & 0x80) != (x2 & 0x80)) && ((x3 & 0x80) != (x2 & 0x80))) this.setOV();
+        if (((x1 & 0x80) !== (x2 & 0x80)) && ((x3 & 0x80) !== (x2 & 0x80))) this.setOV();
 
         return 14;
     },
@@ -1533,7 +1533,7 @@ TMS9900.prototype = {
             if (x3 > x4) this.setAGT();
         }
         else {
-            if ((x4 & 0x8000) != 0) this.setAGT();
+            if ((x4 & 0x8000) !== 0) this.setAGT();
         }
         return 14;
     },
@@ -1553,7 +1553,7 @@ TMS9900.prototype = {
         if ((x3 & 0x80) === (x4 & 0x80)) {
             if (x3 > x4) this.setAGT();
         } else {
-            if ((x4 & 0x80) != 0) this.setAGT();
+            if ((x4 & 0x80) !== 0) this.setAGT();
         }
         this.ST |= this.bStatusLookup[x3] & this.BIT_OP;
 
@@ -1575,7 +1575,7 @@ TMS9900.prototype = {
         this.ST |= this.wStatusLookup[x3] & this.maskLGT_AGT_EQ;
 
         if (x3 < x2) this.setC();	// if it wrapped around, set carry
-        if (((x1 & 0x8000) === (x2 & 0x8000)) && ((x3 & 0x8000) != (x2 & 0x8000))) this.setOV(); // if it overflowed or underflowed (signed math), set overflow
+        if (((x1 & 0x8000) === (x2 & 0x8000)) && ((x3 & 0x8000) !== (x2 & 0x8000))) this.setOV(); // if it overflowed or underflowed (signed math), set overflow
 
         return 14;
     },
@@ -1595,7 +1595,7 @@ TMS9900.prototype = {
         this.ST |= this.bStatusLookup[x3] & this.maskLGT_AGT_EQ_OP;
 
         if (x3 < x2) this.setC();	// if it wrapped around, set carry
-        if (((x1 & 0x80) === (x2 & 0x80)) && ((x3 & 0x80) != (x2 & 0x80))) this.setOV();  // if it overflowed or underflowed (signed math), set overflow
+        if (((x1 & 0x80) === (x2 & 0x80)) && ((x3 & 0x80) !== (x2 & 0x80))) this.setOV();  // if it overflowed or underflowed (signed math), set overflow
 
         return 14;
     },
