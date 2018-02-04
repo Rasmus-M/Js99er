@@ -6,8 +6,9 @@
 
 'use strict';
 
-function CRU(keyboard) {
+function CRU(keyboard, tape) {
     this.keyboard = keyboard;
+    this.tape = tape;
     this.cru = [];
     this.log = Log.getLog();
     this.reset();

@@ -52,7 +52,7 @@ body {
     display: block;
 }
 
-#log, #diskManagerPanel, #optionsPanel, #keyboardPanel {
+#log, #diskManagerPanel, #tapeManagerPanel, #optionsPanel, #keyboardPanel {
     height: 622px;
 }
 

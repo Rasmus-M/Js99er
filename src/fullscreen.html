@@ -28,6 +28,7 @@
     <script src="software/system.js"></script>
     <script src="software.js"></script>
     <!-- TI-99/4a components -->
+    <script src="emu/tape.js"></script>
     <script src="emu/disk.js"></script>
     <script src="emu/googledrive.js"></script>
     <script src="emu/decoder.js"></script>
@@ -64,7 +65,8 @@
     <ul class="nav nav-pills">
         <li class="active"><a href="#homePane" data-toggle="tab" id="homeTab">Home</a></li>
         <li><a href="#logPane" data-toggle="tab" id="logTab">Log</a></li>
-        <li><a href="#diskManagerPane" data-toggle="tab" id="diskManagerTab">Disk Manager</a></li>
+        <li><a href="#diskManagerPane" data-toggle="tab" id="diskManagerTab">Disk</a></li>
+        <li><a href="#tapeManagerPane" data-toggle="tab" id="tapeManagerTab">Tape</a></li>
         <li><a href="#keyboardPane" data-toggle="tab" id="keyboardTab">Keyboard</a></li>
         <li><a href="#debuggerPane" data-toggle="tab" id="debuggerTab">Debugger</a></li>
         <li><a href="#optionsPane" data-toggle="tab" id="optionsTab">Options</a></li>
@@ -158,7 +160,7 @@
                         </table>
                     </div>
                     <div class="row">
-                        <div id="diskTools" class="navbar navbar-default">
+                        <div id="diskTools" class="navbar navbar-default text-center">
                             <div class="btn-group">
                                 <button id="btnSave" class="btn btn-primary navbar-btn"><span class="glyphicon glyphicon-save"></span> Save</button>
                                 <button id="btnLoad" class="btn btn-default navbar-btn"><span class="glyphicon glyphicon-open"></span> Restore</button>
@@ -182,6 +184,32 @@
                             <div class="btn-group">
                                 <button id="btnDeleteDisk" class="btn btn-danger navbar-btn"><span class="glyphicon glyphicon-remove"></span> Disk</button>
                                 <button id="btnDeleteFiles" class="btn btn-danger navbar-btn"><span class="glyphicon glyphicon-remove"></span> Files</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <!-- Tape -->
+        <div class="tab-pane fade" id="tapeManagerPane">
+            <div class="panel panel-default" id="tapeManagerPanel">
+                <div class="panel-body">
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group">
+                                <div class="btn btn-primary navbar-btn btn-file"><span class="glyphicon glyphicon-open-file"></span> Open Tape File<input type="file" accept="audio/wav" id="fileInputTape"></div>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <div id="tapeTools" class="navbar navbar-default text-center">
+                            <div class="btn-group">
+                                <button id="btnRecord" class="btn btn-danger navbar-btn"><span class="glyphicon glyphicon-record"></span> Rec</button>
+                                <button id="btnPlay" class="btn btn-primary navbar-btn"><span class="glyphicon glyphicon-play"></span> Play</button>
+                                <button id="btnRewind" class="btn btn-default navbar-btn"><span class="glyphicon glyphicon-backward"></span> Rew</button>
+                                <button id="btnForward" class="btn btn-default navbar-btn"><span class="glyphicon glyphicon-forward"></span> Fwd</button>
+                                <button id="btnTapeStop" class="btn btn-default navbar-btn"><span class="glyphicon glyphicon-stop"></span> Stop</button>
+                                <button id="btnTapePause" class="btn btn-default navbar-btn"><span class="glyphicon glyphicon-pause"></span> Pause</button>
                             </div>
                         </div>
                     </div>

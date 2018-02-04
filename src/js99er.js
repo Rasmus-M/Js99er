@@ -134,6 +134,7 @@
             if (!ti994a.isRunning()) {
                 $("#btnStart").click();
             }
+            $("#btnTapeStop").click();
         });
 
         $("#btnScreenshot").on("click", function () {
@@ -200,7 +201,6 @@
         $("#diskImageList").on("change", function () { updateDiskFileTable(this.value); });
         updateDiskImageList();
 
-
         $("#btnSave").on("click", function () {
             if (confirm("Do you want to save the disk state to persistent storage?")) {
                 saveState();
@@ -218,6 +218,43 @@
         $("#insertDSK2").on("click", function () { insertDisk(2); });
         $("#btnDeleteDisk").on("click", deleteDisk);
         $("#btnDeleteFiles").on("click", deleteFiles);
+
+        ///////////////////////
+        // Tape Manager pane //
+        ///////////////////////
+
+        $("#fileInputTape").on("change", function () {
+            loadTapeFile(this.files, function () {
+                $("#btnTapeStop").click()
+            });
+        }).on("click", function () {
+            $(this).val("");
+        });
+
+        $("#btnPlay").on("click", function () {
+            var tapeLoaded = ti994a.tape.isTapeLoaded();
+            $("#btnRecord").prop("disabled", true);
+            $("#btnPlay").prop("disabled", true);
+            $("#btnRewind").prop("disabled", true);
+            $("#btnForward").prop("disabled", true);
+            $("#btnTapeStop").prop("disabled", !tapeLoaded);
+            $("#btnTapePause").prop("disabled", !tapeLoaded);
+            ti994a.tape.play();
+        });
+
+        $("#btnTapeStop").on("click", function () {
+            var tapeLoaded = ti994a.tape.isTapeLoaded();
+            $("#btnRecord").prop("disabled", !tapeLoaded);
+            $("#btnPlay").prop("disabled", !tapeLoaded);
+            $("#btnRewind").prop("disabled", !tapeLoaded);
+            $("#btnForward").prop("disabled", !tapeLoaded);
+            $("#btnTapeStop").prop("disabled", true);
+            $("#btnTapePause").prop("disabled", true);
+            ti994a.tape.stop();
+        });
+
+        // Stop tape
+        $("#btnTapeStop").click();
 
         ///////////////////
         // Keyboard pane //
@@ -437,7 +474,10 @@
             }
         });
 
-        // Load supercart
+        ////////////////////
+        // Start emulator //
+        ////////////////////
+
         software.loadProgram("software/supercart.json", null, function (cart) {
             if (cart) {
                 ti994a.loadSoftware(cart);
@@ -834,6 +874,30 @@
         }
         else {
             alert("No files selected.");
+        }
+    }
+
+    /////////////////////////////////
+    // Tape Manager pane functions //
+    /////////////////////////////////
+
+    function loadTapeFile(files, callback) {
+        var file = files[0];
+        if (file != null) {
+            var extension = file.name.split('.').pop();
+            if (extension != null && extension !== "wav") {
+                log.error("File name extension '" + extension + "' not supported.");
+                return;
+            }
+            var reader = new FileReader();
+            reader.onload = function () {
+                ti994a.tape.loadTapeFile(this.result);
+                callback();
+            };
+            reader.onerror = function () {
+                alert(this.error.name);
+            };
+            reader.readAsArrayBuffer(file);
         }
     }
 

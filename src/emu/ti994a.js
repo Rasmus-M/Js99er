@@ -16,7 +16,8 @@ function TI994A(canvas, diskImages, settings, onBreakpoint) {
 
     // Assemble the console
     this.keyboard = new Keyboard(settings && settings.isPCKeyboardEnabled(), settings && settings.isMapArrowKeysToFctnSDEXEnabled());
-    this.cru = new CRU(this.keyboard);
+    this.tape = new Tape();
+    this.cru = new CRU(this.keyboard, this.tape);
     this.tms9919 = new TMS9919();
     this.setVDP(settings);
     var vdpRAM = this.vdp.getRAM();
