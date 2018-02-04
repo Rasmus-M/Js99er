@@ -254,7 +254,7 @@ TMS9900.prototype = {
     },
 
     setPC: function (value) {
-        if (value & 1) {
+        if ((value & 1) !== 0) {
             this.log.warn("Setting odd PC from " + this.PC.toHexWord());
         }
         this.PC = value & 0xFFFE;
