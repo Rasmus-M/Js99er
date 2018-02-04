@@ -9,6 +9,7 @@
 function Tape() {
     this.fileBuffer = null;
     this.playing = false;
+    this.motorOn = false;
     this.audioContext = null;
     if (window.AudioContext) {
         this.audioContext = new AudioContext();
@@ -16,27 +17,28 @@ function Tape() {
     else if (window.webkitAudioContext) {
         this.audioContext = new webkitAudioContext();
     }
-    this.source = null;
+    this.audioBuffer = null;
+    this.audioSource = null;
+    this.audioStartTime = 0;
+    this.audioSuspendTime = 0;
+    this.cassetteInput = false;
     this.log = Log.getLog();
 }
 
 Tape.prototype.loadTapeFile = function (fileBuffer) {
     this.fileBuffer = fileBuffer;
     var tape = this;
-    var audioContext = this.audioContext;
-    if (audioContext) {
-        audioContext.decodeAudioData(fileBuffer,
-            function (buffer) {
-                var source = audioContext.createBufferSource();
-                source.buffer = buffer;
-                source.connect(audioContext.destination);
-                source.loop = false;
-                tape.source = source;
+    if (this.audioContext) {
+        this.audioContext.decodeAudioData(fileBuffer).then(
+            function (audioBuffer) {
+                tape.audioBuffer = audioBuffer;
+                tape.audioSource = null;
+                tape.audioSuspendTime = 0;
             },
             function (e) {
                 this.log.error("Error decoding audio data" + e.err);
             }
-        )
+        );
     }
 };
 
@@ -46,14 +48,40 @@ Tape.prototype.isTapeLoaded = function () {
 
 Tape.prototype.play = function () {
     this.playing = true;
-    if (this.source) {
-        this.source.start(0);
-    }
+    this.toggleAudio();
 };
 
 Tape.prototype.stop = function () {
     this.playing = false;
-    if (this.source) {
-        this.source.stop();
+    this.toggleAudio();
+};
+
+Tape.prototype.setMotorOn = function (value) {
+    this.log.info("Cassette motor " + (value ? "on" : "off"));
+    this.motorOn = value;
+    this.toggleAudio();
+};
+
+Tape.prototype.toggleAudio = function () {
+    if (this.motorOn && this.playing) {
+        if (this.audioContext && this.audioBuffer) {
+            var source = this.audioContext.createBufferSource();
+            source.buffer = this.audioBuffer;
+            source.connect(this.audioContext.destination);
+            source.start(0, this.audioSuspendTime / 1000);
+            this.audioSource = source;
+            this.audioStartTime = new Date().getTime();
+        }
     }
+    else {
+        if (this.audioSource) {
+            this.audioSource.stop();
+            this.audioSuspendTime += new Date().getTime() - this.audioStartTime;
+        }
+    }
+};
+
+Tape.prototype.getBit = function ()  {
+    this.cassetteInput = !this.cassetteInput;
+    return this.cassetteInput;
 };

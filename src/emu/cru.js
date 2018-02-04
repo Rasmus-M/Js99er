@@ -31,7 +31,6 @@ CRU.prototype = {
         this.decrementer = 0;
         this.timerInterrupt = false;
         this.timerInterruptScheduled = false;
-        this.cassetteInput = true;
         for (var i = 0; i < 4096; i++) {
             this.cru[i] = true;
         }
@@ -58,8 +57,7 @@ CRU.prototype = {
             }
             // Cassette
             else if (addr === 27) {
-                this.cassetteInput = !this.cassetteInput;
-                return this.cassetteInput;
+                return this.tape.getBit();
             }
         }
         else {
@@ -132,7 +130,7 @@ CRU.prototype = {
                     this.timerInterrupt = false;
                 }
                 else if (addr === 22) {
-                    this.log.info("Cassette motor " + (value ? "on" : "off"));
+                    this.tape.setMotorOn(value);
                 }
             }
             // this.log.info("Write CRU address " + addr.toHexWord() + ": " + bit);
@@ -153,7 +151,7 @@ CRU.prototype = {
             if (this.clockRegister > 0) {
                 this.decrementer = this.clockRegister;
                 this.timerInterruptScheduled = true;
-                this.log.info("Timer started at " + this.decrementer.toHexWord());
+                // this.log.info("Timer started at " + this.decrementer.toHexWord());
             }
             this.timerMode = false;
             // this.log.info("9901 timer mode off");
