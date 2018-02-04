@@ -9,14 +9,6 @@
 function CRU(keyboard) {
     this.keyboard = keyboard;
     this.cru = [];
-    this.vdpInterrupt = false;
-    this.timerMode = false;
-    this.clockRegister = 0;
-    this.readRegister = 0;
-    this.decrementer = 0;
-    this.timerInterrupt = false;
-    this.timerInterruptScheduled = false;
-    this.cassetteInput = true;
     this.log = Log.getLog();
     this.reset();
 }
@@ -31,6 +23,14 @@ CRU.prototype = {
     },
 
     reset: function () {
+        this.vdpInterrupt = false;
+        this.timerMode = false;
+        this.clockRegister = 0;
+        this.readRegister = 0;
+        this.decrementer = 0;
+        this.timerInterrupt = false;
+        this.timerInterruptScheduled = false;
+        this.cassetteInput = true;
         for (var i = 0; i < 4096; i++) {
             this.cru[i] = true;
         }
@@ -118,6 +118,7 @@ CRU.prototype = {
                     this.decrementer = this.clockRegister;
                 }
                 else if (addr === 15 && !value) {
+                    // TODO: Should be a soft reset
                     this.log.info("Reset 9901");
                     this.reset();
                 }
