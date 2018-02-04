@@ -369,17 +369,17 @@ F18A.prototype = {
     },
 
     setDimensions: function (force) {
-        var newCanvasWidth = this.screenMode == F18A.MODE_TEXT_80 ? 608 : 304;
-        var newCanvasHeight = this.screenMode == F18A.MODE_TEXT_80 ? 480 : 240;
-        var newDimensions = force || newCanvasWidth != this.canvas.width || newCanvasHeight != this.canvas.height;
+        var newCanvasWidth = this.screenMode === F18A.MODE_TEXT_80 ? 608 : 304;
+        var newCanvasHeight = this.screenMode === F18A.MODE_TEXT_80 ? 480 : 240;
+        var newDimensions = force || newCanvasWidth !== this.canvas.width || newCanvasHeight !== this.canvas.height;
         if (newDimensions) {
             this.canvas.width = this.canvasWidth = newCanvasWidth;
             this.canvas.height = this.canvasHeight = newCanvasHeight;
         }
-        this.drawWidth = this.screenMode == F18A.MODE_TEXT_80 ? 512 : 256;
+        this.drawWidth = this.screenMode === F18A.MODE_TEXT_80 ? 512 : 256;
         this.drawHeight = this.row30Enabled ? 240 : 192;
         this.leftBorder = Math.floor((this.canvasWidth - this.drawWidth) >> 1);
-        this.topBorder = Math.floor(((this.canvasHeight >> (this.screenMode == F18A.MODE_TEXT_80 ? 1 : 0)) - this.drawHeight) >> 1);
+        this.topBorder = Math.floor(((this.canvasHeight >> (this.screenMode === F18A.MODE_TEXT_80 ? 1 : 0)) - this.drawHeight) >> 1);
         if (newDimensions) {
             this.fillCanvas(this.bgColor);
             this.imagedata = this.canvasContext.getImageData(0, 0, this.canvasWidth, this.canvasHeight);
@@ -399,7 +399,7 @@ F18A.prototype = {
                 this.fakeScanline = null;
                 for (var y = 0; y < 240; y++) {
                     this._drawScanline(y);
-                    if (this.screenMode == F18A.MODE_TEXT_80) {
+                    if (this.screenMode === F18A.MODE_TEXT_80) {
                         this._duplicateScanline();
                     }
                     if (this.gpuHsyncTrigger) {
@@ -451,14 +451,14 @@ F18A.prototype = {
         this.fifthSpriteIndex = 0x1F;
         this.blanking = 0;
         this._drawScanline(y);
-        if (this.screenMode == F18A.MODE_TEXT_80) {
+        if (this.screenMode === F18A.MODE_TEXT_80) {
             this._duplicateScanline();
         }
         this.blanking = 1;
         if (this.gpuHsyncTrigger) {
             this.gpu.setIdle(false);
         }
-        if (y == this.topBorder + this.drawHeight - (this.row30Enabled ? 1 : 0)) {
+        if (y === this.topBorder + this.drawHeight - (this.row30Enabled ? 1 : 0)) {
             this.statusRegister |= 0x80;
             if (this.interruptsOn) {
                 this.cru.setVDPInterrupt(true);
@@ -471,7 +471,7 @@ F18A.prototype = {
         if (this.collision) {
             this.statusRegister |= 0x20;
         }
-        if ((this.statusRegister & 0x40) == 0) {
+        if ((this.statusRegister & 0x40) === 0) {
             this.statusRegister |= (this.reportMax ? this.registers[30] : this.fifthSpriteIndex);
         }
         if (this.fifthSprite) {
@@ -493,23 +493,23 @@ F18A.prototype = {
             y -= this.topBorder;
             // Prepare sprites
             var spriteColorBuffer, spritePaletteBaseIndexBuffer;
-            if (this.unlocked || (this.screenMode != F18A.MODE_TEXT && this.screenMode != F18A.MODE_TEXT_80)) {
+            if (this.unlocked || (this.screenMode !== F18A.MODE_TEXT && this.screenMode !== F18A.MODE_TEXT_80)) {
                 spriteColorBuffer = new Uint8Array(this.drawWidth);
                 spritePaletteBaseIndexBuffer = new Uint8Array(this.drawWidth);
                 var spritesOnLine = 0;
                 var outOfScreenY = this.row30Enabled ? 0xF0 : 0xC0;
                 var negativeScreenY = this.row30Enabled ? 0xF0 : 0xD0;
                 var maxSpriteAttrAddr = this.spriteAttributeTable + (this.maxSprites << 2);
-                for (var spriteAttrAddr = this.spriteAttributeTable, index = 0; (this.row30Enabled || this.ram[spriteAttrAddr] != 0xd0) && spriteAttrAddr < maxSpriteAttrAddr && spritesOnLine <= this.maxScanlineSprites; spriteAttrAddr += 4, index++) {
+                for (var spriteAttrAddr = this.spriteAttributeTable, index = 0; (this.row30Enabled || this.ram[spriteAttrAddr] !== 0xd0) && spriteAttrAddr < maxSpriteAttrAddr && spritesOnLine <= this.maxScanlineSprites; spriteAttrAddr += 4, index++) {
                     var parentSpriteAttrAddr = null;
                     if (this.spriteLinkingEnabled) {
                         var spriteLinkingAttr = this.ram[this.spriteAttributeTable + 0x80 + ((spriteAttrAddr - this.spriteAttributeTable) >> 2)];
-                        if ((spriteLinkingAttr & 0x20) != 0) {
+                        if ((spriteLinkingAttr & 0x20) !== 0) {
                             parentSpriteAttrAddr = this.spriteAttributeTable + ((spriteLinkingAttr & 0x1F) << 2);
                         }
                     }
                     var spriteY = this.ram[spriteAttrAddr];
-                    if (parentSpriteAttrAddr != null) {
+                    if (parentSpriteAttrAddr !== null) {
                         spriteY = (spriteY + this.ram[parentSpriteAttrAddr]) & 0xFF;
                     }
                     if (!this.realSpriteYCoord) {
@@ -520,7 +520,7 @@ F18A.prototype = {
                             spriteY -= 256;
                         }
                         var spriteAttr = this.ram[spriteAttrAddr + 3];
-                        var spriteSize = !this.unlocked || (spriteAttr & 0x10) == 0 ? this.spriteSize : 1;
+                        var spriteSize = !this.unlocked || (spriteAttr & 0x10) === 0 ? this.spriteSize : 1;
                         var spriteMag = this.spriteMag;
                         var spriteHeight = 8 << spriteSize; // 8 or 16
                         var spriteDimensionY = spriteHeight << spriteMag; // 8, 16 or 32
@@ -531,21 +531,21 @@ F18A.prototype = {
                                 //noinspection JSSuspiciousNameCombination
                                 var spriteDimensionX = spriteDimensionY;
                                 var spriteX = this.ram[spriteAttrAddr + 1];
-                                if (parentSpriteAttrAddr == null) {
-                                    if ((spriteAttr & 0x80) != 0) {
+                                if (parentSpriteAttrAddr === null) {
+                                    if ((spriteAttr & 0x80) !== 0) {
                                         spriteX -= 32; // Early clock
                                     }
                                 }
                                 else {
                                     // Linked
                                     spriteX = (spriteX + this.ram[parentSpriteAttrAddr + 1]) & 0xFF;
-                                    if ((this.ram[parentSpriteAttrAddr + 3] & 0x80) != 0) {
+                                    if ((this.ram[parentSpriteAttrAddr + 3] & 0x80) !== 0) {
                                         spriteX -= 32; // Early clock of parent
                                     }
                                 }
-                                var patternNo = (this.ram[spriteAttrAddr + 2] & (spriteSize != 0 ? 0xFC : 0xFF));
-                                var spriteFlipY = this.unlocked && (spriteAttr & 0x20) != 0;
-                                var spriteFlipX = this.unlocked && (spriteAttr & 0x40) != 0;
+                                var patternNo = (this.ram[spriteAttrAddr + 2] & (spriteSize !== 0 ? 0xFC : 0xFF));
+                                var spriteFlipY = this.unlocked && (spriteAttr & 0x20) !== 0;
+                                var spriteFlipX = this.unlocked && (spriteAttr & 0x40) !== 0;
                                 var baseColor = spriteAttr & 0x0F;
                                 var sprPaletteBaseIndex = 0;
                                 switch (this.spriteColorMode) {
@@ -579,7 +579,7 @@ F18A.prototype = {
                                         var pixelOn = 0;
                                         switch (this.spriteColorMode) {
                                             case F18A.COLOR_MODE_NORMAL:
-                                                pixelOn = (spritePatternByte0 & spriteBit) != 0;
+                                                pixelOn = (spritePatternByte0 & spriteBit) !== 0;
                                                 sprColor = pixelOn ? baseColor : 0;
                                                 break;
                                             case F18A.COLOR_MODE_ECM_1:
@@ -600,7 +600,7 @@ F18A.prototype = {
                                         if (sprColor > 0 || pixelOn) {
                                             var x2 = spriteX + ((spriteFlipX ? spriteDimensionX - (dx + spriteBitShift1) - 1 : dx + spriteBitShift1) << spriteMag);
                                             if (x2 >= 0 && x2 < this.drawWidth) {
-                                                if (spriteColorBuffer[x2] == 0) {
+                                                if (spriteColorBuffer[x2] === 0) {
                                                     spriteColorBuffer[x2] = sprColor + 1; // Add one here so 0 means uninitialized. Subtract one before drawing.
                                                     spritePaletteBaseIndexBuffer[x2] = sprPaletteBaseIndex;
                                                 }
@@ -611,7 +611,7 @@ F18A.prototype = {
                                             if (spriteMag) {
                                                 x2++;
                                                 if (x2 >= 0 && x2 < this.drawWidth) {
-                                                    if (spriteColorBuffer[x2] == 0) {
+                                                    if (spriteColorBuffer[x2] === 0) {
                                                         spriteColorBuffer[x2] = sprColor + 1; // Add one here so 0 means uninitialized. Subtract one before drawing.
                                                         spritePaletteBaseIndexBuffer[x2] = sprPaletteBaseIndex;
                                                     }
@@ -627,14 +627,14 @@ F18A.prototype = {
                                 }
                             }
                             spritesOnLine++;
-                            if (spritesOnLine == 5 && !this.fifthSprite) {
+                            if (spritesOnLine === 5 && !this.fifthSprite) {
                                 this.fifthSprite = true;
                                 this.fifthSpriteIndex = index;
                             }
                         }
                     }
                 }
-                if (this.screenMode == F18A.MODE_TEXT_80) {
+                if (this.screenMode === F18A.MODE_TEXT_80) {
                     for (x1 = this.drawWidth >> 1; x1 >= 0; x1--) {
                         spriteColorBuffer[x1 << 1] = spriteColorBuffer[x1];
                         spritePaletteBaseIndexBuffer[x1 << 1] = spritePaletteBaseIndexBuffer[x1];
@@ -646,7 +646,7 @@ F18A.prototype = {
             var scrollWidth = this.drawWidth;
             var scrollHeight = this.drawHeight;
             // Border in text modes
-            var borderWidth = this.screenMode == F18A.MODE_TEXT ? 8 : (this.screenMode == F18A.MODE_TEXT_80 ? 16 : 0);
+            var borderWidth = this.screenMode === F18A.MODE_TEXT ? 8 : (this.screenMode === F18A.MODE_TEXT_80 ? 16 : 0);
             scrollWidth -= (borderWidth << 1);
             // Prepare values for Tile layer 1
             var nameTableCanonicalBase = this.vPageSize1 ? this.nameTable & 0x3000 : (this.hPageSize1 ? this.nameTable & 0x3800 : this.nameTable);
@@ -713,7 +713,7 @@ F18A.prototype = {
                     // Tile layer 1
                     if (this.tileLayer1Enabled) {
                         var nameTableAddr = nameTableBaseAddr;
-                        var x1 = x - borderWidth + (this.hScroll1 << (this.screenMode == F18A.MODE_TEXT_80 ? 1 : 0));
+                        var x1 = x - borderWidth + (this.hScroll1 << (this.screenMode === F18A.MODE_TEXT_80 ? 1 : 0));
                         if (x1 >= scrollWidth) {
                             x1 -= scrollWidth;
                             nameTableAddr ^= this.hPageSize1;
@@ -727,18 +727,18 @@ F18A.prototype = {
                                 charNo = this.ram[nameTableAddr];
                                 bitShift = x1 & 7;
                                 lineOffset1 = lineOffset;
-                                if (this.tileColorMode != F18A.COLOR_MODE_NORMAL) {
+                                if (this.tileColorMode !== F18A.COLOR_MODE_NORMAL) {
                                     tileAttributeByte = this.ram[this.colorTable + (this.ecmPositionAttributes ? nameTableAddr - nameTableCanonicalBase : charNo)];
-                                    tilePriority = (tileAttributeByte & 0x80) != 0;
-                                    if ((tileAttributeByte & 0x40) != 0) {
+                                    tilePriority = (tileAttributeByte & 0x80) !== 0;
+                                    if ((tileAttributeByte & 0x40) !== 0) {
                                         // Flip X
                                         bitShift = 7 - bitShift;
                                     }
-                                    if ((tileAttributeByte & 0x20) != 0) {
+                                    if ((tileAttributeByte & 0x20) !== 0) {
                                         // Flip y
                                         lineOffset1 = 7 - lineOffset1;
                                     }
-                                    transparentColor0 = (tileAttributeByte & 0x10) != 0;
+                                    transparentColor0 = (tileAttributeByte & 0x10) !== 0;
                                 }
                                 bit = 0x80 >> bitShift;
                                 patternAddr = this.charPatternTable + (charNo << 3) + lineOffset1;
@@ -746,7 +746,7 @@ F18A.prototype = {
                                 switch (this.tileColorMode) {
                                     case F18A.COLOR_MODE_NORMAL:
                                         var colorSet = this.ram[this.colorTable + (charNo >> 3)];
-                                        tileColor = (patternByte & bit) != 0 ? (colorSet & 0xF0) >> 4 : colorSet & 0x0F;
+                                        tileColor = (patternByte & bit) !== 0 ? (colorSet & 0xF0) >> 4 : colorSet & 0x0F;
                                         tilePaletteBaseIndex = this.tilePaletteSelect;
                                         transparentColor0 = true;
                                         tilePriority = false;
@@ -782,7 +782,7 @@ F18A.prototype = {
                                 patternByte = this.ram[this.charPatternTable + (((charNo << 3) + charSetOffset) & this.patternTableMask) + lineOffset];
                                 var colorAddr = this.colorTable + (((charNo << 3) + charSetOffset) & this.colorTableMask) + lineOffset;
                                 var colorByte = this.ram[colorAddr];
-                                tileColor = (patternByte & bit) != 0 ? (colorByte & 0xF0) >> 4 : (colorByte & 0x0F);
+                                tileColor = (patternByte & bit) !== 0 ? (colorByte & 0xF0) >> 4 : (colorByte & 0x0F);
                                 if (tileColor > 0) {
                                     color = tileColor;
                                     paletteBaseIndex = this.tilePaletteSelect;
@@ -795,18 +795,18 @@ F18A.prototype = {
                                     charNo = this.ram[nameTableAddr];
                                     bitShift = x1 % 6;
                                     lineOffset1 = lineOffset;
-                                    if (this.tileColorMode != F18A.COLOR_MODE_NORMAL) {
+                                    if (this.tileColorMode !== F18A.COLOR_MODE_NORMAL) {
                                         tileAttributeByte = this.ram[this.colorTable + (this.ecmPositionAttributes ? nameTableAddr - nameTableCanonicalBase : charNo)];
-                                        tilePriority = (tileAttributeByte & 0x80) != 0;
-                                        if ((tileAttributeByte & 0x40) != 0) {
+                                        tilePriority = (tileAttributeByte & 0x80) !== 0;
+                                        if ((tileAttributeByte & 0x40) !== 0) {
                                             // Flip X
                                             bitShift = 5 - bitShift;
                                         }
-                                        if ((tileAttributeByte & 0x20) != 0) {
+                                        if ((tileAttributeByte & 0x20) !== 0) {
                                             // Flip y
                                             lineOffset1 = 7 - lineOffset1;
                                         }
-                                        transparentColor0 = (tileAttributeByte & 0x10) != 0;
+                                        transparentColor0 = (tileAttributeByte & 0x10) !== 0;
                                     }
                                     bit = 0x80 >> bitShift;
                                     patternAddr = this.charPatternTable + (charNo << 3) + lineOffset1;
@@ -815,10 +815,10 @@ F18A.prototype = {
                                         case F18A.COLOR_MODE_NORMAL:
                                             if (this.unlocked && this.ecmPositionAttributes) {
                                                 tileAttributeByte = this.ram[this.colorTable + nameTableAddr - nameTableCanonicalBase];
-                                                tileColor = (patternByte & bit) != 0 ? tileAttributeByte >> 4 : tileAttributeByte & 0xF;
+                                                tileColor = (patternByte & bit) !== 0 ? tileAttributeByte >> 4 : tileAttributeByte & 0xF;
                                             }
                                             else {
-                                                tileColor = (patternByte & bit) != 0 ? this.fgColor : this.bgColor;
+                                                tileColor = (patternByte & bit) !== 0 ? this.fgColor : this.bgColor;
                                             }
                                             tilePaletteBaseIndex = this.tilePaletteSelect;
                                             transparentColor0 = true;
@@ -854,7 +854,7 @@ F18A.prototype = {
                             case F18A.MODE_MULTICOLOR:
                                 charNo = this.ram[nameTableAddr + (x1 >> 3) + rowOffset];
                                 colorByte = this.ram[this.charPatternTable + (charNo << 3) + ((y1 & 0x1c) >> 2)];
-                                tileColor = (x1 & 4) == 0 ? (colorByte & 0xf0) >> 4 : (colorByte & 0x0f);
+                                tileColor = (x1 & 4) === 0 ? (colorByte & 0xf0) >> 4 : (colorByte & 0x0f);
                                 if (tileColor > 0) {
                                     color = tileColor;
                                     paletteBaseIndex = this.tilePaletteSelect;
@@ -864,7 +864,7 @@ F18A.prototype = {
                     }
                     // Bitmap layer
                     if (this.bitmapEnable) {
-                        var bmpX = this.screenMode != F18A.MODE_TEXT_80 ? x : x >> 1;
+                        var bmpX = this.screenMode !== F18A.MODE_TEXT_80 ? x : x >> 1;
                         if (bmpX >= this.bitmapX && bmpX < bitmapX2 && y >= this.bitmapY && y < bitmapY2) {
                             var bitmapX1 = x - this.bitmapX;
                             var bitmapPixelOffset = bitmapX1 + bitmapYOffset;
@@ -880,7 +880,7 @@ F18A.prototype = {
                                 bitmapBitShift = (3 - (bitmapPixelOffset & 3)) << 1;
                                 bitmapColor = (bitmapByte >> bitmapBitShift) & 0x03;
                             }
-                            if ((bitmapColor > 0 || !this.bitmapTransparent) && (color == this.bgColor || this.bitmapPriority)) {
+                            if ((bitmapColor > 0 || !this.bitmapTransparent) && (color === this.bgColor || this.bitmapPriority)) {
                                 color = bitmapColor;
                                 paletteBaseIndex = this.bitmapPaletteSelect;
                             }
@@ -888,7 +888,7 @@ F18A.prototype = {
                     }
                     // Sprite layer
                     var spriteColor = null;
-                    if ((this.unlocked || (this.screenMode != F18A.MODE_TEXT && this.screenMode != F18A.MODE_TEXT_80)) && (!tilePriority || transparentColor0 && color == 0)) {
+                    if ((this.unlocked || (this.screenMode !== F18A.MODE_TEXT && this.screenMode !== F18A.MODE_TEXT_80)) && (!tilePriority || transparentColor0 && color === 0)) {
                         spriteColor = spriteColorBuffer[x] - 1;
                         if (spriteColor > 0) {
                             color = spriteColor;
@@ -902,7 +902,7 @@ F18A.prototype = {
                     // The following is almost just a copy of the code from TL1, so this could be coded more elegantly
                     if (this.tileLayer2Enabled) {
                         var nameTableAddr2 = nameTableBaseAddr2;
-                        var x12 = x - borderWidth + (this.hScroll2 << (this.screenMode == F18A.MODE_TEXT_80 ? 1 : 0));
+                        var x12 = x - borderWidth + (this.hScroll2 << (this.screenMode === F18A.MODE_TEXT_80 ? 1 : 0));
                         if (x12 >= scrollWidth) {
                             x12 -= scrollWidth;
                             nameTableAddr2 ^= this.hPageSize2;
@@ -916,18 +916,18 @@ F18A.prototype = {
                                 charNo2 = this.ram[nameTableAddr2];
                                 bitShift2 = x12 & 7;
                                 lineOffset12 = lineOffset2;
-                                if (this.tileColorMode != F18A.COLOR_MODE_NORMAL) {
+                                if (this.tileColorMode !== F18A.COLOR_MODE_NORMAL) {
                                     tileAttributeByte2 = this.ram[this.colorTable2 + (this.ecmPositionAttributes ? nameTableAddr2 - nameTableCanonicalBase2 : charNo2)];
-                                    tilePriority2 = (tileAttributeByte2 & 0x80) != 0;
-                                    if ((tileAttributeByte2 & 0x40) != 0) {
+                                    tilePriority2 = (tileAttributeByte2 & 0x80) !== 0;
+                                    if ((tileAttributeByte2 & 0x40) !== 0) {
                                         // Flip X
                                         bitShift2 = 7 - bitShift2;
                                     }
-                                    if ((tileAttributeByte2 & 0x20) != 0) {
+                                    if ((tileAttributeByte2 & 0x20) !== 0) {
                                         // Flip y
                                         lineOffset12 = 7 - lineOffset12;
                                     }
-                                    transparentColor02 = (tileAttributeByte2 & 0x10) != 0;
+                                    transparentColor02 = (tileAttributeByte2 & 0x10) !== 0;
                                 }
                                 bit2 = 0x80 >> bitShift2;
                                 patternAddr2 = this.charPatternTable + (charNo2 << 3) + lineOffset12;
@@ -935,7 +935,7 @@ F18A.prototype = {
                                 switch (this.tileColorMode) {
                                     case F18A.COLOR_MODE_NORMAL:
                                         var colorSet2 = this.ram[this.colorTable2 + (charNo2 >> 3)];
-                                        tileColor2 = (patternByte2 & bit2) != 0 ? (colorSet2 & 0xF0) >> 4 : colorSet2 & 0x0F;
+                                        tileColor2 = (patternByte2 & bit2) !== 0 ? (colorSet2 & 0xF0) >> 4 : colorSet2 & 0x0F;
                                         tilePaletteBaseIndex2 = this.tilePaletteSelect2;
                                         transparentColor02 = true;
                                         tilePriority2 = false;
@@ -967,7 +967,7 @@ F18A.prototype = {
                                 patternByte2 = this.ram[this.charPatternTable + (((charNo2 << 3) + charSetOffset2) & this.patternTableMask) + lineOffset2];
                                 var colorAddr2 = this.colorTable2 + (((charNo2 << 3) + charSetOffset2) & this.colorTableMask) + lineOffset2;
                                 var colorByte2 = this.ram[colorAddr2];
-                                tileColor2 = (patternByte2 & bit2) != 0 ? (colorByte2 & 0xF0) >> 4 : (colorByte2 & 0x0F);
+                                tileColor2 = (patternByte2 & bit2) !== 0 ? (colorByte2 & 0xF0) >> 4 : (colorByte2 & 0x0F);
                                 tilePaletteBaseIndex2 = this.tilePaletteSelect2;
                                 transparentColor02 = true;
                                 tilePriority2 = false;
@@ -979,18 +979,18 @@ F18A.prototype = {
                                     charNo2 = this.ram[nameTableAddr2];
                                     bitShift2 = x12 % 6;
                                     lineOffset12 = lineOffset2;
-                                    if (this.tileColorMode != F18A.COLOR_MODE_NORMAL) {
+                                    if (this.tileColorMode !== F18A.COLOR_MODE_NORMAL) {
                                         tileAttributeByte2 = this.ram[this.colorTable2 + (this.ecmPositionAttributes ? nameTableAddr2 - nameTableCanonicalBase2 : charNo2)];
-                                        tilePriority2 = (tileAttributeByte2 & 0x80) != 0;
-                                        if ((tileAttributeByte2 & 0x40) != 0) {
+                                        tilePriority2 = (tileAttributeByte2 & 0x80) !== 0;
+                                        if ((tileAttributeByte2 & 0x40) !== 0) {
                                             // Flip X
                                             bitShift2 = 5 - bitShift2;
                                         }
-                                        if ((tileAttributeByte2 & 0x20) != 0) {
+                                        if ((tileAttributeByte2 & 0x20) !== 0) {
                                             // Flip y
                                             lineOffset12 = 7 - lineOffset12;
                                         }
-                                        transparentColor02 = (tileAttributeByte2 & 0x10) != 0;
+                                        transparentColor02 = (tileAttributeByte2 & 0x10) !== 0;
                                     }
                                     bit2 = 0x80 >> bitShift2;
                                     patternAddr2 = this.charPatternTable + (charNo2 << 3) + lineOffset12;
@@ -999,10 +999,10 @@ F18A.prototype = {
                                         case F18A.COLOR_MODE_NORMAL:
                                             if (this.unlocked && this.ecmPositionAttributes) {
                                                 tileAttributeByte2 = this.ram[this.colorTable2 + nameTableAddr2 - nameTableCanonicalBase2];
-                                                tileColor2 = (patternByte2 & bit2) != 0 ? tileAttributeByte2 >> 4 : tileAttributeByte2 & 0xF;
+                                                tileColor2 = (patternByte2 & bit2) !== 0 ? tileAttributeByte2 >> 4 : tileAttributeByte2 & 0xF;
                                             }
                                             else {
-                                                tileColor2 = (patternByte2 & bit2) != 0 ? this.fgColor : this.bgColor;
+                                                tileColor2 = (patternByte2 & bit2) !== 0 ? this.fgColor : this.bgColor;
                                             }
                                             tilePaletteBaseIndex2 = this.tilePaletteSelect2;
                                             transparentColor02 = true;
@@ -1036,13 +1036,13 @@ F18A.prototype = {
                             case F18A.MODE_MULTICOLOR:
                                 charNo2 = this.ram[nameTableAddr2 + (x12 >> 3) + rowOffset2];
                                 colorByte2 = this.ram[this.charPatternTable + (charNo2 << 3) + ((y12 & 0x1c) >> 2)];
-                                tileColor2 = (x12 & 4) == 0 ? (colorByte2 & 0xf0) >> 4 : (colorByte2 & 0x0f);
+                                tileColor2 = (x12 & 4) === 0 ? (colorByte2 & 0xf0) >> 4 : (colorByte2 & 0x0f);
                                 tilePaletteBaseIndex2 = this.tilePaletteSelect2;
                                 transparentColor02 = true;
                                 tilePriority2 = false;
                                 break;
                         }
-                        if ((tileColor2 > 0 || !transparentColor02) && (this.tileMap2AlwaysOnTop || tilePriority2 || spriteColor == null)) {
+                        if ((tileColor2 > 0 || !transparentColor02) && (this.tileMap2AlwaysOnTop || tilePriority2 || spriteColor === null)) {
                             color = tileColor2;
                             paletteBaseIndex = tilePaletteBaseIndex2;
                         }
@@ -1066,7 +1066,7 @@ F18A.prototype = {
                 imagedataAddr++; // Skip alpha
             }
         }
-        if (this.scanLines && (y & 1) != 0) {
+        if (this.scanLines && (y & 1) !== 0) {
             // Dim last scan line
             var imagedataAddr2 = imagedataAddr - (this.canvasWidth << 2);
             for (xc = 0; xc < this.canvasWidth; xc++) {
@@ -1111,12 +1111,12 @@ F18A.prototype = {
                 case 2:
                 case 3:
                     var reg = msb;
-                    if (this.unlocked || reg < 8 || reg == 57) {
+                    if (this.unlocked || reg < 8 || reg === 57) {
                         this.writeRegister(reg, this.addressRegister & 0x00FF);
                     }
                     else {
                         this.log.info("Write " + (this.addressRegister & 0x00FF).toHexByte() + " to F18A register " + reg + " (" + reg.toHexByte() + ") without unlocking.");
-                        if ((this.registers[0] & 0x04) == 0) {  // 1.8 firmware: writes to registers > 7 are masked if 80 columns mode is not enabled
+                        if ((this.registers[0] & 0x04) === 0) {  // 1.8 firmware: writes to registers > 7 are masked if 80 columns mode is not enabled
                             this.writeRegister(reg & 0x07, this.addressRegister & 0x00FF);
                         }
                         else {
@@ -1138,19 +1138,19 @@ F18A.prototype = {
                 this.updateMode(this.registers[0], this.registers[1]);
                 break;
             case 1:
-                this.displayOn = (this.registers[1] & 0x40) != 0;
-                this.interruptsOn = (this.registers[1] & 0x20) != 0;
+                this.displayOn = (this.registers[1] & 0x40) !== 0;
+                this.interruptsOn = (this.registers[1] & 0x20) !== 0;
                 this.spriteSize = (this.registers[1] & 0x02) >> 1;
                 this.spriteMag = this.registers[1] & 0x01;
                 this.updateMode(this.registers[0], this.registers[1]);
                 break;
             // Name table
             case 2:
-                this.nameTable = (this.registers[2] & (this.screenMode != F18A.MODE_TEXT_80 || this.unlocked ? 0xf : 0xc)) << 10;
+                this.nameTable = (this.registers[2] & (this.screenMode !== F18A.MODE_TEXT_80 || this.unlocked ? 0xf : 0xc)) << 10;
                 break;
             // Color table
             case 3:
-                if (this.screenMode == F18A.MODE_BITMAP) {
+                if (this.screenMode === F18A.MODE_BITMAP) {
                     this.colorTable = (this.registers[3] & 0x80) << 6;
                 }
                 else {
@@ -1160,7 +1160,7 @@ F18A.prototype = {
                 break;
             // Pattern table
             case 4:
-                if (this.screenMode == F18A.MODE_BITMAP) {
+                if (this.screenMode === F18A.MODE_BITMAP) {
                     this.charPatternTable = (this.registers[4] & 0x4) << 11;
                 }
                 else {
@@ -1193,8 +1193,8 @@ F18A.prototype = {
             case 15:
                 this.statusRegisterNo = this.registers[15] & 0x0f;
                 this.log.info("F18A status register " + this.statusRegisterNo + " selected.");
-                var wasRunning = (oldValue & 0x10) != 0;
-                var running = (this.registers[15] & 0x10) != 0;
+                var wasRunning = (oldValue & 0x10) !== 0;
+                var running = (this.registers[15] & 0x10) !== 0;
                 if (wasRunning && !running) {
                     // Stop
                     this.counterElapsed += (this.getTime() - this.counterStart);
@@ -1203,7 +1203,7 @@ F18A.prototype = {
                     // Start
                     this.counterStart = this.getTime();
                 }
-                if ((this.registers[15] & 0x20) != 0) {
+                if ((this.registers[15] & 0x20) !== 0) {
                     // Snapshot
                     if (running) {
                         // Started
@@ -1215,7 +1215,7 @@ F18A.prototype = {
                     }
                     this.registers[15] &= 0xdf; // Clear trigger bit
                 }
-                if ((this.registers[15] & 0x40) != 0) {
+                if ((this.registers[15] & 0x40) !== 0) {
                     // Reset
                     this.counterElapsed = 0;
                     this.counterStart = this.getTime();
@@ -1268,21 +1268,21 @@ F18A.prototype = {
             // Setting this to 31 means all 32 sprites can be displayed.
             // You cannot choose to have 31 displayable sprites on a scanline.
             case 30:
-                if (this.registers[30] == 0) {
+                if (this.registers[30] === 0) {
                     this.registers[30] = F18A.MAX_SCANLINE_SPRITES_JUMPER ? 31 : 4;
                 }
                 this.maxScanlineSprites = this.registers[30];
-                if (this.maxScanlineSprites == 31) {
+                if (this.maxScanlineSprites === 31) {
                     this.maxScanlineSprites = 32;
                 }
                 this.log.info("Max scanline sprites set to " + this.maxScanlineSprites);
                 break;
             // Bitmap control
             case 31:
-                this.bitmapEnable = (this.registers[31] & 0x80) != 0;
-                this.bitmapPriority = (this.registers[31] & 0x40) != 0;
-                this.bitmapTransparent = (this.registers[31] & 0x20) != 0;
-                this.bitmapFat = (this.registers[31] & 0x10) != 0;
+                this.bitmapEnable = (this.registers[31] & 0x80) !== 0;
+                this.bitmapPriority = (this.registers[31] & 0x40) !== 0;
+                this.bitmapTransparent = (this.registers[31] & 0x20) !== 0;
+                this.bitmapFat = (this.registers[31] & 0x10) !== 0;
                 this.bitmapPaletteSelect = (this.registers[31] & (this.bitmapFat ? 0x0C : 0x0F)) << 2; // Shift into position
                 break;
             // Bitmap base address
@@ -1303,7 +1303,7 @@ F18A.prototype = {
             // Bitmap width
             case 35:
                 this.bitmapWidth = this.registers[35];
-                if (this.bitmapWidth == 0) {
+                if (this.bitmapWidth === 0) {
                     this.bitmapWidth = 256;
                 }
                 this.log.debug("Bitmap width set to " + this.bitmapWidth.toHexWord());
@@ -1315,8 +1315,8 @@ F18A.prototype = {
                 break;
             // Palette control
             case 47:
-                this.dataPortMode = (this.registers[47] & 0x80) != 0;
-                this.autoIncPaletteReg = (this.registers[47] & 0x40) != 0;
+                this.dataPortMode = (this.registers[47] & 0x80) !== 0;
+                this.autoIncPaletteReg = (this.registers[47] & 0x40) !== 0;
                 this.paletteRegisterNo = this.registers[47] & 0x3f;
                 this.paletteRegisterData = -1;
                 if (this.dataPortMode) {
@@ -1332,48 +1332,48 @@ F18A.prototype = {
                 break;
             // Enhanced color mode
             case 49:
-                this.tileLayer2Enabled = (this.registers[49] & 0x80) != 0;
+                this.tileLayer2Enabled = (this.registers[49] & 0x80) !== 0;
                 var oldRow30 = this.row30Enabled;
-                this.row30Enabled = (this.registers[49] & 0x40) != 0;
-                if (oldRow30 != this.row30Enabled) {
+                this.row30Enabled = (this.registers[49] & 0x40) !== 0;
+                if (oldRow30 !== this.row30Enabled) {
                     this.setDimensions();
                     this.log.info("30 rows mode " + (this.row30Enabled ? "enabled" : "disabled") + ".");
                 }
                 this.tileColorMode = (this.registers[49] & 0x30) >> 4;
                 this.log.info("F18A Enhanced Color Mode " + this.tileColorMode + " selected for tiles.");
-                this.realSpriteYCoord = (this.registers[49] & 0x08) != 0;
+                this.realSpriteYCoord = (this.registers[49] & 0x08) !== 0;
                 // this.log.info("Real Y coord: " + this.realSpriteYCoord);
-                this.spriteLinkingEnabled = (this.registers[49] & 0x04) != 0;
+                this.spriteLinkingEnabled = (this.registers[49] & 0x04) !== 0;
                 this.spriteColorMode = this.registers[49] & 0x03;
                 this.log.info("F18A Enhanced Color Mode " + this.spriteColorMode + " selected for sprites.");
                 break;
             // Position vs name attributes, TL2 always on top
             case 50:
                 // Write 1 to reset all VDP registers
-                if ((this.registers[50] & 0x80) != 0) {
+                if ((this.registers[50] & 0x80) !== 0) {
                     this.resetRegs();
                     this.unlocked = false;
                     this.updateMode(this.registers[0], this.registers[1]);
                     return;
                 }
-                this.gpuHsyncTrigger = (this.registers[50] & 0x40) != 0;
-                if (this.gpuHsyncTrigger != 0) {
+                this.gpuHsyncTrigger = (this.registers[50] & 0x40) !== 0;
+                if (this.gpuHsyncTrigger !== 0) {
                     this.log.info("F18A Hsync trigger set");
                 }
-                this.gpuVsyncTrigger = (this.registers[50] & 0x20) != 0;
-                if (this.gpuVsyncTrigger != 0) {
+                this.gpuVsyncTrigger = (this.registers[50] & 0x20) !== 0;
+                if (this.gpuVsyncTrigger !== 0) {
                     this.log.info("F18A Vsync trigger set");
                 }
                 // 0 = normal, 1 = disable GM1, GM2, MCM, T40, T80
-                this.tileLayer1Enabled = (this.registers[50] & 0x10) == 0;
+                this.tileLayer1Enabled = (this.registers[50] & 0x10) === 0;
                 // Report sprite max vs 5th sprite
-                this.reportMax = (this.registers[50] & 0x08) != 0;
+                this.reportMax = (this.registers[50] & 0x08) !== 0;
                 // Draw scan lines
-                this.scanLines = (this.registers[50] & 0x04) != 0;
+                this.scanLines = (this.registers[50] & 0x04) !== 0;
                 // 0 = per name attributes in ECMs, 1 = per position attributes
-                this.ecmPositionAttributes = (this.registers[50] & 0x02) != 0;
+                this.ecmPositionAttributes = (this.registers[50] & 0x02) !== 0;
                 // 0 = TL2 always on top, 1 = TL2 vs sprite priority is considered
-                this.tileMap2AlwaysOnTop = (this.registers[50] & 0x01) == 0;
+                this.tileMap2AlwaysOnTop = (this.registers[50] & 0x01) === 0;
                 break;
             // Stop Sprite (zero based) to limit the total number of sprites to process.
             // Defaults to 32, i.e. no stop sprite
@@ -1395,7 +1395,7 @@ F18A.prototype = {
                 }
                 break;
             case 56:
-                if ((this.registers[56] & 1) != 0) {
+                if ((this.registers[56] & 1) !== 0) {
                     this.gpu.setIdle(false);
                 }
                 else {
@@ -1405,7 +1405,7 @@ F18A.prototype = {
                 break;
             case 57:
                 if (!this.unlocked) {
-                    if ((oldValue & 0x1c) == 0x1c && (this.registers[57] & 0x1c) == 0x1c) {
+                    if ((oldValue & 0x1c) === 0x1c && (this.registers[57] & 0x1c) === 0x1c) {
                         this.unlocked = true;
                         this.log.info("F18A unlocked");
                     }
@@ -1429,7 +1429,7 @@ F18A.prototype = {
                 this.log.info("Write " + this.registers[reg].toHexByte() + " to F18A register " + reg + " (" + reg.toHexByte() + ").");
                 break;
         }
-        if (oldValue != value) {
+        if (oldValue !== value) {
             this.redrawRequired = true;
         }
 
@@ -1456,7 +1456,7 @@ F18A.prototype = {
     updateMode: function (reg0, reg1) {
         var oldMode = this.screenMode;
         // Check bitmap mode bit, not text or multicolor
-        if ((reg0 & 0x2) != 0 && (reg1 & 0x18) == 0) {
+        if ((reg0 & 0x2) !== 0 && (reg1 & 0x18) === 0) {
             // Bitmap mode
             this.screenMode = F18A.MODE_BITMAP;
             this.log.debug("Bitmap mode selected");
@@ -1474,7 +1474,7 @@ F18A.prototype = {
                     break;
                 case 2:
                     // Text mode
-                    if ((reg0 & 0x04) == 0) {
+                    if ((reg0 & 0x04) === 0) {
                         this.screenMode = F18A.MODE_TEXT;
                         this.log.info("Text mode selected");
                     }
@@ -1485,7 +1485,7 @@ F18A.prototype = {
                     break;
             }
         }
-        if (this.screenMode == F18A.MODE_BITMAP) {
+        if (this.screenMode === F18A.MODE_BITMAP) {
             this.colorTable = (this.registers[3] & 0x80) << 6;
             this.charPatternTable = (this.registers[4] & 0x4) << 11;
             this.updateTableMasks();
@@ -1493,16 +1493,16 @@ F18A.prototype = {
             this.colorTable = this.registers[3] << 6;
             this.charPatternTable = (this.registers[4] & 0x7) << 11;
         }
-        this.nameTable = (this.registers[2] & (this.screenMode != F18A.MODE_TEXT_80 || this.unlocked ? 0xf : 0xc)) << 10;
+        this.nameTable = (this.registers[2] & (this.screenMode !== F18A.MODE_TEXT_80 || this.unlocked ? 0xf : 0xc)) << 10;
         this.spriteAttributeTable = (this.registers[5] & 0x7f) << 7;
         this.spritePatternTable = (this.registers[6] & 0x7) << 11;
-        if (oldMode != this.screenMode) {
+        if (oldMode !== this.screenMode) {
             this.setDimensions();
         }
     },
 
     updateTableMasks: function () {
-        if (this.screenMode == F18A.MODE_BITMAP) {
+        if (this.screenMode === F18A.MODE_BITMAP) {
             this.colorTableMask = ((this.registers[3] & 0x7F) << 6) | 0x3F;
             this.patternTableMask  = ((this.registers[4] & 0x03) << 11) | (this.colorTableMask & 0x7FF);
             // this.log.info("colorTableMask:" + this.colorTableMask);
@@ -1520,14 +1520,14 @@ F18A.prototype = {
             this.ram[this.addressRegister] = b;
             this.addressRegister += this.addressIncrement;
             this.addressRegister &= 0x3FFF;
-            if (oldValue != b) {
+            if (oldValue !== b) {
                 this.redrawRequired = true;
             }
 
         }
         else {
             // Write data to F18A palette registers
-            if (this.paletteRegisterData == -1) {
+            if (this.paletteRegisterData === -1) {
                 // Read first byte
                 this.paletteRegisterData = b;
             }
@@ -1536,7 +1536,7 @@ F18A.prototype = {
                 this.palette[this.paletteRegisterNo][0] = this.paletteRegisterData * 17;
                 this.palette[this.paletteRegisterNo][1] = ((b & 0xf0) >> 4) * 17;
                 this.palette[this.paletteRegisterNo][2] = (b & 0x0f) * 17;
-                if (this.paletteRegisterNo == this.bgColor) {
+                if (this.paletteRegisterNo === this.bgColor) {
                     this.redrawBorder = true;
                 }
                 // this.log.info("F18A palette register " + this.paletteRegisterNo.toHexByte() + " set to " + (this.paletteRegisterData << 8 | b).toHexWord());
@@ -1545,7 +1545,7 @@ F18A.prototype = {
                 }
                 // The F18A turns off DPM after each register is written if auto increment is off
                 // or after writing to last register if auto increment in on
-                if (!this.autoIncPaletteReg || this.paletteRegisterNo == 64) {
+                if (!this.autoIncPaletteReg || this.paletteRegisterNo === 64) {
                     this.dataPortMode = false;
                     this.paletteRegisterNo = 0;
                     this.log.info("F18A Data port mode off (auto).");
@@ -1619,7 +1619,7 @@ F18A.prototype = {
     },
 
     getCurrentScanline: function () {
-        if (this.currentScanline != null) {
+        if (this.currentScanline !== null) {
             this.log.debug("Get scanline=" + this.currentScanline);
             return this.currentScanline;
         }
@@ -1634,7 +1634,7 @@ F18A.prototype = {
             else {
                 this.fakeScanline++;
             }
-            if (this.fakeScanline == 240) {
+            if (this.fakeScanline === 240) {
                 this.fakeScanline = 0;
             }
             this.log.debug("Get fake scanline=" + this.fakeScanline);
@@ -1648,7 +1648,7 @@ F18A.prototype = {
     },
 
     colorTableSize: function () {
-        if (this.screenMode == F18A.MODE_BITMAP) {
+        if (this.screenMode === F18A.MODE_BITMAP) {
             return Math.min(this.colorTableMask + 1, 0x1800);
         }
         else {
@@ -1657,7 +1657,7 @@ F18A.prototype = {
     },
 
     patternTableSize: function () {
-        if (this.screenMode == F18A.MODE_BITMAP) {
+        if (this.screenMode === F18A.MODE_BITMAP) {
             return Math.min(this.patternTableMask + 1, 0x1800);
         }
         else {
@@ -1682,16 +1682,16 @@ F18A.prototype = {
         var addr = start;
         var line = 0;
         for (var i = 0; i < length && addr < 0x4800; addr++, i++) {
-            if ((i & 0x000F) == 0) {
+            if ((i & 0x000F) === 0) {
                 text += "\n" + addr.toHexWord() + ":";
                 line++;
             }
             text += " ";
-            if (anchorAddr && anchorAddr == addr) {
+            if (anchorAddr && anchorAddr === addr) {
                 anchorLine = line;
             }
             var hex = this.ram[addr].toString(16).toUpperCase();
-            if (hex.length == 1) {
+            if (hex.length === 1) {
                 text += "0";
             }
             text += hex;
@@ -1704,7 +1704,7 @@ F18A.prototype = {
     },
 
     getCharAt: function (x, y) {
-        if (this.screenMode == F18A.MODE_TEXT_80) {
+        if (this.screenMode === F18A.MODE_TEXT_80) {
             x *= 2;
         }
         x -= this.leftBorder;
