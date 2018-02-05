@@ -53,7 +53,7 @@
             FLOPPY3: new DiskImage("FLOPPY3")
         };
         ti994a = new TI994A(document.getElementById("canvas"), diskImages, settings, onBreakpoint);
-        sound = new Sound(settings.isSoundEnabled(), ti994a.tms9919, ti994a.tms5220);
+        sound = new Sound(settings.isSoundEnabled(), ti994a.tms9919, ti994a.tms5220, ti994a.tape);
         software = new Software();
         database = new Database();
         if (!database.isSupported()) {
@@ -240,6 +240,10 @@
             $("#btnTapeStop").prop("disabled", !tapeLoaded);
             $("#btnTapePause").prop("disabled", !tapeLoaded);
             ti994a.tape.play();
+        });
+
+        $("#btnRewind").on("click", function () {
+            ti994a.tape.rewind();
         });
 
         $("#btnTapeStop").on("click", function () {

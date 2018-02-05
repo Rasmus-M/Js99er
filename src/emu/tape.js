@@ -25,15 +25,13 @@ Tape.prototype.reset = function () {
     if (this.audioSource) {
         this.audioSource.stop();
     }
-    this.playing = false;
+    this.playOn = false;
     this.motorOn = false;
-    this.audioBuffer = null;
+    this.playing = false;
     this.sampleBuffer = null;
     this.samplesPerLevelChange = 0;
     this.sampleBufferOffset = 0;
-    this.audioSource = null;
-    this.audioSourceStartTime = 0;
-    this.audioSourceSuspendTime = 0;
+    this.sampleBufferAudioOffset = 0;
 };
 
 Tape.prototype.loadTapeFile = function (fileBuffer, callback) {
@@ -53,8 +51,7 @@ Tape.prototype.loadTapeFile = function (fileBuffer, callback) {
                 tape.log.info("samplesPerLevelChange=" + tape.samplesPerLevelChange);
                 tape.log.info("samplesBufferLength=" + tape.sampleBuffer.length);
                 tape.sampleBufferOffset = 0;
-                tape.audioSource = null;
-                tape.audioSourceSuspendTime = 0;
+                tape.sampleBufferAudioOffset = 0;
                 callback();
             },
             function (e) {
@@ -69,36 +66,37 @@ Tape.prototype.isTapeLoaded = function () {
 };
 
 Tape.prototype.play = function () {
-    this.playing = true;
-    this.toggleAudio();
+    this.playOn = true;
+    this.playing = this.motorOn;
+};
+
+Tape.prototype.rewind = function () {
+    this.sampleBufferAudioOffset = 0;
 };
 
 Tape.prototype.stop = function () {
+    this.playOn = false;
     this.playing = false;
-    this.toggleAudio();
 };
 
 Tape.prototype.setMotorOn = function (value) {
     this.log.info("Cassette motor " + (value ? "on" : "off"));
     this.motorOn = value;
-    this.toggleAudio();
+    this.playing = this.playOn;
 };
 
-Tape.prototype.toggleAudio = function () {
-    if (this.motorOn && this.playing) {
-        if (this.audioContext && this.audioBuffer) {
-            var source = this.audioContext.createBufferSource();
-            source.buffer = this.audioBuffer;
-            source.connect(this.audioContext.destination);
-            source.start(0, this.audioSourceSuspendTime / 1000);
-            this.audioSource = source;
-            this.audioSourceStartTime = new Date().getTime();
+Tape.prototype.update = function (buffer) {
+    var i;
+    if (this.playing && this.sampleBuffer) {
+        var j = this.sampleBufferAudioOffset;
+        for (i = 0; i < buffer.length; i++) {
+            buffer[i] = j < this.sampleBuffer.length ? this.sampleBuffer[j++] : 0;
         }
+        this.sampleBufferAudioOffset = j;
     }
     else {
-        if (this.audioSource) {
-            this.audioSource.stop();
-            this.audioSourceSuspendTime += new Date().getTime() - this.audioSourceStartTime;
+        for (i = 0; i < buffer.length; i++) {
+            buffer[i] = 0;
         }
     }
 };

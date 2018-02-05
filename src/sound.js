@@ -9,9 +9,10 @@
 
 Sound.USE_SPEECH_SAMPLE_INTERPOLATION = true;
 
-function Sound(enabled, psgDev, speechDev) {
+function Sound(enabled, psgDev, speechDev, tape) {
     this.psgDev = psgDev;
     this.speechDev = speechDev;
+    this.tape = tape;
     this.log = Log.getLog();
     if (Sound.audioContext == null) {
         if (window.AudioContext) {
@@ -27,22 +28,27 @@ function Sound(enabled, psgDev, speechDev) {
         this.log.info('AudioContext: sample rate is ' + this.sampleRate);
 		this.bufferSize = 1024;
         var that = this;
-        if (psgDev != null) {
+        if (psgDev) {
             psgDev.setSampleRate(this.sampleRate);
-            this.buffer1 = new Int8Array(this.bufferSize);
-            this.scriptProcessor1 = Sound.audioContext.createScriptProcessor(this.bufferSize, 0, 1);
-            this.scriptProcessor1.onaudioprocess = function (event) { that.onAudioProcess1(event); };
+            this.vdpSampleBuffer = new Int8Array(this.bufferSize);
+            this.vdpScriptProcessor = Sound.audioContext.createScriptProcessor(this.bufferSize, 0, 1);
+            this.vdpScriptProcessor.onaudioprocess = function (event) { that.onVDPAudioProcess(event); }
         }
-        if (speechDev != null) {
+        if (speechDev) {
 			var speechSampleRate = TMS5220.SAMPLE_RATE;
 			this.speechScale = this.sampleRate / speechSampleRate;
             // this.speechScale += 0.0125; // Attempt to avoid buffer depletion
-            this.buffer2 = new Int16Array(Math.floor(this.bufferSize / this.speechScale) + 1);
-            this.scriptProcessor2 = Sound.audioContext.createScriptProcessor(this.bufferSize, 0, 1);
-            this.scriptProcessor2.onaudioprocess = function (event) { that.onAudioProcess2(event); };
+            this.speechSampleBuffer = new Int16Array(Math.floor(this.bufferSize / this.speechScale) + 1);
+            this.speechScriptProcessor = Sound.audioContext.createScriptProcessor(this.bufferSize, 0, 1);
+            this.speechScriptProcessor.onaudioprocess = function (event) { that.onSpeechAudioProcess(event) };
             this.filter = Sound.audioContext.createBiquadFilter();
             this.filter.type = "lowpass";
             this.filter.frequency.value = speechSampleRate / 2;
+        }
+        if (tape) {
+            this.tapeSampleBuffer = new Float32Array(this.bufferSize);
+            this.tapeScriptProcessor = Sound.audioContext.createScriptProcessor(this.bufferSize, 0, 1);
+            this.tapeScriptProcessor.onaudioprocess = function (event) { that.onTapeAudioProcess(event); }
         }
         this.setSoundEnabled(enabled);
         this.iOSLoadInitSound();
@@ -56,31 +62,31 @@ Sound.audioContext = null;
 
 Sound.prototype = {
 
-    onAudioProcess1: function (event) {
+    onVDPAudioProcess: function (event) {
         // Get Float32Array output buffer
         var out = event.outputBuffer.getChannelData(0);
         // Get Int8Array input buffer
-        this.psgDev.update(this.buffer1, this.bufferSize);
+        this.psgDev.update(this.vdpSampleBuffer, this.bufferSize);
         // Process buffer conversion
         for (var i = 0; i < this.bufferSize; i++) {
-            out[i] = this.buffer1[i] / 256.0;
+            out[i] = this.vdpSampleBuffer[i] / 256.0;
         }
     },
 
-    onAudioProcess2: function (event) {
+    onSpeechAudioProcess: function (event) {
         // Get Float32Array output buffer
         var out = event.outputBuffer.getChannelData(0);
         // Get Int16Array input buffer
-        this.speechDev.update(this.buffer2, this.buffer2.length);
+        this.speechDev.update(this.speechSampleBuffer, this.speechSampleBuffer.length);
         // Process buffer conversion
         var s = 0;
         var r = 0;
-        for (var i = 0; i < this.buffer2.length; i++) {
+        for (var i = 0; i < this.speechSampleBuffer.length; i++) {
 			r += this.speechScale;
-            var sample = this.buffer2[i] / 32768.0;
+            var sample = this.speechSampleBuffer[i] / 32768.0;
 			var step = 0;
 			if (Sound.USE_SPEECH_SAMPLE_INTERPOLATION) {
-				var nextSample = i < this.buffer2.length - 1 ? this.buffer2[i + 1] / 32768.0 : sample;
+				var nextSample = i < this.speechSampleBuffer.length - 1 ? this.speechSampleBuffer[i + 1] / 32768.0 : sample;
 				step = (nextSample - sample) / r;
 			}
 			while (r >= 1) {
@@ -91,24 +97,38 @@ Sound.prototype = {
         }
     },
 
+    onTapeAudioProcess: function (event) {
+        var out = event.outputBuffer.getChannelData(0);
+        this.tape.update(this.tapeSampleBuffer, this.tapeSampleBuffer.length);
+        for (var i = 0; i < this.bufferSize; i++) {
+            out[i] = this.tapeSampleBuffer[i];
+        }
+    },
+
     setSoundEnabled: function (enabled) {
         if (Sound.audioContext) {
             if (enabled) {
-                if (this.scriptProcessor1) {
-                    this.scriptProcessor1.connect(Sound.audioContext.destination);
+                if (this.vdpScriptProcessor) {
+                    this.vdpScriptProcessor.connect(Sound.audioContext.destination);
                 }
-                if (this.scriptProcessor2) {
-                    this.scriptProcessor2.connect(this.filter);
+                if (this.speechScriptProcessor) {
+                    this.speechScriptProcessor.connect(this.filter);
                     this.filter.connect(Sound.audioContext.destination);
+                }
+                if (this.tapeScriptProcessor) {
+                    this.tapeScriptProcessor.connect(Sound.audioContext.destination);
                 }
             }
             else {
-                if (this.scriptProcessor1) {
-                    this.scriptProcessor1.disconnect();
+                if (this.vdpScriptProcessor) {
+                    this.vdpScriptProcessor.disconnect();
                 }
-                if (this.scriptProcessor2) {
-                    this.scriptProcessor2.disconnect();
+                if (this.speechScriptProcessor) {
+                    this.speechScriptProcessor.disconnect();
                     this.filter.disconnect();
+                }
+                if (this.tapeScriptProcessor) {
+                    this.tapeScriptProcessor.disconnect();
                 }
             }
         }
