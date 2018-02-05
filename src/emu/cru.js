@@ -151,7 +151,7 @@ CRU.prototype = {
             if (this.clockRegister > 0) {
                 this.decrementer = this.clockRegister;
                 this.timerInterruptScheduled = true;
-                // this.log.info("Timer started at " + this.decrementer.toHexWord());
+                this.log.info("Timer started at " + this.decrementer.toHexWord());
             }
             this.timerMode = false;
             // this.log.info("9901 timer mode off");

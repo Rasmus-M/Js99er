@@ -891,8 +891,7 @@
             }
             var reader = new FileReader();
             reader.onload = function () {
-                ti994a.tape.loadTapeFile(this.result);
-                callback();
+                ti994a.tape.loadTapeFile(this.result, callback);
             };
             reader.onerror = function () {
                 alert(this.error.name);

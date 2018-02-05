@@ -94,6 +94,7 @@ TI994A.prototype = {
         this.memory.reset(keepCart);
         this.cru.reset();
         this.tms9900.reset();
+        this.tape.reset();
         this.resetFps();
         this.cpuSpeed = 1;
     },
