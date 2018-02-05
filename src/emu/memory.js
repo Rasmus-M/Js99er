@@ -181,7 +181,11 @@ Memory.prototype = {
     },
 
     setCartridgeImage: function (byteArray, inverted, ramAt6000, ramAt7000, ramPaged) {
-        this.cartImage = new Uint8Array(byteArray);
+        var i;
+        this.cartImage = new Uint8Array(((byteArray.length & 0x2000) + 1) * 0x2000);
+        for (i = 0; i < byteArray.length; i++) {
+            this.cartImage[i] = byteArray[i];
+        }
         this.cartInverted = inverted;
         this.cartBankCount = this.cartImage.length / 0x2000;
         this.currentCartBank = 0;
@@ -194,7 +198,6 @@ Memory.prototype = {
         }
         var ramAccessors = [this.readCartridgeRAM, this.writeCartridgeRAM];
         var romAccessors = [this.readCartridgeROM, this.writeCartridgeROM];
-        var i;
         this.log.info("RAM at >6000: " + ramAt6000);
         for (i = 0x6000; i < 0x7000; i++) {
             this.memoryMap[i] = ramAt6000 ? ramAccessors :  romAccessors;
