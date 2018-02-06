@@ -57,7 +57,7 @@ CRU.prototype = {
             }
             // Cassette
             else if (addr === 27) {
-                return this.tape.getBit();
+                return this.tape.read();
             }
         }
         else {
@@ -132,6 +132,9 @@ CRU.prototype = {
                 else if (addr === 22) {
                     this.tape.setMotorOn(value);
                 }
+                else if (addr === 25) {
+                    this.tape.write(value);
+                }
             }
             // this.log.info("Write CRU address " + addr.toHexWord() + ": " + bit);
             this.cru[addr] = value;
@@ -143,15 +146,15 @@ CRU.prototype = {
     },
 
     setTimerMode: function (value) {
-        if (value && !this.timerMode) {
+        if (value) {
             // this.log.info("9901 timer mode");
             this.timerMode = true;
         }
-        else if (!value && this.timerMode) {
+        else {
             if (this.clockRegister > 0) {
                 this.decrementer = this.clockRegister;
                 this.timerInterruptScheduled = true;
-                this.log.info("Timer started at " + this.decrementer.toHexWord());
+                // this.log.info("Timer started at " + this.decrementer.toHexWord());
             }
             this.timerMode = false;
             // this.log.info("9901 timer mode off");

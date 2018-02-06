@@ -25,13 +25,22 @@ Tape.prototype.reset = function () {
     if (this.audioSource) {
         this.audioSource.stop();
     }
-    this.playOn = false;
+    this.recordPressed = false;
+    this.playPressed = false;
     this.motorOn = false;
+    this.recording = false;
     this.playing = false;
     this.sampleBuffer = null;
     this.samplesPerLevelChange = 0;
     this.sampleBufferOffset = 0;
     this.sampleBufferAudioOffset = 0;
+    this.resetRecodingBuffer();
+};
+
+Tape.prototype.resetRecodingBuffer = function () {
+    this.recordingBuffer = [];
+    this.recordingBufferWriteOffset = 0;
+    this.recordingBufferReadOffset = 0;
 };
 
 Tape.prototype.loadTapeFile = function (fileBuffer, callback) {
@@ -65,8 +74,13 @@ Tape.prototype.isTapeLoaded = function () {
     return this.audioBuffer != null;
 };
 
+Tape.prototype.record = function () {
+    this.recordPressed = true;
+    this.recording = this.motorOn;
+};
+
 Tape.prototype.play = function () {
-    this.playOn = true;
+    this.playPressed = true;
     this.playing = this.motorOn;
 };
 
@@ -75,17 +89,20 @@ Tape.prototype.rewind = function () {
 };
 
 Tape.prototype.stop = function () {
-    this.playOn = false;
+    this.recordPressed = false;
+    this.playPressed = false;
+    this.recording = false;
     this.playing = false;
 };
 
 Tape.prototype.setMotorOn = function (value) {
     this.log.info("Cassette motor " + (value ? "on" : "off"));
     this.motorOn = value;
-    this.playing = this.playOn;
+    this.recording = this.recordPressed;
+    this.playing = this.playPressed;
 };
 
-Tape.prototype.update = function (buffer) {
+Tape.prototype.updateSoundBuffer = function (buffer) {
     var i;
     if (this.playing && this.sampleBuffer) {
         var j = this.sampleBufferAudioOffset;
@@ -94,6 +111,15 @@ Tape.prototype.update = function (buffer) {
         }
         this.sampleBufferAudioOffset = j;
     }
+    else if (this.recording) {
+        var level;
+        for (i = 0; i < buffer.length; i++) {
+            if (i % 16 === 0) {
+                level = this.recordingBufferReadOffset < this.recordingBuffer.length ? this.recordingBuffer[this.recordingBufferReadOffset] : false;
+            }
+            buffer[i] = level ? 1 : -1;
+        }
+    }
     else {
         for (i = 0; i < buffer.length; i++) {
             buffer[i] = 0;
@@ -101,16 +127,20 @@ Tape.prototype.update = function (buffer) {
     }
 };
 
-Tape.prototype.getBit = function ()  {
-    var bit = 0;
+Tape.prototype.read = function ()  {
+    var value = 0;
     if (this.sampleBuffer && this.sampleBufferOffset + this.samplesPerLevelChange < this.sampleBuffer.length) {
         var sum = 0;
         for (var i = this.sampleBufferOffset; i < this.sampleBufferOffset + this.samplesPerLevelChange; i++) {
             sum += this.sampleBuffer[i];
         }
         this.sampleBufferOffset += this.samplesPerLevelChange;
-        bit = sum > 0 ? 1 : 0;
+        value = sum > 0 ? 1 : 0;
     }
-    // this.log.info(bit);
-    return bit;
+    // this.log.info(value);
+    return value;
+};
+
+Tape.prototype.write = function (value)  {
+    this.recordingBuffer[this.recordingBufferWriteOffset++] = value;
 };

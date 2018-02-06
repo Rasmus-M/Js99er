@@ -99,7 +99,7 @@ Sound.prototype = {
 
     onTapeAudioProcess: function (event) {
         var out = event.outputBuffer.getChannelData(0);
-        this.tape.update(this.tapeSampleBuffer, this.tapeSampleBuffer.length);
+        this.tape.updateSoundBuffer(this.tapeSampleBuffer, this.tapeSampleBuffer.length);
         for (var i = 0; i < this.bufferSize; i++) {
             out[i] = this.tapeSampleBuffer[i];
         }

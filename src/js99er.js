@@ -231,6 +231,16 @@
             $(this).val("");
         });
 
+        $("#btnRecord").on("click", function () {
+            $("#btnRecord").prop("disabled", true);
+            $("#btnPlay").prop("disabled", true);
+            $("#btnRewind").prop("disabled", true);
+            $("#btnForward").prop("disabled", true);
+            $("#btnTapeStop").prop("disabled", false);
+            $("#btnTapePause").prop("disabled", false);
+            ti994a.tape.record();
+        });
+
         $("#btnPlay").on("click", function () {
             var tapeLoaded = ti994a.tape.isTapeLoaded();
             $("#btnRecord").prop("disabled", true);
