@@ -34,13 +34,15 @@ Tape.prototype.reset = function () {
     this.samplesPerLevelChange = 0;
     this.sampleBufferOffset = 0;
     this.sampleBufferAudioOffset = 0;
-    this.resetRecodingBuffer();
+    this.out = "";
+    this.resetRecordingBuffer();
 };
 
-Tape.prototype.resetRecodingBuffer = function () {
+Tape.prototype.resetRecordingBuffer = function () {
     this.recordingBuffer = [];
     this.recordingBufferWriteOffset = 0;
     this.recordingBufferReadOffset = 0;
+    this.lastWriteTime = -1;
 };
 
 Tape.prototype.loadTapeFile = function (fileBuffer, callback) {
@@ -111,13 +113,16 @@ Tape.prototype.updateSoundBuffer = function (buffer) {
         }
         this.sampleBufferAudioOffset = j;
     }
-    else if (this.recording) {
-        var level;
+    else if (this.recordingBufferReadOffset < this.recordingBuffer.length) {
+        var value;
         for (i = 0; i < buffer.length; i++) {
-            if (i % 16 === 0) {
-                level = this.recordingBufferReadOffset < this.recordingBuffer.length ? this.recordingBuffer[this.recordingBufferReadOffset] : false;
+            if (i % 18 === 0) {
+                value = this.recordingBufferReadOffset < this.recordingBuffer.length ? this.recordingBuffer[this.recordingBufferReadOffset++] : !value;
             }
-            buffer[i] = level ? 1 : -1;
+            buffer[i] = value ? 0.75 : -0.75;
+        }
+        if (this.recordingBufferReadOffset === this.recordingBuffer.length) {
+            this.log.warn("Tape sound buffer depleted.");
         }
     }
     else {
@@ -141,6 +146,14 @@ Tape.prototype.read = function ()  {
     return value;
 };
 
-Tape.prototype.write = function (value)  {
-    this.recordingBuffer[this.recordingBufferWriteOffset++] = value;
+Tape.prototype.write = function (value, time)  {
+    for (var i = 0; i < time - this.lastWriteTime; i++) {
+        this.recordingBuffer[this.recordingBufferWriteOffset++] = value;
+        // this.out += value ? 1 : 0;
+        // if (this.out.length === 32) {
+        //     console.log(this.out);
+        //     this.out = "";
+        // }
+    }
+    this.lastWriteTime = time;
 };

@@ -37,18 +37,20 @@ function Sound(enabled, psgDev, speechDev, tape) {
         if (speechDev) {
 			var speechSampleRate = TMS5220.SAMPLE_RATE;
 			this.speechScale = this.sampleRate / speechSampleRate;
-            // this.speechScale += 0.0125; // Attempt to avoid buffer depletion
             this.speechSampleBuffer = new Int16Array(Math.floor(this.bufferSize / this.speechScale) + 1);
             this.speechScriptProcessor = Sound.audioContext.createScriptProcessor(this.bufferSize, 0, 1);
             this.speechScriptProcessor.onaudioprocess = function (event) { that.onSpeechAudioProcess(event) };
-            this.filter = Sound.audioContext.createBiquadFilter();
-            this.filter.type = "lowpass";
-            this.filter.frequency.value = speechSampleRate / 2;
+            this.speechFilter = Sound.audioContext.createBiquadFilter();
+            this.speechFilter.type = "lowpass";
+            this.speechFilter.frequency.value = speechSampleRate / 2;
         }
         if (tape) {
             this.tapeSampleBuffer = new Float32Array(this.bufferSize);
             this.tapeScriptProcessor = Sound.audioContext.createScriptProcessor(this.bufferSize, 0, 1);
             this.tapeScriptProcessor.onaudioprocess = function (event) { that.onTapeAudioProcess(event); }
+            this.tapeFilter = Sound.audioContext.createBiquadFilter();
+            this.tapeFilter.type = "lowpass";
+            this.tapeFilter.frequency.value = 4000;
         }
         this.setSoundEnabled(enabled);
         this.iOSLoadInitSound();
@@ -112,11 +114,12 @@ Sound.prototype = {
                     this.vdpScriptProcessor.connect(Sound.audioContext.destination);
                 }
                 if (this.speechScriptProcessor) {
-                    this.speechScriptProcessor.connect(this.filter);
-                    this.filter.connect(Sound.audioContext.destination);
+                    this.speechScriptProcessor.connect(this.speechFilter);
+                    this.speechFilter.connect(Sound.audioContext.destination);
                 }
                 if (this.tapeScriptProcessor) {
-                    this.tapeScriptProcessor.connect(Sound.audioContext.destination);
+                    this.tapeScriptProcessor.connect(this.tapeFilter);
+                    this.tapeFilter.connect(Sound.audioContext.destination);
                 }
             }
             else {
@@ -125,7 +128,7 @@ Sound.prototype = {
                 }
                 if (this.speechScriptProcessor) {
                     this.speechScriptProcessor.disconnect();
-                    this.filter.disconnect();
+                    this.speechFilter.disconnect();
                 }
                 if (this.tapeScriptProcessor) {
                     this.tapeScriptProcessor.disconnect();

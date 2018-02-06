@@ -31,6 +31,7 @@ CRU.prototype = {
         this.decrementer = 0;
         this.timerInterrupt = false;
         this.timerInterruptScheduled = false;
+        this.timerInterruptCount = 0;
         for (var i = 0; i < 4096; i++) {
             this.cru[i] = true;
         }
@@ -133,7 +134,7 @@ CRU.prototype = {
                     this.tape.setMotorOn(value);
                 }
                 else if (addr === 25) {
-                    this.tape.write(value);
+                    this.tape.write(value, this.timerInterruptCount);
                 }
             }
             // this.log.info("Write CRU address " + addr.toHexWord() + ": " + bit);
@@ -171,6 +172,7 @@ CRU.prototype = {
                     // this.log.info("Timer interrupt");
                     this.timerInterrupt = true;
                     this.timerInterruptScheduled = false;
+                    this.timerInterruptCount++;
                 }
             }
             if (!this.timerMode) {

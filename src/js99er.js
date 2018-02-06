@@ -258,17 +258,14 @@
 
         $("#btnTapeStop").on("click", function () {
             var tapeLoaded = ti994a.tape.isTapeLoaded();
-            $("#btnRecord").prop("disabled", !tapeLoaded);
+            $("#btnRecord").prop("disabled", false);
             $("#btnPlay").prop("disabled", !tapeLoaded);
             $("#btnRewind").prop("disabled", !tapeLoaded);
             $("#btnForward").prop("disabled", !tapeLoaded);
             $("#btnTapeStop").prop("disabled", true);
             $("#btnTapePause").prop("disabled", true);
             ti994a.tape.stop();
-        });
-
-        // Stop tape
-        $("#btnTapeStop").click();
+        }).click();
 
         ///////////////////
         // Keyboard pane //
