@@ -32,6 +32,9 @@ Tape.prototype.reset = function () {
     this.playing = false;
     this.sampleBuffer = null;
     this.samplesPerLevelChange = 0;
+    this.readValue = 0;
+    this.lastSign = 1;
+    this.lastReadTime = -1;
     this.sampleBufferOffset = 0;
     this.sampleBufferAudioOffset = 0;
     this.out = "";
@@ -58,7 +61,7 @@ Tape.prototype.loadTapeFile = function (fileBuffer, callback) {
                 var sampleBuffer = new Float32Array(audioBuffer.length);
                 audioBuffer.copyFromChannel(sampleBuffer, 0);
                 tape.sampleBuffer = sampleBuffer;
-                tape.samplesPerLevelChange = 4; // Math.floor(Tape.LEVEL_CHANGE_DURATION * audioBuffer.sampleRate);
+                tape.samplesPerLevelChange = Math.floor(Tape.LEVEL_CHANGE_DURATION * audioBuffer.sampleRate);
                 tape.log.info("samplesPerLevelChange=" + tape.samplesPerLevelChange);
                 tape.log.info("samplesBufferLength=" + tape.sampleBuffer.length);
                 tape.sampleBufferOffset = 0;
@@ -132,28 +135,44 @@ Tape.prototype.updateSoundBuffer = function (buffer) {
     }
 };
 
-Tape.prototype.read = function ()  {
-    var value = 0;
-    if (this.sampleBuffer && this.sampleBufferOffset + this.samplesPerLevelChange < this.sampleBuffer.length) {
-        var sum = 0;
-        for (var i = this.sampleBufferOffset; i < this.sampleBufferOffset + this.samplesPerLevelChange; i++) {
-            sum += this.sampleBuffer[i];
+Tape.prototype.read = function (time)  {
+    if (this.sampleBuffer && this.sampleBufferOffset + this.samplesPerLevelChange < this.sampleBuffer.length && (this.lastReadTime === -1 || time - this.lastReadTime >= 8)) {
+        var offset = this.sampleBufferOffset;
+        var sign = Math.sign(this.sampleBuffer[offset++]);
+        var runLength = 1;
+        while (offset < this.sampleBuffer.length && Math.sign(this.sampleBuffer[offset++]) === sign) {
+            runLength++;
         }
-        this.sampleBufferOffset += this.samplesPerLevelChange;
-        value = sum > 0 ? 1 : 0;
+        if (Math.abs(this.samplesPerLevelChange - runLength) <= 2) {
+            this.sampleBufferOffset += runLength - Math.floor(this.samplesPerLevelChange / 2);
+        }
+        else {
+            this.sampleBufferOffset += runLength;
+        }
+        if (sign !== this.lastSign) {
+            this.readValue = this.readValue === 0 ? 1 : 0;
+        }
+        this.lastSign = sign;
+        this.lastReadTime = time;
+        this.out += this.readValue;
+        if (this.out.length === 48) {
+            this.log.info(this.out);
+            this.out = "";
+        }
     }
-    // this.log.info(value);
-    return value;
+    return this.readValue;
 };
 
 Tape.prototype.write = function (value, time)  {
-    for (var i = 0; i < time - this.lastWriteTime; i++) {
-        this.recordingBuffer[this.recordingBufferWriteOffset++] = value;
-        // this.out += value ? 1 : 0;
-        // if (this.out.length === 32) {
-        //     console.log(this.out);
-        //     this.out = "";
-        // }
+    if (this.lastWriteTime !== -1) {
+        for (var i = 0; i < (time - this.lastWriteTime) / 17; i++) {
+            this.recordingBuffer[this.recordingBufferWriteOffset++] = value;
+            // this.out += value ? 1 : 0;
+            // if (this.out.length === 32) {
+            //     console.log(this.out);
+            //     this.out = "";
+            // }
+        }
     }
     this.lastWriteTime = time;
 };

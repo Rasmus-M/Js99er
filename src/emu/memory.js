@@ -29,6 +29,9 @@ function Memory(vdp, tms9919, tms5220, settings) {
 
     this.ram = new Uint8Array(0x10000);
     this.rom = new Uint8Array(SYSTEM.ROM);
+
+    this.rom[0x14a9] = 0x01; // Minimum cassette read time
+
     this.groms = [];
     for (var i = 0; i < Memory.GROM_BASES; i++) {
         this.groms[i] = new Uint8Array(0x10000);

@@ -32,6 +32,7 @@ CRU.prototype = {
         this.timerInterrupt = false;
         this.timerInterruptScheduled = false;
         this.timerInterruptCount = 0;
+        this.time = 0;
         for (var i = 0; i < 4096; i++) {
             this.cru[i] = true;
         }
@@ -58,7 +59,7 @@ CRU.prototype = {
             }
             // Cassette
             else if (addr === 27) {
-                return this.tape.read();
+                return this.tape.read(this.time);
             }
         }
         else {
@@ -108,14 +109,17 @@ CRU.prototype = {
             else if (this.timerMode) {
                 if (addr > 0 && addr < 15) {
                     // Write to clock register
+                    var bit  = 1 << (addr - 1);
                     if (value) {
-                        this.clockRegister |= (value << (addr - 1));
+                        this.clockRegister |= bit;
                     }
                     else {
-                        this.clockRegister &= ~(value << (addr - 1));
+                        this.clockRegister &= ~bit;
                     }
                     // If any bit between 1 and 14 is written to while in timer mode, the decrementer will be reinitialized with the current value of the Clock register
-                    this.decrementer = this.clockRegister;
+                    // this.decrementer = this.clockRegister;
+                    // Do not set cru bit
+                    return;
                 }
                 else if (addr === 15 && !value) {
                     // TODO: Should be a soft reset
@@ -134,7 +138,7 @@ CRU.prototype = {
                     this.tape.setMotorOn(value);
                 }
                 else if (addr === 25) {
-                    this.tape.write(value, this.timerInterruptCount);
+                    this.tape.write(value, this.time);
                 }
             }
             // this.log.info("Write CRU address " + addr.toHexWord() + ": " + bit);
@@ -151,11 +155,11 @@ CRU.prototype = {
             // this.log.info("9901 timer mode");
             this.timerMode = true;
         }
-        else {
+        else { // if (this.timerMode) { // this does not work with saving
             if (this.clockRegister > 0) {
                 this.decrementer = this.clockRegister;
                 this.timerInterruptScheduled = true;
-                // this.log.info("Timer started at " + this.decrementer.toHexWord());
+                this.log.info("Timer started at " + this.decrementer.toHexWord());
             }
             this.timerMode = false;
             // this.log.info("9901 timer mode off");
@@ -166,6 +170,9 @@ CRU.prototype = {
     decrementTimer: function (value) {
         if (this.clockRegister > 0) {
             this.decrementer -= value;
+            // if (this.decrementer > 0x2000) {
+            //     this.log.info("Timer decr");
+            // }
             if (this.decrementer < 0) {
                 this.decrementer = this.clockRegister; // Reload decrementer
                 if (this.timerInterruptScheduled) {
@@ -180,6 +187,7 @@ CRU.prototype = {
                 this.readRegister = this.decrementer;
             }
         }
+        this.time += value;
     },
 
     isVDPInterrupt: function () {
