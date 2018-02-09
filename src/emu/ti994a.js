@@ -31,6 +31,7 @@ function TI994A(canvas, diskImages, settings, onBreakpoint) {
     this.memory = new Memory(this.vdp, this.tms9919, this.tms5220, settings);
     this.tms9900 = new TMS9900(this.memory, this.cru, this.keyboard, this.diskDrives, this.googleDrives);
     this.cru.setMemory(this.memory);
+    this.cru.setTMS9900(this.tms9900);
     this.tms5220.setTMS9900(this.tms9900);
 
     this.cpuSpeed = 1;
@@ -250,8 +251,8 @@ TI994A.prototype = {
     getStatusString: function () {
         return (
             this.vdp.gpu && !this.vdp.gpu.isIdle() ?
-                this.vdp.gpu.getInternalRegsString() + " F18A GPU\n" + this.vdp.gpu.getRegsStringFormatted() :
-                this.tms9900.getInternalRegsString() + "\n" + this.tms9900.getRegsStringFormatted()
+                this.vdp.gpu.getInternalRegsString() + " F18A GPU " + this.cru.getStatusString() + "\n" + this.vdp.gpu.getRegsStringFormatted() :
+                this.tms9900.getInternalRegsString() + " " + this.cru.getStatusString() + "\n" + this.tms9900.getRegsStringFormatted()
         ) + this.vdp.getRegsString() + " " + this.memory.getStatusString();
     },
 

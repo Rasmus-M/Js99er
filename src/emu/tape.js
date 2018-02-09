@@ -136,7 +136,7 @@ Tape.prototype.updateSoundBuffer = function (buffer) {
 };
 
 Tape.prototype.read = function (time)  {
-    if (this.sampleBuffer && this.sampleBufferOffset + this.samplesPerLevelChange < this.sampleBuffer.length && (this.lastReadTime === -1 || time - this.lastReadTime >= 8)) {
+    if (this.sampleBuffer && this.sampleBufferOffset + this.samplesPerLevelChange < this.sampleBuffer.length) { //  && (this.lastReadTime === -1 || time - this.lastReadTime >= 8)
         var offset = this.sampleBufferOffset;
         var sign = Math.sign(this.sampleBuffer[offset++]);
         var runLength = 1;
@@ -156,7 +156,7 @@ Tape.prototype.read = function (time)  {
         this.lastReadTime = time;
         this.out += this.readValue;
         if (this.out.length === 48) {
-            this.log.info(this.out);
+            // this.log.info(this.out);
             this.out = "";
         }
     }

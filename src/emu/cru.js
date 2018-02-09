@@ -23,6 +23,11 @@ CRU.prototype = {
         this.memory = memory;
     },
 
+    // For debugging
+    setTMS9900: function (tms9900) {
+        this.tms9900 = tms9900;
+    },
+
     reset: function () {
         this.vdpInterrupt = false;
         this.timerMode = false;
@@ -30,8 +35,6 @@ CRU.prototype = {
         this.readRegister = 0;
         this.decrementer = 0;
         this.timerInterrupt = false;
-        this.timerInterruptScheduled = false;
-        this.timerInterruptCount = 0;
         this.time = 0;
         for (var i = 0; i < 4096; i++) {
             this.cru[i] = true;
@@ -117,14 +120,19 @@ CRU.prototype = {
                         this.clockRegister &= ~bit;
                     }
                     // If any bit between 1 and 14 is written to while in timer mode, the decrementer will be reinitialized with the current value of the Clock register
-                    // this.decrementer = this.clockRegister;
+                    if (this.clockRegister !== 0) {
+                        this.decrementer = this.clockRegister;
+                        if (addr === 14) {
+                            this.log.info("TMS9901 decrementer = " + this.decrementer.toHexWord() + " from PC = " + this.tms9900.getPC().toHexWord());
+                        }
+                    }
                     // Do not set cru bit
                     return;
                 }
                 else if (addr === 15 && !value) {
                     // TODO: Should be a soft reset
                     this.log.info("Reset 9901");
-                    this.reset();
+                    // this.reset();
                 }
                 else if (addr >= 16) {
                     this.setTimerMode(false);
@@ -154,37 +162,26 @@ CRU.prototype = {
         if (value) {
             // this.log.info("9901 timer mode");
             this.timerMode = true;
-        }
-        else { // if (this.timerMode) { // this does not work with saving
-            if (this.clockRegister > 0) {
-                this.decrementer = this.clockRegister;
-                this.timerInterruptScheduled = true;
-                this.log.info("Timer started at " + this.decrementer.toHexWord());
+            if (this.clockRegister !== 0) {
+                this.readRegister = this.decrementer;
             }
-            this.timerMode = false;
-            // this.log.info("9901 timer mode off");
+            else {
+                this.readRegister = 0;
+            }
         }
-        this.cru[0] = value;
+        else {
+            // this.log.info("9901 timer mode off");
+            this.timerMode = false;
+        }
     },
 
     decrementTimer: function (value) {
-        if (this.clockRegister > 0) {
+        if (this.clockRegister !== 0) {
             this.decrementer -= value;
-            // if (this.decrementer > 0x2000) {
-            //     this.log.info("Timer decr");
-            // }
-            if (this.decrementer < 0) {
-                this.decrementer = this.clockRegister; // Reload decrementer
-                if (this.timerInterruptScheduled) {
-                    // this.log.info("Timer interrupt");
-                    this.timerInterrupt = true;
-                    this.timerInterruptScheduled = false;
-                    this.timerInterruptCount++;
-                }
-            }
-            if (!this.timerMode) {
-                // Read register is frozen in timer mode
-                this.readRegister = this.decrementer;
+            if (this.decrementer <= 0) {
+                this.decrementer = this.clockRegister;
+                 // this.log.info("Timer interrupt");
+                this.timerInterrupt = true;
             }
         }
         this.time += value;
@@ -196,5 +193,11 @@ CRU.prototype = {
 
     isTimerInterrupt: function () {
         return this.timerInterrupt && this.cru[3];
+    },
+
+    getStatusString: function () {
+        return "CRU: " + (this.cru[0] ? "0" : "1") + (this.cru[1] ? "0" : "1") + (this.cru[2] ? "0" : "1") + (this.cru[3] ? "0" : "1") + " " +
+            "Timer: " + Math.floor(this.decrementer).toHexWord() + " " +
+            (this.isTimerInterrupt() ? "Tint " : "    ")  + (this.isVDPInterrupt() ? "Vint" : "   ");
     }
 };
