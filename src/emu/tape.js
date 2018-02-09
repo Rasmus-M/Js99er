@@ -34,10 +34,13 @@ Tape.prototype.reset = function () {
     this.samplesPerLevelChange = 0;
     this.readValue = 0;
     this.lastSign = 1;
+    this.readFirst = true;
     this.lastReadTime = -1;
     this.sampleBufferOffset = 0;
     this.sampleBufferAudioOffset = 0;
     this.out = "";
+    this.outByte = 0;
+    this.outByteCount = 8;
     this.resetRecordingBuffer();
 };
 
@@ -149,14 +152,32 @@ Tape.prototype.read = function (time)  {
         else {
             this.sampleBufferOffset += runLength;
         }
+        if (!this.readFirst) {
+            this.outByte <<= 1;
+            if (sign !== this.lastSign) {
+                this.outByte |= 1;
+            }
+            this.outByteCount--;
+            if (this.outByteCount === 0) {
+                this.out += this.outByte.toHexByte().substring(1);
+                this.outByteCount = 8;
+                this.outByte = 0;
+            }
+        }
         if (sign !== this.lastSign) {
             this.readValue = this.readValue === 0 ? 1 : 0;
         }
         this.lastSign = sign;
+        this.readFirst = !this.readFirst;
         this.lastReadTime = time;
-        this.out += this.readValue;
-        if (this.out.length === 48) {
-            // this.log.info(this.out);
+        if (this.out.length >= 32) {
+            this.log.info(this.out);
+            this.out = "";
+        }
+    } else {
+        this.log.info("End of tape file");
+        if (this.out.length >= 0) {
+            this.log.info(this.out);
             this.out = "";
         }
     }

@@ -123,7 +123,7 @@ CRU.prototype = {
                     if (this.clockRegister !== 0) {
                         this.decrementer = this.clockRegister;
                         if (addr === 14) {
-                            this.log.info("TMS9901 decrementer = " + this.decrementer.toHexWord() + " from PC = " + this.tms9900.getPC().toHexWord());
+                            // this.log.info("TMS9901 decrementer = " + this.decrementer.toHexWord() + " from PC = " + this.tms9900.getPC().toHexWord());
                         }
                     }
                     // Do not set cru bit
