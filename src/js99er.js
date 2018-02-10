@@ -325,7 +325,12 @@
         // Debugger pane //
         ///////////////////
 
-        $("#debuggerTab").on("click", function () { updateDebugger(true); });
+        $("#debuggerTab").on("click", function () {
+            window.setTimeout(
+                function () {
+                    updateDebugger(true);
+            }, 100);
+        });
         $("#disassembly").on("click", function () {
             $("#disassemblyCheck").addClass("glyphicon glyphicon-ok");
             $("#hexViewCheck").removeClass("glyphicon glyphicon-ok");
@@ -977,7 +982,12 @@
             }
             $memory.text(viewObj.text);
             if (viewObj.anchorLine) {
-                $memory.scrollTop(viewObj.anchorLine * ($memory.prop('scrollHeight') / viewObj.lineCount)); // 1.0326
+                window.setTimeout(
+                    function () {
+                        $memory.scrollTop(viewObj.anchorLine * ($memory.prop('scrollHeight') / viewObj.lineCount)); // 1.0326
+                    },
+                    100
+                );
             }
         }
     }

@@ -202,11 +202,23 @@ TMS9900.prototype = {
                     this.pasteToggle = !this.pasteToggle;
                 }
                 // Execute instruction
+                // if (this.PC === 0x1574) {
+                //     if (!this.spin) {
+                //         console.log("Spin");
+                //         this.spin = true;
+                //     }
+                //
+                // } else {
+                //     this.spin = false;
+                // }
                 var instruction = this.readMemoryWord(this.PC);
                 this.inctPC();
                 this.addCycles(this.execute(instruction));
                 // Execute interrupt routine
                 if (this.getInterruptMask() >= 1 && (this.cru.isVDPInterrupt() || this.cru.isTimerInterrupt())) {
+                    // if (this.cru.isTimerInterrupt()) {
+                    //     console.log("PC timer int");
+                    // }
                     this.addCycles(this.doInterrupt(4));
                 }
             }
@@ -1709,9 +1721,13 @@ TMS9900.prototype = {
     getRegsString: function () {
         var s = "";
         for (var i = 0; i < 16; i++) {
-            s += "R" + i + ":" + (this.memory.getWord(this.WP + 2 * i)).toHexWord() + " ";
+            s += "R" + i + ":" + (this.getReg(i)).toHexWord() + " ";
         }
         return s;
+    },
+
+    getReg: function (i) {
+        return this.memory.getWord(this.WP + 2 * i);
     },
 
     getRegsStringFormatted: function () {

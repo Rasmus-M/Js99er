@@ -167,7 +167,7 @@ TI994A.prototype = {
             cruTimerDecrementFrame -= cruTimerDecrementScanline;
             cyclesToRun -= cyclesPerScanline;
         }
-        if (cruTimerDecrementFrame > 0) {
+        if (cruTimerDecrementFrame >= 1) {
             this.cru.decrementTimer(cruTimerDecrementFrame);
         }
         this.fpsFrameCount++;
