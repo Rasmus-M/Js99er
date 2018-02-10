@@ -186,9 +186,11 @@ Memory.prototype = {
 
     setCartridgeImage: function (byteArray, inverted, ramAt6000, ramAt7000, ramPaged) {
         var i;
-        this.cartImage = new Uint8Array(((byteArray.length & 0x2000) + 1) * 0x2000);
-        for (i = 0; i < byteArray.length; i++) {
-            this.cartImage[i] = byteArray[i];
+        var length = ((byteArray.length / 0x2000) + (byteArray.length % 0x2000 === 0 ? 0 : 1)) * 0x2000;
+        this.log.info("Cartridge size: " + length.toHexWord());
+        this.cartImage = new Uint8Array(length);
+        for (i = 0; i < this.cartImage.length; i++) {
+            this.cartImage[i] = i < byteArray.length ? byteArray[i] : 0;
         }
         this.cartInverted = inverted;
         this.cartBankCount = this.cartImage.length / 0x2000;
