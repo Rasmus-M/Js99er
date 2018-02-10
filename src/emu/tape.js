@@ -86,6 +86,10 @@ Tape.prototype.isTapeLoaded = function () {
     return this.audioBuffer != null;
 };
 
+Tape.prototype.isRecordingAvailable = function () {
+    return this.saveBuffer && this.saveBuffer.length;
+};
+
 Tape.prototype.record = function () {
     this.recordPressed = true;
     this.recording = this.motorOn;
@@ -218,4 +222,8 @@ Tape.prototype.write = function (value, time)  {
         }
     }
     this.lastWriteTime = time;
+};
+
+Tape.prototype.getRecording = function () {
+    return new Int8Array(100);
 };

@@ -231,6 +231,17 @@
             $(this).val("");
         });
 
+        $("#btnSaveTape").on("click", function () {
+            if (ti994a.tape.isRecordingAvailable()) {
+                var tapeFile = tape.getRecording();
+                var blob = new Blob([tapeFile], { type: "application/wav" });
+                saveAs(blob, "tape.wav");
+            }
+            else {
+                alert("No recording available.");
+            }
+        });
+
         $("#btnRecord").on("click", function () {
             $("#btnRecord").prop("disabled", true);
             $("#btnPlay").prop("disabled", true);
