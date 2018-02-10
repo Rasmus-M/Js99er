@@ -27,7 +27,7 @@ body {
     image-rendering: pixelated;
 }
 
-#tools, #diskTools, #debuggerTools {
+#tools, #diskTools, #tapeTools, #debuggerTools {
     padding-left: 8px;
 }
 

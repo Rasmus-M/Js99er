@@ -235,9 +235,7 @@
             $("#btnRecord").prop("disabled", true);
             $("#btnPlay").prop("disabled", true);
             $("#btnRewind").prop("disabled", true);
-            $("#btnForward").prop("disabled", true);
             $("#btnTapeStop").prop("disabled", false);
-            $("#btnTapePause").prop("disabled", false);
             ti994a.tape.record();
         });
 
@@ -246,9 +244,7 @@
             $("#btnRecord").prop("disabled", true);
             $("#btnPlay").prop("disabled", true);
             $("#btnRewind").prop("disabled", true);
-            $("#btnForward").prop("disabled", true);
             $("#btnTapeStop").prop("disabled", !tapeLoaded);
-            $("#btnTapePause").prop("disabled", !tapeLoaded);
             ti994a.tape.play();
         });
 
@@ -261,9 +257,7 @@
             $("#btnRecord").prop("disabled", false);
             $("#btnPlay").prop("disabled", !tapeLoaded);
             $("#btnRewind").prop("disabled", !tapeLoaded);
-            $("#btnForward").prop("disabled", !tapeLoaded);
             $("#btnTapeStop").prop("disabled", true);
-            $("#btnTapePause").prop("disabled", true);
             ti994a.tape.stop();
         }).click();
 
