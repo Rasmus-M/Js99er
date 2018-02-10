@@ -37,12 +37,11 @@ CRU.prototype = {
         this.timerInterrupt = false;
         this.time = 0;
         for (var i = 0; i < 4096; i++) {
-            this.cru[i] = true;
+            this.cru[i] = i > 3;
         }
         this.cru[24] = false; // Audio gate
         this.cru[25] = false; // Output to cassette mike jack
-
-        this.count = 0;
+        this.log.info(this.cru[0]);
     },
 
     readBit: function (addr) {
@@ -62,12 +61,6 @@ CRU.prototype = {
                     return !(this.keyboard.isKeyDown(col, addr));
                 }
             }
-            // Cassette
-            else if (addr === 27) {
-                var value = this.tape.read(this.time);
-                // console.log((value ? "1" : "0") + " " + this.tms9900.getPC().toHexWord());
-                return value;
-            }
         }
         else {
             // Timer
@@ -81,12 +74,10 @@ CRU.prototype = {
                 this.log.info("Read timer interrupt status");
                 return this.timerInterrupt;
             }
-            // Cassette
-            else if (addr === 27) {
-                var value = this.tape.read(this.time);
-                // console.log((value ? "1" : "0") + " " + this.tms9900.getPC().toHexWord());
-                return value;
-            }
+        }
+        // Cassette
+        if (addr === 27) {
+            return this.tape.read(this.time);
         }
         return this.cru[addr];
     },
@@ -149,12 +140,12 @@ CRU.prototype = {
                 if (addr === 3) {
                     this.timerInterrupt = false;
                 }
-                else if (addr === 22) {
-                    this.tape.setMotorOn(value);
-                }
-                else if (addr === 25) {
-                    this.tape.write(value, this.time);
-                }
+            }
+            if (addr === 22) {
+                this.tape.setMotorOn(value);
+            }
+            else if (addr === 25) {
+                this.tape.write(value, this.time);
             }
             // this.log.info("Write CRU address " + addr.toHexWord() + ": " + bit);
             this.cru[addr] = value;
@@ -203,7 +194,7 @@ CRU.prototype = {
     },
 
     getStatusString: function () {
-        return "CRU: " + (this.cru[0] ? "0" : "1") + (this.cru[1] ? "0" : "1") + (this.cru[2] ? "0" : "1") + (this.cru[3] ? "0" : "1") + " " +
+        return "CRU: " + (this.cru[0] ? "1" : "0") + (this.cru[1] ? "1" : "0") + (this.cru[2] ? "1" : "0") + (this.cru[3] ? "1" : "0") + " " +
             "Timer: " + Math.floor(this.decrementer).toHexWord() + " " +
             (this.isTimerInterrupt() ? "Tint " : "    ")  + (this.isVDPInterrupt() ? "Vint" : "   ");
     }
