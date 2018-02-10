@@ -201,16 +201,6 @@ TMS9900.prototype = {
                     }
                     this.pasteToggle = !this.pasteToggle;
                 }
-                // Execute instruction
-                // if (this.PC === 0x1574) {
-                //     if (!this.spin) {
-                //         console.log("Spin");
-                //         this.spin = true;
-                //     }
-                //
-                // } else {
-                //     this.spin = false;
-                // }
                 var instruction = this.readMemoryWord(this.PC);
                 this.inctPC();
                 this.addCycles(this.execute(instruction));

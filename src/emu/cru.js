@@ -64,7 +64,7 @@ CRU.prototype = {
             }
             // Cassette
             else if (addr === 27) {
-                var value = this.tape.read(false, this.time, this.tms9900.getPC());
+                var value = this.tape.read(this.time);
                 // console.log((value ? "1" : "0") + " " + this.tms9900.getPC().toHexWord());
                 return value;
             }
@@ -83,9 +83,7 @@ CRU.prototype = {
             }
             // Cassette
             else if (addr === 27) {
-                // console.log("Read casssette in timer mode");
-                var reRead = false; // (this.tms9900.getPC() === 0x1588 || this.tms9900.getPC() === 0x158e) && this.tms9900.getReg(10) === 0x14b0;
-                var value = this.tape.read(reRead, this.time, this.tms9900.getPC());
+                var value = this.tape.read(this.time);
                 // console.log((value ? "1" : "0") + " " + this.tms9900.getPC().toHexWord());
                 return value;
             }
@@ -134,15 +132,6 @@ CRU.prototype = {
                     // If any bit between 1 and 14 is written to while in timer mode, the decrementer will be reinitialized with the current value of the Clock register
                     if (this.clockRegister !== 0) {
                         this.decrementer = this.clockRegister;
-                        if (addr === 14) {
-                            // console.log("Decr=" + this.decrementer.toHexWord() + " PC=" + this.tms9900.getPC().toHexWord() + " C=" + this.count);
-                            // if (this.tms9900.getPC() === 0x1592 && this.decrementer.toHexWord() === '>0015') {
-                            //     if (this.count >= 94) {
-                            //         // this.tms9900.setBreakpoint(this.tms9900.getPC() + 2);
-                            //     }
-                            //     this.count++;
-                            // }
-                        }
                     }
                     // Do not set cru bit
                     return;
@@ -199,12 +188,8 @@ CRU.prototype = {
             if (this.decrementer <= 0) {
                 this.decrementer = this.clockRegister;
                 // this.log.info("Timer interrupt");
-                // console.log("Timer int");
                 this.timerInterrupt = true;
             }
-            // if (this.decrementer > 0x2000) {
-            //     console.log("d=" + Math.floor(this.decrementer) + " " + this.tms9900.getPC().toHexWord());
-            // }
         }
         this.time += value;
     },

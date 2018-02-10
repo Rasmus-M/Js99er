@@ -97,6 +97,7 @@ Tape.prototype.play = function () {
 };
 
 Tape.prototype.rewind = function () {
+    this.loadBufferOffset = 0;
     this.loadBufferAudioOffset = 0;
 };
 
@@ -163,8 +164,8 @@ function readBit() {
   }
 }
 */
-Tape.prototype.read = function (reRead, time, pc)  {
-    if (!reRead) {
+Tape.prototype.read = function (time)  {
+    if (this.playing && this.loadBuffer) {
         var offset = this.loadBufferOffset;
         var sign = offset < this.loadBuffer.length ? Math.sign(this.loadBuffer[offset++]) : 0;
         var runLength = 1;
@@ -186,7 +187,6 @@ Tape.prototype.read = function (reRead, time, pc)  {
             this.outByte = (this.outByte << 1) | bit;
             this.outByteCount--;
             if (this.outByteCount === 0) {
-                // console.log(this.outByte.toHexByte());
                 this.out += this.outByte.toHexByte().substring(1);
                 this.outByteCount = 8;
                 this.outByte = 0;
@@ -195,22 +195,14 @@ Tape.prototype.read = function (reRead, time, pc)  {
         }
         this.readFirst = !this.readFirst;
         this.lastSign = sign;
-
-        // if (sign !== this.lastSign) {
-        //     this.readValue = this.readValue === 0 ? 1 : 0;
-        // }
-        // this.lastSign = sign;
-        this.readValue = sign > 0 ? 1 : 0;
-
-        // Debug only
         if (this.out.length >= 32 || offset === this.loadBuffer.length && this.out.length > 0) {
             this.log.info(this.out);
             this.out = "";
         }
-    } else {
-        console.log("re-read");
+        // ... Debug only
+
+        this.readValue = sign > 0 ? 1 : 0;
     }
-    console.log(this.readValue + " " + pc.toHexWord());
     return this.readValue;
 };
 
