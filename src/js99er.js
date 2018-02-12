@@ -44,7 +44,7 @@
 
         log = Log.getLog();
         log.info("Welcome to JS99'er");
-        log.info("Version 5.11, 03 February 2018");
+        log.info("Version 5.12, 12 February 2018");
         log.info("  - Cassette tape");
         settings = new Settings(true);
         diskImages = {
