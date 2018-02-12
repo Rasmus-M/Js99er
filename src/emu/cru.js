@@ -41,7 +41,6 @@ CRU.prototype = {
         }
         this.cru[24] = false; // Audio gate
         this.cru[25] = false; // Output to cassette mike jack
-        this.log.info(this.cru[0]);
     },
 
     readBit: function (addr) {

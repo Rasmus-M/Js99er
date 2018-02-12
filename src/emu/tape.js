@@ -7,13 +7,9 @@
 'use strict';
 
 function Tape() {
-    this.audioContext = null;
-    if (window.AudioContext) {
-        this.audioContext = new AudioContext();
-    }
-    else if (window.webkitAudioContext) {
-        this.audioContext = new webkitAudioContext();
-    }
+    this.audioContext = new AudioContext() || new webkitAudioContext();
+    this.sampleRate = this.audioContext ? this.audioContext.sampleRate : 0;
+    this.samplesPerLevelChange = Math.floor(Tape.LEVEL_CHANGE_DURATION * this.sampleRate);
     this.log = Log.getLog();
     this.reset();
 }
@@ -22,49 +18,37 @@ Tape.LEVEL_CHANGE_FREQUENCY = 1379;
 Tape.LEVEL_CHANGE_DURATION = 1 / Tape.LEVEL_CHANGE_FREQUENCY;
 
 Tape.ZERO = [
-    0.03125, 0.07031, 0.10938, 0.10938, 0.10938, 0.10938, 0.10938, 0.10938,
-    0.10938, 0.10938, 0.10938, 0.10938, 0.10938, 0.10938, 0.10938, 0.10938,
-    0.10938, 0.10938, 0.10938, 0.11719, 0.13281, 0.14063, 0.16406, 0.20313,
-    0.26563, 0.37500, 0.51563, 0.64844, 0.70313, 0.59375, 0.35938, 0.07813
+    0.02942, 0.06662, 0.10464, 0.11216, 0.10729, 0.11098, 0.10819, 0.11016,
+    0.10898, 0.10942, 0.10964, 0.10886, 0.11006, 0.10859, 0.11016, 0.10868,
+    0.10990, 0.10909, 0.10938, 0.10956, 0.11001, 0.12289, 0.13377, 0.14345,
+    0.16464, 0.20270, 0.25574, 0.35052, 0.47641, 0.60378, 0.69818, 0.66828,
+    0.51514, 0.26288, 0.03446, 0.00001
 ];
 
 Tape.ONE = [
-    -0.11719, -0.18750, -0.17188, -0.13281, -0.12500, -0.15625, -0.20313, -0.25000,
-    -0.32031, -0.41406, -0.53906, -0.65625, -0.67188, -0.53906, -0.29688, -0.06250,
-    0.11719, 0.18750, 0.17188, 0.13281, 0.12500, 0.15625, 0.20313, 0.25000,
-    0.32031, 0.41406, 0.53906, 0.65625, 0.67188, 0.53906, 0.29688, 0.06250
+    0.10538, 0.18196, 0.18171, 0.14378, 0.12331, 0.13664, 0.17567, 0.21852,
+    0.26456, 0.33587, 0.42363, 0.54129, 0.65023, 0.67852, 0.58335, 0.37611,
+    0.15033, -0.04245, -0.16285, -0.18843, -0.16048, -0.12770, -0.12698, -0.15790,
+    -0.20117, -0.24331, -0.30351, -0.38475, -0.48914, -0.61134, -0.67988, -0.63930,
+    -0.47039, -0.24116, -0.03194, -0.00001
 ];
 
 Tape.prototype.reset = function () {
+    if (this.sampleRate !== 0 && this.sampleRate !== 48000) {
+        // TODO: Resample ZERO and ONE
+    }
     if (this.audioSource) {
         this.audioSource.stop();
     }
     this.recordPressed = false;
     this.playPressed = false;
     this.motorOn = false;
-    this.recording = false;
     this.playing = false;
-    this.resetLoadBuffer();
-    this.resetSaveBuffer();
-};
-
-Tape.prototype.resetLoadBuffer = function () {
-    this.samplesPerLevelChange = 0;
-    this.loadBuffer = null;
-    this.loadBufferOffset = 0;
-    this.loadBufferAudioOffset = 0;
-    this.readValue = 0;
-    this.lastSign = 1;
-    this.readFirst = true;
-    this.out = "";
-    this.outByte = 0;
-    this.outByteCount = 8;
-};
-
-Tape.prototype.resetSaveBuffer = function () {
-    this.saveBuffer = [];
-    this.saveBufferWriteOffset = 0;
-    this.saveBufferReadOffset = 0;
+    this.recording = false;
+    this.sampleBuffer = [];
+    this.sampleBufferOffset = 0;
+    this.sampleBufferAudioOffset = 0;
+    this.lastWriteValue = null;
     this.lastWriteTime = -1;
 };
 
@@ -74,19 +58,11 @@ Tape.prototype.loadTapeFile = function (fileBuffer, callback) {
         this.audioContext.decodeAudioData(fileBuffer).then(
             function (audioBuffer) {
                 tape.audioBuffer = audioBuffer;
-                tape.log.info("Wav file sample rate: " + audioBuffer.sampleRate + " Hz");
-                tape.log.info("Wav file duration: " + audioBuffer.duration + " s");
-                tape.log.info("Number of channels: " + audioBuffer.numberOfChannels);
-                tape.log.info("Number of samples: " + audioBuffer.length);
-                tape.resetLoadBuffer();
                 var sampleBuffer = new Float32Array(audioBuffer.length);
                 audioBuffer.copyFromChannel(sampleBuffer, 0);
-                tape.loadBuffer = sampleBuffer;
-                tape.samplesPerLevelChange = Math.floor(Tape.LEVEL_CHANGE_DURATION * audioBuffer.sampleRate);
-                tape.log.info("samplesPerLevelChange=" + tape.samplesPerLevelChange);
-                tape.log.info("samplesBufferLength=" + tape.loadBuffer.length);
-                tape.loadBufferOffset = 0;
-                tape.loadBufferAudioOffset = 0;
+                tape.sampleBuffer = sampleBuffer;
+                this.sampleBufferOffset = 0;
+                this.sampleBufferAudioOffset = 0;
                 callback();
             },
             function (e) {
@@ -101,7 +77,7 @@ Tape.prototype.isTapeLoaded = function () {
 };
 
 Tape.prototype.isRecordingAvailable = function () {
-    return this.saveBuffer && this.saveBuffer.length;
+    return this.sampleBuffer.length > 0;
 };
 
 Tape.prototype.record = function () {
@@ -115,8 +91,8 @@ Tape.prototype.play = function () {
 };
 
 Tape.prototype.rewind = function () {
-    this.loadBufferOffset = 0;
-    this.loadBufferAudioOffset = 0;
+    this.sampleBufferOffset = 0;
+    this.sampleBufferAudioOffset = 0;
 };
 
 Tape.prototype.stop = function () {
@@ -134,28 +110,15 @@ Tape.prototype.setMotorOn = function (value) {
 };
 
 Tape.prototype.updateSoundBuffer = function (buffer) {
-    var i, j;
-    if (this.playing && this.loadBuffer) {
-        j = this.loadBufferAudioOffset;
+    var i;
+    if (this.playing) {
         for (i = 0; i < buffer.length; i++) {
-            buffer[i] = j < this.loadBuffer.length ? this.loadBuffer[j++] : 0;
+            buffer[i] = this.sampleBufferAudioOffset < this.sampleBuffer.length ? this.sampleBuffer[this.sampleBufferAudioOffset++] : 0;
         }
-        this.loadBufferAudioOffset = j;
     }
-    else if (this.saveBuffer.length > 256 && this.saveBufferReadOffset < this.saveBuffer.length - 1) {
-        this.log.info(this.saveBuffer.length - this.saveBufferReadOffset);
-        var sign, samples;
-        var scale = 2;
+    else if (this.recording && this.sampleBufferAudioOffset < this.sampleBuffer.length - buffer.length) {
         for (i = 0; i < buffer.length; i++) {
-            if (i % (32 * scale) === 0) {
-                sign = this.saveBuffer[this.saveBufferReadOffset] ? 1 : -1;
-                samples = this.saveBuffer[this.saveBufferReadOffset] === this.saveBuffer[this.saveBufferReadOffset + 1] ? Tape.ZERO : Tape.ONE;
-                this.saveBufferReadOffset += 2;
-            }
-            buffer[i] = sign * samples[Math.floor((i % (32 * scale)) / scale)];
-        }
-        if (this.saveBufferReadOffset >= this.saveBuffer.length - 1) {
-            this.log.warn("Tape sound buffer depleted.");
+            buffer[i] = this.sampleBuffer[this.sampleBufferAudioOffset++];
         }
     }
     else {
@@ -187,60 +150,50 @@ function readBit() {
 }
 */
 Tape.prototype.read = function ()  {
-    if (this.playing && this.loadBuffer) {
-        var offset = this.loadBufferOffset;
-        var sign = offset < this.loadBuffer.length ? Math.sign(this.loadBuffer[offset++]) : 0;
+    if (this.playing && this.sampleBuffer) {
+        var offset = this.sampleBufferOffset;
+        var sign = offset < this.sampleBuffer.length ? Math.sign(this.sampleBuffer[offset++]) : 0;
         var runLength = 1;
-        while (offset < this.loadBuffer.length && Math.sign(this.loadBuffer[offset++]) === sign) {
+        while (offset < this.sampleBuffer.length && Math.sign(this.sampleBuffer[offset++]) === sign) {
             runLength++;
         }
         if (Math.abs(this.samplesPerLevelChange - runLength) <= 2) {
             // It's a full run, i.e. a zero. Advance half way through.
-            this.loadBufferOffset += runLength - Math.floor(this.samplesPerLevelChange / 2);
+            this.sampleBufferOffset += runLength - Math.floor(this.samplesPerLevelChange / 2);
         }
         else {
             // It a half run, i.e. part of a one or 2nd half of a zero
-            this.loadBufferOffset += runLength;
+            this.sampleBufferOffset += runLength;
         }
-
-        // Debug only
-        if (!this.readFirst) {
-            var bit = sign !== this.lastSign ? 1 : 0;
-            this.outByte = (this.outByte << 1) | bit;
-            this.outByteCount--;
-            if (this.outByteCount === 0) {
-                this.out += this.outByte.toHexByte().substring(1);
-                this.outByteCount = 8;
-                this.outByte = 0;
-            }
-            // console.log(bit + " " + pc.toHexWord());
-        }
-        this.readFirst = !this.readFirst;
-        this.lastSign = sign;
-        if (this.out.length >= 32 || offset === this.loadBuffer.length && this.out.length > 0) {
-            this.log.info(this.out);
-            this.out = "";
-        }
-        // ... Debug only
-
-        this.readValue = sign > 0 ? 1 : 0;
+        return sign > 0 ? 1 : 0;
     }
-    return this.readValue;
+    else {
+        return 0;
+    }
 };
 
 // 1: 1/0, 0/1, next
 // 0: 1/0, ---, next
 
-Tape.prototype.write = function (value, time)  {
+Tape.prototype.write = function (value, time) {
     var interval = this.lastWriteTime === -1 ? 1 : time - this.lastWriteTime;
     var i;
-    if (interval === 2) {
-        // Finish zero by writing last last value again
-        this.saveBuffer[this.saveBufferWriteOffset++] = this.saveBuffer[this.saveBufferWriteOffset - 2];
+    if (interval === 1) {
+        if (this.lastWriteValue !== null) {
+            for (i = 0; i < Tape.ONE.length; i++) {
+                this.sampleBuffer[this.sampleBufferOffset++] = this.lastWriteValue ? Tape.ONE[i] : -Tape.ONE[i];
+            }
+            this.lastWriteValue = null;
+        }
+        else {
+           this.lastWriteValue = value;
+        }
     }
-    if (interval === 1 || interval === 2) {
-        // Write new value
-        this.saveBuffer[this.saveBufferWriteOffset++] = value;
+    else if (interval === 2) {
+        for (i = 0; i < Tape.ZERO.length; i++) {
+            this.sampleBuffer[this.sampleBufferOffset++] = this.lastWriteValue ? Tape.ZERO[i] : -Tape.ZERO[i];
+        }
+        this.lastWriteValue = value;
     }
     else {
         this.log.warn("Unsupported write interval: " + interval);
@@ -249,17 +202,17 @@ Tape.prototype.write = function (value, time)  {
 };
 
 Tape.prototype.getRecording = function () {
-    var samplesPerHalfBit = 16;
-    var array = new Float32Array(this.saveBuffer.length * samplesPerHalfBit);
-    var n = 0;
-    for (var i = 0; i < this.saveBuffer.length; i++) {
-        var value = this.saveBuffer[i];
-        var sample = value ? 0.75 : -0.75;
-        for (var j = 0; j < samplesPerHalfBit; j++) {
-            array[n++] = sample;
+    if (this.lastWriteValue !== null) {
+        for (i = 0; i < Tape.ZERO.length; i++) {
+            this.sampleBuffer[this.sampleBufferOffset++] = this.lastWriteValue ? Tape.ZERO[i] : -Tape.ZERO[i];
         }
+        this.lastWriteValue = null;
     }
-    var audioBuffer = this.audioContext.createBuffer(1, array.length, 44100);
+    var array = new Float32Array(this.sampleBufferOffset);
+    for (var i = 0; i < this.sampleBufferOffset; i++) {
+        array[i] = this.sampleBuffer[i];
+    }
+    var audioBuffer = this.audioContext.createBuffer(1, array.length, this.sampleRate);
     audioBuffer.copyToChannel(array, 0);
     return audioBufferToWav(audioBuffer, { float32: true });
 };
