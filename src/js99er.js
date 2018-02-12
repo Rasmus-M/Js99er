@@ -233,7 +233,7 @@
 
         $("#btnSaveTape").on("click", function () {
             if (ti994a.tape.isRecordingAvailable()) {
-                var tapeFile = tape.getRecording();
+                var tapeFile = ti994a.tape.getRecording();
                 var blob = new Blob([tapeFile], { type: "application/wav" });
                 saveAs(blob, "tape.wav");
             }

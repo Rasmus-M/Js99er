@@ -35,7 +35,7 @@ CRU.prototype = {
         this.readRegister = 0;
         this.decrementer = 0;
         this.timerInterrupt = false;
-        this.time = 0;
+        this.timerInterruptCount = 0;
         for (var i = 0; i < 4096; i++) {
             this.cru[i] = i > 3;
         }
@@ -77,7 +77,7 @@ CRU.prototype = {
         }
         // Cassette
         if (addr === 27) {
-            return this.tape.read(this.time);
+            return this.tape.read();
         }
         return this.cru[addr];
     },
@@ -145,7 +145,7 @@ CRU.prototype = {
                 this.tape.setMotorOn(value);
             }
             else if (addr === 25) {
-                this.tape.write(value, this.time);
+                this.tape.write(value, this.timerInterruptCount);
             }
             // this.log.info("Write CRU address " + addr.toHexWord() + ": " + bit);
             this.cru[addr] = value;
@@ -180,9 +180,9 @@ CRU.prototype = {
                 this.decrementer = this.clockRegister;
                 // this.log.info("Timer interrupt");
                 this.timerInterrupt = true;
+                this.timerInterruptCount++;
             }
         }
-        this.time += value;
     },
 
     isVDPInterrupt: function () {

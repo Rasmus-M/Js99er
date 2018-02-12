@@ -21,6 +21,20 @@ function Tape() {
 Tape.LEVEL_CHANGE_FREQUENCY = 1379;
 Tape.LEVEL_CHANGE_DURATION = 1 / Tape.LEVEL_CHANGE_FREQUENCY;
 
+Tape.ZERO = [
+    0.03125, 0.07031, 0.10938, 0.10938, 0.10938, 0.10938, 0.10938, 0.10938,
+    0.10938, 0.10938, 0.10938, 0.10938, 0.10938, 0.10938, 0.10938, 0.10938,
+    0.10938, 0.10938, 0.10938, 0.11719, 0.13281, 0.14063, 0.16406, 0.20313,
+    0.26563, 0.37500, 0.51563, 0.64844, 0.70313, 0.59375, 0.35938, 0.07813
+];
+
+Tape.ONE = [
+    -0.11719, -0.18750, -0.17188, -0.13281, -0.12500, -0.15625, -0.20313, -0.25000,
+    -0.32031, -0.41406, -0.53906, -0.65625, -0.67188, -0.53906, -0.29688, -0.06250,
+    0.11719, 0.18750, 0.17188, 0.13281, 0.12500, 0.15625, 0.20313, 0.25000,
+    0.32031, 0.41406, 0.53906, 0.65625, 0.67188, 0.53906, 0.29688, 0.06250
+];
+
 Tape.prototype.reset = function () {
     if (this.audioSource) {
         this.audioSource.stop();
@@ -120,23 +134,27 @@ Tape.prototype.setMotorOn = function (value) {
 };
 
 Tape.prototype.updateSoundBuffer = function (buffer) {
-    var i;
+    var i, j;
     if (this.playing && this.loadBuffer) {
-        var j = this.loadBufferAudioOffset;
+        j = this.loadBufferAudioOffset;
         for (i = 0; i < buffer.length; i++) {
             buffer[i] = j < this.loadBuffer.length ? this.loadBuffer[j++] : 0;
         }
         this.loadBufferAudioOffset = j;
     }
-    else if (this.saveBufferReadOffset < this.saveBuffer.length) {
-        var value;
+    else if (this.saveBuffer.length > 256 && this.saveBufferReadOffset < this.saveBuffer.length - 1) {
+        this.log.info(this.saveBuffer.length - this.saveBufferReadOffset);
+        var sign, samples;
+        var scale = 2;
         for (i = 0; i < buffer.length; i++) {
-            if (i % 18 === 0) {
-                value = this.saveBufferReadOffset < this.saveBuffer.length ? this.saveBuffer[this.saveBufferReadOffset++] : !value;
+            if (i % (32 * scale) === 0) {
+                sign = this.saveBuffer[this.saveBufferReadOffset] ? 1 : -1;
+                samples = this.saveBuffer[this.saveBufferReadOffset] === this.saveBuffer[this.saveBufferReadOffset + 1] ? Tape.ZERO : Tape.ONE;
+                this.saveBufferReadOffset += 2;
             }
-            buffer[i] = value ? 0.75 : -0.75;
+            buffer[i] = sign * samples[Math.floor((i % (32 * scale)) / scale)];
         }
-        if (this.saveBufferReadOffset === this.saveBuffer.length) {
+        if (this.saveBufferReadOffset >= this.saveBuffer.length - 1) {
             this.log.warn("Tape sound buffer depleted.");
         }
     }
@@ -168,7 +186,7 @@ function readBit() {
   }
 }
 */
-Tape.prototype.read = function (time)  {
+Tape.prototype.read = function ()  {
     if (this.playing && this.loadBuffer) {
         var offset = this.loadBufferOffset;
         var sign = offset < this.loadBuffer.length ? Math.sign(this.loadBuffer[offset++]) : 0;
@@ -210,20 +228,38 @@ Tape.prototype.read = function (time)  {
     return this.readValue;
 };
 
+// 1: 1/0, 0/1, next
+// 0: 1/0, ---, next
+
 Tape.prototype.write = function (value, time)  {
-    if (this.lastWriteTime !== -1) {
-        for (var i = 0; i < (time - this.lastWriteTime) / 17; i++) {
-            this.saveBuffer[this.saveBufferWriteOffset++] = value;
-            // this.out += value ? 1 : 0;
-            // if (this.out.length === 32) {
-            //     console.log(this.out);
-            //     this.out = "";
-            // }
-        }
+    var interval = this.lastWriteTime === -1 ? 1 : time - this.lastWriteTime;
+    var i;
+    if (interval === 2) {
+        // Finish zero by writing last last value again
+        this.saveBuffer[this.saveBufferWriteOffset++] = this.saveBuffer[this.saveBufferWriteOffset - 2];
+    }
+    if (interval === 1 || interval === 2) {
+        // Write new value
+        this.saveBuffer[this.saveBufferWriteOffset++] = value;
+    }
+    else {
+        this.log.warn("Unsupported write interval: " + interval);
     }
     this.lastWriteTime = time;
 };
 
 Tape.prototype.getRecording = function () {
-    return new Int8Array(100);
+    var samplesPerHalfBit = 16;
+    var array = new Float32Array(this.saveBuffer.length * samplesPerHalfBit);
+    var n = 0;
+    for (var i = 0; i < this.saveBuffer.length; i++) {
+        var value = this.saveBuffer[i];
+        var sample = value ? 0.75 : -0.75;
+        for (var j = 0; j < samplesPerHalfBit; j++) {
+            array[n++] = sample;
+        }
+    }
+    var audioBuffer = this.audioContext.createBuffer(1, array.length, 44100);
+    audioBuffer.copyToChannel(array, 0);
+    return audioBufferToWav(audioBuffer, { float32: true });
 };
