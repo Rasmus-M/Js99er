@@ -30,8 +30,9 @@ function Memory(vdp, tms9919, tms5220, settings) {
     this.ram = new Uint8Array(0x10000);
     this.rom = new Uint8Array(SYSTEM.ROM);
 
-    this.rom[0x14a7] = 0x03; // Fix cassette read time (LI instead of CI)
-    this.rom[0x14a9] = 0x1f;
+    this.rom[0x14a7] = 0x03; // Fix cassette sync (LI instead of CI)
+    this.rom[0x14a9] = 0x1f; // Cassette read time
+    this.rom[0x1353] = 0x1f; // Cassette write time
 
     this.groms = [];
     for (var i = 0; i < Memory.GROM_BASES; i++) {
