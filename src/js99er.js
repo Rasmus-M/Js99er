@@ -251,23 +251,25 @@
         });
 
         $("#btnPlay").on("click", function () {
-            var tapeLoaded = ti994a.tape.isTapeLoaded();
             $("#btnRecord").prop("disabled", true);
             $("#btnPlay").prop("disabled", true);
             $("#btnRewind").prop("disabled", true);
-            $("#btnTapeStop").prop("disabled", !tapeLoaded);
+            $("#btnTapeStop").prop("disabled", false);
             ti994a.tape.play();
         });
 
         $("#btnRewind").on("click", function () {
+            $("#btnRecord").prop("disabled", false);
+            $("#btnPlay").prop("disabled", false);
+            $("#btnRewind").prop("disabled", true);
+            $("#btnTapeStop").prop("disabled", true);
             ti994a.tape.rewind();
         });
 
         $("#btnTapeStop").on("click", function () {
-            var tapeLoaded = ti994a.tape.isTapeLoaded();
             $("#btnRecord").prop("disabled", false);
-            $("#btnPlay").prop("disabled", !tapeLoaded);
-            $("#btnRewind").prop("disabled", !tapeLoaded);
+            $("#btnPlay").prop("disabled", !ti994a.tape.isPlayEnabled());
+            $("#btnRewind").prop("disabled", !ti994a.tape.isRewindEnabled());
             $("#btnTapeStop").prop("disabled", true);
             ti994a.tape.stop();
         }).click();

@@ -46,6 +46,10 @@ Tape.prototype.reset = function () {
     this.playing = false;
     this.recording = false;
     this.sampleBuffer = [];
+    this.resetSampleBuffer();
+};
+
+Tape.prototype.resetSampleBuffer = function () {
     this.sampleBufferOffset = 0;
     this.sampleBufferAudioOffset = 0;
     this.lastWriteValue = null;
@@ -61,8 +65,7 @@ Tape.prototype.loadTapeFile = function (fileBuffer, callback) {
                 var sampleBuffer = new Float32Array(audioBuffer.length);
                 audioBuffer.copyFromChannel(sampleBuffer, 0);
                 tape.sampleBuffer = sampleBuffer;
-                this.sampleBufferOffset = 0;
-                this.sampleBufferAudioOffset = 0;
+                tape.resetSampleBuffer();
                 callback();
             },
             function (e) {
@@ -72,17 +75,24 @@ Tape.prototype.loadTapeFile = function (fileBuffer, callback) {
     }
 };
 
-Tape.prototype.isTapeLoaded = function () {
-    return this.audioBuffer != null;
+Tape.prototype.isPlayEnabled = function () {
+    return this.sampleBufferOffset < this.sampleBuffer.length;
+};
+
+Tape.prototype.isRewindEnabled = function () {
+    return this.sampleBufferOffset > 0 || this.sampleBufferAudioOffset > 0;
 };
 
 Tape.prototype.isRecordingAvailable = function () {
-    return this.sampleBuffer.length > 0;
+    return this.sampleBufferAudioOffset > 0;
 };
 
 Tape.prototype.record = function () {
     this.recordPressed = true;
     this.recording = this.motorOn;
+    if (this.recording) {
+        this.resetSampleBuffer();
+    }
 };
 
 Tape.prototype.play = function () {
