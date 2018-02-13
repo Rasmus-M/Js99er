@@ -105,6 +105,7 @@ TI994A.prototype = {
             this.cpuSpeed = fast ? 2 : 1;
             this.log.info("Start");
             this.tms9900.setSuspended(false);
+            this.tape.setPaused(false);
             var self = this;
             this.frameInterval = setInterval(
                 function () {
@@ -199,6 +200,7 @@ TI994A.prototype = {
         clearInterval(this.frameInterval);
         clearInterval(this.fpsInterval);
         this.tms9919.mute();
+        this.tape.setPaused(true);
         this.vdp.updateCanvas();
         this.running = false;
         this.tms9900.dumpProfile();

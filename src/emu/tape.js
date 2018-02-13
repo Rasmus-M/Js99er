@@ -9,11 +9,12 @@
 function Tape() {
     this.audioContext = new AudioContext() || new webkitAudioContext();
     this.sampleRate = this.audioContext ? this.audioContext.sampleRate : 0;
-    this.samplesPerLevelChange = Math.floor(Tape.LEVEL_CHANGE_DURATION * this.sampleRate);
+    this.samplesPerBit = Math.floor(Tape.LEVEL_CHANGE_DURATION * this.sampleRate);
     this.log = Log.getLog();
     this.reset();
 }
 
+Tape.DEBUG = false;
 Tape.LEVEL_CHANGE_FREQUENCY = 1379;
 Tape.LEVEL_CHANGE_DURATION = 1 / Tape.LEVEL_CHANGE_FREQUENCY;
 
@@ -46,6 +47,8 @@ Tape.prototype.reset = function () {
     this.playing = false;
     this.recording = false;
     this.sampleBuffer = [];
+    this.playDelay = 0;
+    this.paused = false;
     this.resetSampleBuffer();
 };
 
@@ -54,6 +57,11 @@ Tape.prototype.resetSampleBuffer = function () {
     this.sampleBufferAudioOffset = 0;
     this.lastWriteValue = null;
     this.lastWriteTime = -1;
+    // Debug
+    this.readFirst = null;
+    this.out = "";
+    this.outByte = 0;
+    this.outByteCount = 8;
 };
 
 Tape.prototype.loadTapeFile = function (fileBuffer, callback) {
@@ -73,6 +81,10 @@ Tape.prototype.loadTapeFile = function (fileBuffer, callback) {
             }
         );
     }
+};
+
+Tape.prototype.setPaused = function (paused) {
+    this.paused = paused;
 };
 
 Tape.prototype.isPlayEnabled = function () {
@@ -98,6 +110,7 @@ Tape.prototype.record = function () {
 Tape.prototype.play = function () {
     this.playPressed = true;
     this.playing = this.motorOn;
+    this.playDelay = 64;
 };
 
 Tape.prototype.rewind = function () {
@@ -121,20 +134,29 @@ Tape.prototype.setMotorOn = function (value) {
 
 Tape.prototype.updateSoundBuffer = function (buffer) {
     var i;
-    if (this.playing) {
-        for (i = 0; i < buffer.length; i++) {
-            buffer[i] = this.sampleBufferAudioOffset < this.sampleBuffer.length ? this.sampleBuffer[this.sampleBufferAudioOffset++] : 0;
+    if (!this.paused) {
+        if (this.playing) {
+            if (this.playDelay === 0) {
+                for (i = 0; i < buffer.length; i++) {
+                    buffer[i] = this.sampleBufferAudioOffset < this.sampleBuffer.length ? this.sampleBuffer[this.sampleBufferAudioOffset++] : 0;
+                }
+                return;
+            }
+            else {
+                this.playDelay--;
+            }
+        }
+        else if (this.recording) {
+            if (this.sampleBufferAudioOffset < this.sampleBuffer.length - buffer.length) {
+                for (i = 0; i < buffer.length; i++) {
+                    buffer[i] = this.sampleBuffer[this.sampleBufferAudioOffset++];
+                }
+                return;
+            }
         }
     }
-    else if (this.recording && this.sampleBufferAudioOffset < this.sampleBuffer.length - buffer.length) {
-        for (i = 0; i < buffer.length; i++) {
-            buffer[i] = this.sampleBuffer[this.sampleBufferAudioOffset++];
-        }
-    }
-    else {
-        for (i = 0; i < buffer.length; i++) {
-            buffer[i] = 0;
-        }
+    for (i = 0; i < buffer.length; i++) {
+        buffer[i] = 0;
     }
 };
 
@@ -160,26 +182,85 @@ function readBit() {
 }
 */
 Tape.prototype.read = function ()  {
-    if (this.playing && this.sampleBuffer) {
+    var sampleBuffer = this.sampleBuffer;
+    var readValue = 0;
+    if (this.playing && sampleBuffer) {
+        var samplesPerBit = this.samplesPerBit;
+        var samplesPerHalfBit = samplesPerBit >> 1;
+        var samplesPerQuarterBit = samplesPerBit >> 2;
         var offset = this.sampleBufferOffset;
-        var sign = offset < this.sampleBuffer.length ? Math.sign(this.sampleBuffer[offset++]) : 0;
-        var runLength = 1;
-        while (offset < this.sampleBuffer.length && Math.sign(this.sampleBuffer[offset++]) === sign) {
-            runLength++;
+        var posCount = 0;
+        var negCount = 0;
+        var zeroCount = 0;
+        var sample;
+        // Determine if it's a positive, negative or zero run
+        while (offset < sampleBuffer.length && posCount < samplesPerQuarterBit && negCount < samplesPerQuarterBit && zeroCount < samplesPerHalfBit) {
+            sample = sampleBuffer[offset];
+            if (sample > 0.08) {
+                posCount++;
+            }
+            else if (sample < -0.08) {
+                negCount++;
+            }
+            else {
+                zeroCount++;
+            }
+            offset++;
         }
-        if (Math.abs(this.samplesPerLevelChange - runLength) <= 2) {
-            // It's a full run, i.e. a zero. Advance half way through.
-            this.sampleBufferOffset += runLength - Math.floor(this.samplesPerLevelChange / 2);
+        var runCount = posCount + negCount + zeroCount;
+        // Read remainder of run
+        if (posCount === samplesPerQuarterBit) {
+            while (sample > 0 && runCount++ < samplesPerBit + 2) {
+                sample = sampleBuffer[++offset];
+            }
+            if (sample <= 0) {
+                runCount--;
+            }
+            readValue = 1;
+        }
+        else if (negCount === samplesPerQuarterBit) {
+            while (sample < 0 && runCount++ < samplesPerBit + 2) {
+                sample = sampleBuffer[++offset];
+            }
+            if (sample >= 0) {
+                runCount--;
+            }
+            readValue = 0;
+        }
+        // console.log(runCount);
+        if (runCount > samplesPerHalfBit + samplesPerQuarterBit) {
+            offset -= samplesPerHalfBit;
+        }
+        this.sampleBufferOffset = offset;
+    }
+
+    // Debug only - show input bytes in console
+    if (Tape.DEBUG) {
+        if (this.readFirst) {
+            this.lastReadValue = readValue;
+            this.readFirst = false;
         }
         else {
-            // It a half run, i.e. part of a one or 2nd half of a zero
-            this.sampleBufferOffset += runLength;
+            var bit = readValue !== this.lastReadValue && this.readFirst !== null ? 1 : 0;
+            this.outByte = (this.outByte << 1) | bit;
+            this.outByteCount--;
+            if (this.outByteCount === 0) {
+                this.out += this.outByte.toHexByte().substring(1);
+                this.outByteCount = 8;
+                this.outByte = 0;
+                if (this.out.length === 6) {
+                    bit = 0;
+                }
+            }
+            this.readFirst = true;
         }
-        return sign > 0 ? 1 : 0;
+        if (this.out.length >= 32 || this.out.length > 0 && this.sampleBufferOffset === this.sampleBuffer.length) {
+            this.log.info(this.out);
+            this.out = "";
+        }
     }
-    else {
-        return 0;
-    }
+
+    return readValue;
 };
 
 // 1: 1/0, 0/1, next
