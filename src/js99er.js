@@ -44,14 +44,21 @@
 
         log = Log.getLog();
         log.info("Welcome to JS99'er");
-        log.info("Version 5.12.1, 14 February 2018");
+        log.info("Version 5.12.2, 14 February 2018");
         log.info("  - Cassette tape");
-        log.info("  - Fixed speec problem in 5.12");
+        log.info("  - Fixed speech problem in 5.12");
+        log.info("  - Update disk file list");
         settings = new Settings(true);
         diskImages = {
-            FLOPPY1: new DiskImage("FLOPPY1"),
-            FLOPPY2: new DiskImage("FLOPPY2"),
-            FLOPPY3: new DiskImage("FLOPPY3")
+            FLOPPY1: new DiskImage("FLOPPY1", function (event) {
+                updateDiskImageList("FLOPPY1");
+            }),
+            FLOPPY2: new DiskImage("FLOPPY2", function (event) {
+                updateDiskImageList("FLOPPY2");
+            }),
+            FLOPPY3: new DiskImage("FLOPPY3", function (event) {
+                updateDiskImageList("FLOPPY3");
+            })
         };
         ti994a = new TI994A(document.getElementById("canvas"), diskImages, settings, onBreakpoint);
         sound = new Sound(settings.isSoundEnabled(), ti994a.tms9919, ti994a.tms5220, ti994a.tape);
@@ -654,6 +661,11 @@
                 if (diskImage) {
                     diskImages[diskImage.getName()] = diskImage;
                     updateDiskImageList(diskImage.getName());
+                    diskImage.setEventHandler(
+                        function (event) {
+                            updateDiskImageList(diskImage.getName());
+                        }
+                    );
                 }
             }
             else {
