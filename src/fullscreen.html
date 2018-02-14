@@ -85,15 +85,6 @@
                     <button id="btnStop" class="btn btn-warning navbar-btn"><span class="glyphicon glyphicon-pause"></span> Pause</button>
                     <button id="btnReset" class="btn btn-danger navbar-btn"><span class="glyphicon glyphicon-refresh"></span> Reset</button>
                 </div>
-                <!--
-                <div class="btn-group">
-                    <button id="btnLeft" class="btn btn-default navbar-btn"><span class="glyphicon glyphicon-circle-arrow-left"></span></button>
-                    <button id="btnUp" class="btn btn-default navbar-btn"><span class="glyphicon glyphicon-circle-arrow-up"></span></button>
-                    <button id="btnDown" class="btn btn-default navbar-btn"><span class="glyphicon glyphicon-circle-arrow-down"></span></button>
-                    <button id="btnRight" class="btn btn-default navbar-btn"><span class="glyphicon glyphicon-circle-arrow-right"></span></button>
-                    <button id="btnFire" class="btn btn-primary navbar-btn"><span class="glyphicon glyphicon-screenshot"></span></button>
-                </div>
-                -->
                 <div class="btn-group dropup">
                     <div class="dropdown">
                         <button class="btn btn-success dropdown-toggle" type="button" data-toggle="dropdown">
@@ -140,138 +131,124 @@
             </div>
         </div>
         <!-- Log pane -->
-        <div class="tab-pane fade" id="logPane">
-            <pre id="log"></pre>
+        <div class="tab-pane fade in active" id="logPane">
+            <div class="row">
+                <pre id="log"></pre>
+            </div>
         </div>
-        <!-- Disk manager pane -->
+        <!-- Disk Manager pane -->
         <div class="tab-pane fade" id="diskManagerPane">
-            <div class="panel panel-default" id="diskManagerPanel">
-                <div class="panel-body">
-                    <div class="row">
-                        <div class="form-group">
-                            <div class="col-md-12">
-                                <select class="form-control" id="diskImageList"></select>
-                            </div>
+            <div class="row">
+                <div class="form-group">
+                    <select class="form-control" id="diskImageList"></select>
+                </div>
+            </div>
+            <div class="row" id="fileTableRow">
+                <table class="table table-striped table-bordered">
+                    <thead id="diskFileHead"><tr><th></th><th>Name</th><th>Type</th><th>Data Type</th><th>Record Type</th><th>Record Length</th><th>Size</th></tr></thead>
+                    <tbody id="diskFileTable"></tbody>
+                </table>
+            </div>
+            <div class="row">
+                <div id="diskTools" class="navbar navbar-default">
+                    <div class="btn-group dropup">
+                        <div class="dropdown">
+                            <button class="btn btn-default dropdown-toggle" type="button" data-toggle="dropdown">
+                                <span class="glyphicon glyphicon-floppy-open"></span> Insert into drive
+                                <span class="caret"></span>
+                            </button>
+                            <ul id="diskDriveImage" class="dropdown-menu">
+                                <li><a href="#" id="insertDSK0">DSK1</a></li>
+                                <li><a href="#" id="insertDSK1">DSK2</a></li>
+                                <li><a href="#" id="insertDSK2">DSK3</a></li>
+                            </ul>
                         </div>
                     </div>
-                    <div class="row" id="fileTableRow">
-                        <table class="table table-striped table-bordered">
-                            <thead><tr><th></th><th>Name</th><th>Type</th><th>Data Type</th><th>Rec Type</th><th>Rec Length</th><th>Size</th></tr></thead>
-                            <tbody id="diskFileTable"></tbody>
-                        </table>
+                    <div class="btn-group">
+                        <button id="btnDeleteDisk" class="btn btn-danger navbar-btn"><span class="glyphicon glyphicon-remove"></span> Disk</button>
+                        <button id="btnDeleteFiles" class="btn btn-danger navbar-btn"><span class="glyphicon glyphicon-remove"></span> Files</button>
                     </div>
-                    <div class="row">
-                        <div id="diskTools" class="navbar navbar-default">
-                            <div class="btn-group">
-                                <button id="btnSave" class="btn btn-primary navbar-btn"><span class="glyphicon glyphicon-save"></span> Save</button>
-                                <button id="btnLoad" class="btn btn-default navbar-btn"><span class="glyphicon glyphicon-open"></span> Restore</button>
-                            </div>
-                            <div class="btn-group">
-                                <button id="btnDownload" class="btn btn-primary navbar-btn"><span class="glyphicon glyphicon-floppy-save"></span> Download</button>
-                            </div>
-                            <div class="btn-group dropup">
-                                <div class="dropdown">
-                                    <button class="btn btn-success dropdown-toggle" type="button" id="dropdownMenu2" data-toggle="dropdown">
-                                        <span class="glyphicon glyphicon-floppy-open"></span> Insert into drive
-                                        <span class="caret"></span>
-                                    </button>
-                                    <ul id="diskDriveImage" class="dropdown-menu">
-                                        <li><a href="#" id="insertDSK0">DSK1</a></li>
-                                        <li><a href="#" id="insertDSK1">DSK2</a></li>
-                                        <li><a href="#" id="insertDSK2">DSK3</a></li>
-                                    </ul>
-                                </div>
-                            </div>
-                            <div class="btn-group">
-                                <button id="btnDeleteDisk" class="btn btn-danger navbar-btn"><span class="glyphicon glyphicon-remove"></span> Disk</button>
-                                <button id="btnDeleteFiles" class="btn btn-danger navbar-btn"><span class="glyphicon glyphicon-remove"></span> Files</button>
-                            </div>
-                        </div>
+                    <div class="btn-group">
+                        <button id="btnDownload" class="btn btn-primary navbar-btn"><span class="glyphicon glyphicon-floppy-save"></span> Save DSK File</button>
                     </div>
                 </div>
             </div>
         </div>
         <!-- Tape -->
         <div class="tab-pane fade" id="tapeManagerPane">
-            <div class="panel panel-default" id="tapeManagerPanel">
-                <div class="panel-body">
-                    <div class="row">
-                        <div class="col-md-12">
-                            <div class="form-group">
-                                <div class="btn btn-primary navbar-btn btn-file"><span class="glyphicon glyphicon-open-file"></span> Open Tape File<input type="file" accept="audio/wav" id="fileInputTape"></div>
-                                <button id="btnSaveTape" class="btn btn-primary navbar-btn"><span class="glyphicon glyphicon-floppy-save"></span> Save Tape File</button>
-                            </div>
-                        </div>
+            <div class="row">
+                <div id="tapePanel" class="panel panel-default">
+                    <div class="form-group">
+                        <div class="btn btn-primary navbar-btn btn-file"><span class="glyphicon glyphicon-open"></span> Open Tape File<input type="file" accept="audio/wav" id="fileInputTape"></div>
+                        <button id="btnSaveTape" class="btn btn-default navbar-btn"><span class="glyphicon glyphicon-download"></span> Save Tape File</button>
                     </div>
-                    <div class="row">
-                        <div id="tapeTools" class="navbar navbar-default">
-                            <div class="btn-group">
-                                <button id="btnRecord" class="btn btn-danger navbar-btn"><span class="glyphicon glyphicon-record"></span> Rec</button>
-                                <button id="btnPlay" class="btn btn-primary navbar-btn"><span class="glyphicon glyphicon-play"></span> Play</button>
-                                <button id="btnRewind" class="btn btn-default navbar-btn"><span class="glyphicon glyphicon-backward"></span> Rew</button>
-                                <button id="btnTapeStop" class="btn btn-default navbar-btn"><span class="glyphicon glyphicon-stop"></span> Stop</button>
-                            </div>
-                        </div>
+                </div>
+            </div>
+            <div class="row">
+                <div id="tapeTools" class="navbar navbar-default">
+                    <div class="btn-group">
+                        <button id="btnRecord" class="btn btn-danger navbar-btn"><span class="glyphicon glyphicon-record"></span> Rec</button>
+                        <button id="btnPlay" class="btn btn-primary navbar-btn"><span class="glyphicon glyphicon-play"></span> Play</button>
+                        <button id="btnRewind" class="btn btn-default navbar-btn"><span class="glyphicon glyphicon-backward"></span> Rew</button>
+                        <button id="btnTapeStop" class="btn btn-default navbar-btn"><span class="glyphicon glyphicon-stop"></span> Stop</button>
                     </div>
                 </div>
             </div>
         </div>
         <!-- Keyboard pane -->
         <div class="tab-pane fade" id="keyboardPane">
-            <div class="panel panel-default" id="keyboardPanel" style="position:relative">
-                <img src="images/strip.jpg" id="strip">
-                <img src="images/keyboard.jpg" usemap="#keyboardMap" name="Keyboard" id="keyboard" alt="TI-99/4A keyboard" border="0">
-                <map name="keyboardMap">
-                    <area shape="RECT" coords="3, 1, 39, 37" alt="1" id="key1">
-                    <area shape="RECT" coords="45, 1, 81, 37" alt="2" id="key2">
-                    <area shape="RECT" coords="88, 1, 124, 37" alt="3" id="key3">
-                    <area shape="RECT" coords="131, 1, 167, 37" alt="4" id="key4">
-                    <area shape="RECT" coords="174, 1, 210, 37" alt="5" id="key5">
-                    <area shape="RECT" coords="218, 1, 254, 37" alt="6" id="key6">
-                    <area shape="RECT" coords="258, 1, 294, 37" alt="7" id="key7">
-                    <area shape="RECT" coords="301, 1, 337, 37" alt="8" id="key8">
-                    <area shape="RECT" coords="344, 1, 380, 37" alt="9" id="key9">
-                    <area shape="RECT" coords="387, 1, 423, 37" alt="0" id="key0">
-                    <area shape="RECT" coords="430, 1, 466, 37" alt="= or +" id="keyEquals">
-                    <area shape="RECT" coords="24, 43, 60, 79" alt="Q" id="keyQ">
-                    <area shape="RECT" coords="67, 43, 103, 79" alt="W" id="keyW">
-                    <area shape="RECT" coords="109, 43, 145, 79" alt="E" id="keyE">
-                    <area shape="RECT" coords="152, 43, 188, 79" alt="R" id="keyR">
-                    <area shape="RECT" coords="195, 42, 231, 78" alt="T" id="keyT">
-                    <area shape="RECT" coords="237, 42, 273, 78" alt="Y" id="keyY">
-                    <area shape="RECT" coords="281, 43, 317, 79" alt="U" id="keyU">
-                    <area shape="RECT" coords="321, 43, 357, 79" alt="I" id="keyI">
-                    <area shape="RECT" coords="366, 42, 402, 78" alt="O" id="keyO">
-                    <area shape="RECT" coords="408, 42, 444, 78" alt="P" id="keyP">
-                    <area shape="RECT" coords="450, 42, 486, 78" alt="/ or -" id="keyDiv">
-                    <area shape="RECT" coords="34, 86, 70, 122" alt="A" id="keyA">
-                    <area shape="RECT" coords="77, 86, 113, 122" alt="S" id="keyS">
-                    <area shape="RECT" coords="120, 86, 156, 122" alt="D" id="keyD">
-                    <area shape="RECT" coords="162, 86, 198, 122" alt="F" id="keyF">
-                    <area shape="RECT" coords="204, 86, 240, 122" alt="G" id="keyG">
-                    <area shape="RECT" coords="249, 86, 285, 122" alt="H"  id="keyH">
-                    <area shape="RECT" coords="291, 85, 327, 121" alt="J" id="keyJ">
-                    <area shape="RECT" coords="334, 85, 370, 121" alt="K" id="keyK">
-                    <area shape="RECT" coords="376, 85, 412, 121" alt="L" id="keyL">
-                    <area shape="RECT" coords="419, 85, 455, 121" alt="; or :" id="keySemicolon">
-                    <area shape="RECT" coords="460, 85, 496, 121" alt="Enter" id="keyEnter">
-                    <area shape="RECT" coords="13, 128, 49, 164" alt="Left shift" id="keyLShift">
-                    <area shape="RECT" coords="56, 129, 92, 165" alt="Z" id="keyZ">
-                    <area shape="RECT" coords="99, 129, 135, 165" alt="X" id="keyX">
-                    <area shape="RECT" coords="142, 129, 178, 165" alt="C" id="keyC">
-                    <area shape="RECT" coords="185, 129, 221, 165" alt="V" id="keyV">
-                    <area shape="RECT" coords="228, 129, 264, 165" alt="B" id="keyB">
-                    <area shape="RECT" coords="269, 130, 305, 166" alt="N" id="keyN">
-                    <area shape="RECT" coords="312, 129, 348, 165" alt="M" id="keyM">
-                    <area shape="RECT" coords="354, 130, 390, 166" alt=", or <" id="keyComma">
-                    <area shape="RECT" coords="398, 129, 434, 165" alt="> or ." id="keyFullStop">
-                    <area shape="RECT" coords="441, 129, 498, 164" alt="Right shift" id="keyRShift">
-                    <area shape="RECT" coords="14, 170, 50, 206" alt="Alpha lock" id="keyAlpha">
-                    <area shape="RECT" coords="56, 171, 92, 207" alt="Ctrl" id="keyCtrl">
-                    <area shape="RECT" coords="97, 169, 434, 207" alt="Space"  id="keySpace">
-                    <area shape="RECT" coords="441, 171, 477, 207" alt="Fctn" id="keyFctn">
-                </map>
-            </div>
+            <img src="images/strip.jpg" id="strip">
+            <img src="images/keyboard.jpg" usemap="#keyboardMap" name="Keyboard" id="keyboard" alt="TI-99/4A keyboard" border="0">
+            <map name="keyboardMap">
+                <area shape="RECT" coords="3, 1, 39, 37" alt="1" id="key1">
+                <area shape="RECT" coords="45, 1, 81, 37" alt="2" id="key2">
+                <area shape="RECT" coords="88, 1, 124, 37" alt="3" id="key3">
+                <area shape="RECT" coords="131, 1, 167, 37" alt="4" id="key4">
+                <area shape="RECT" coords="174, 1, 210, 37" alt="5" id="key5">
+                <area shape="RECT" coords="218, 1, 254, 37" alt="6" id="key6">
+                <area shape="RECT" coords="258, 1, 294, 37" alt="7" id="key7">
+                <area shape="RECT" coords="301, 1, 337, 37" alt="8" id="key8">
+                <area shape="RECT" coords="344, 1, 380, 37" alt="9" id="key9">
+                <area shape="RECT" coords="387, 1, 423, 37" alt="0" id="key0">
+                <area shape="RECT" coords="430, 1, 466, 37" alt="= or +" id="keyEquals">
+                <area shape="RECT" coords="24, 43, 60, 79" alt="Q" id="keyQ">
+                <area shape="RECT" coords="67, 43, 103, 79" alt="W" id="keyW">
+                <area shape="RECT" coords="109, 43, 145, 79" alt="E" id="keyE">
+                <area shape="RECT" coords="152, 43, 188, 79" alt="R" id="keyR">
+                <area shape="RECT" coords="195, 42, 231, 78" alt="T" id="keyT">
+                <area shape="RECT" coords="237, 42, 273, 78" alt="Y" id="keyY">
+                <area shape="RECT" coords="281, 43, 317, 79" alt="U" id="keyU">
+                <area shape="RECT" coords="321, 43, 357, 79" alt="I" id="keyI">
+                <area shape="RECT" coords="366, 42, 402, 78" alt="O" id="keyO">
+                <area shape="RECT" coords="408, 42, 444, 78" alt="P" id="keyP">
+                <area shape="RECT" coords="450, 42, 486, 78" alt="/ or -" id="keyDiv">
+                <area shape="RECT" coords="34, 86, 70, 122" alt="A" id="keyA">
+                <area shape="RECT" coords="77, 86, 113, 122" alt="S" id="keyS">
+                <area shape="RECT" coords="120, 86, 156, 122" alt="D" id="keyD">
+                <area shape="RECT" coords="162, 86, 198, 122" alt="F" id="keyF">
+                <area shape="RECT" coords="204, 86, 240, 122" alt="G" id="keyG">
+                <area shape="RECT" coords="249, 86, 285, 122" alt="H"  id="keyH">
+                <area shape="RECT" coords="291, 85, 327, 121" alt="J" id="keyJ">
+                <area shape="RECT" coords="334, 85, 370, 121" alt="K" id="keyK">
+                <area shape="RECT" coords="376, 85, 412, 121" alt="L" id="keyL">
+                <area shape="RECT" coords="419, 85, 455, 121" alt="; or :" id="keySemicolon">
+                <area shape="RECT" coords="460, 85, 496, 121" alt="Enter" id="keyEnter">
+                <area shape="RECT" coords="13, 128, 49, 164" alt="Left shift" id="keyLShift">
+                <area shape="RECT" coords="56, 129, 92, 165" alt="Z" id="keyZ">
+                <area shape="RECT" coords="99, 129, 135, 165" alt="X" id="keyX">
+                <area shape="RECT" coords="142, 129, 178, 165" alt="C" id="keyC">
+                <area shape="RECT" coords="185, 129, 221, 165" alt="V" id="keyV">
+                <area shape="RECT" coords="228, 129, 264, 165" alt="B" id="keyB">
+                <area shape="RECT" coords="269, 130, 305, 166" alt="N" id="keyN">
+                <area shape="RECT" coords="312, 129, 348, 165" alt="M" id="keyM">
+                <area shape="RECT" coords="354, 130, 390, 166" alt=", or <" id="keyComma">
+                <area shape="RECT" coords="398, 129, 434, 165" alt="> or ." id="keyFullStop">
+                <area shape="RECT" coords="441, 129, 498, 164" alt="Right shift" id="keyRShift">
+                <area shape="RECT" coords="14, 170, 50, 206" alt="Alpha lock" id="keyAlpha">
+                <area shape="RECT" coords="56, 171, 92, 207" alt="Ctrl" id="keyCtrl">
+                <area shape="RECT" coords="97, 169, 434, 207" alt="Space"  id="keySpace">
+                <area shape="RECT" coords="441, 171, 477, 207" alt="Fctn" id="keyFctn">
+            </map>
         </div>
         <!-- Debugger pane -->
         <div class="tab-pane fade" id="debuggerPane">
@@ -314,13 +291,14 @@
         </div>
         <!-- Options pane -->
         <div class="tab-pane fade" id="optionsPane">
-            <div class="panel panel-default" id="optionsPanel">
+            <div id="optionsPanel" class="panel panel-default">
                 <div class="panel-body">
                     <div class="form-group">
                         <p><input type="checkbox" id="enableSound"> Sound enabled</p>
                         <p><input type="checkbox" id="enableSpeech"> Speech enabled</p>
                         <p><input type="checkbox" id="enable32KRAM"> 32K RAM expansion enabled</p>
                         <p><input type="checkbox" id="enableAMS"> SAMS enabled</p>
+                        <p><input type="checkbox" id="enableGRAM"> GRAM enabled</p>
                         <p><input type="checkbox" id="enableF18A"> F18A enabled</p>
                         <p><input type="checkbox" id="enableFlicker"> 4 sprites per line limitation enabled</p>
                         <p><input type="checkbox" id="enablePCKeyboard"> PC keyboard enabled</p>
@@ -328,6 +306,12 @@
                         <p><input type="checkbox" id="enableGoogleDrive"> Google drives (GDR1, GDR2, GDR3) enabled</p>
                         <p><input type="checkbox" id="enablePixelated"> Pixelated image (if supported by browser)</p>
                     </div>
+                </div>
+            </div>
+            <div id="optionsTools" class="navbar navbar-default">
+                <div class="btn-group">
+                    <button id="btnSaveState" class="btn btn-primary navbar-btn"><span class="glyphicon glyphicon-save"></span> Save State</button>
+                    <button id="btnLoadState" class="btn btn-default navbar-btn"><span class="glyphicon glyphicon-open"></span> Load State</button>
                 </div>
             </div>
         </div>
