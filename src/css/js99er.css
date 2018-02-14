@@ -27,7 +27,7 @@ body {
     image-rendering: pixelated;
 }
 
-#tools, #diskTools, #tapeTools, #debuggerTools {
+#tools, #diskTools, #tapePanel, #tapeTools, #debuggerTools, #optionsTools {
     padding-left: 8px;
 }
 
@@ -52,15 +52,16 @@ body {
     display: block;
 }
 
-#log, #diskManagerPanel, #tapeManagerPanel, #optionsPanel, #keyboardPanel {
-    height: 622px;
-}
-
 #log {
+    height: 622px;
     white-space: pre;
     overflow-x: scroll;
     overflow-y: scroll;
     word-wrap: normal;
+}
+
+#diskImageList {
+    margin-top: 8px;
 }
 
 #diskFileTable {
@@ -74,9 +75,12 @@ body {
 
 #fileTableRow {
     overflow:auto;
-    margin-top: 12px;
     margin-bottom: 12px;
-    height:433px;
+    height:504px;
+}
+
+#tapePanel {
+    height: 554px;
 }
 
 #keyboard, #strip {
@@ -108,4 +112,8 @@ body {
     width: 50px;
     margin-top: 3px;
     margin-right: 8px;
+}
+
+#optionsPanel {
+    height: 554px;
 }

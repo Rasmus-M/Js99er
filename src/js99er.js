@@ -65,8 +65,8 @@
         software = new Software();
         database = new Database();
         if (!database.isSupported()) {
-            $("#btnSave").css("visibility", "hidden");
-            $("#btnLoad").css("visibility", "hidden");
+            $("#btnSaveState").css("visibility", "hidden");
+            $("#btnRestoreState").css("visibility", "hidden");
         }
         disassembler = new Disassembler(ti994a.memory);
 
@@ -209,16 +209,6 @@
         $("#diskImageList").on("change", function () { updateDiskFileTable(this.value); });
         updateDiskImageList();
 
-        $("#btnSave").on("click", function () {
-            if (confirm("Do you want to save the disk state to persistent storage?")) {
-                saveState();
-            }
-        });
-        $("#btnLoad").on("click", function () {
-            if (confirm("Do you want to restore the disk state from persistent storage?")) {
-                loadState();
-            }
-        });
         $("#btnDownload").on("click", function () { downloadDisk(); });
 
         $("#insertDSK0").on("click", function () { insertDisk(0); });
@@ -505,6 +495,17 @@
             }
         });
 
+        $("#btnSaveState").on("click", function () {
+            if (confirm("Do you want to save the state to persistent storage?")) {
+                saveState();
+            }
+        });
+        $("#btnLoadState").on("click", function () {
+            if (confirm("Do you want to restore the state from persistent storage?")) {
+                loadState();
+            }
+        });
+
         ////////////////////
         // Start emulator //
         ////////////////////
@@ -685,42 +686,6 @@
     // Disk Manager pane functions //
     /////////////////////////////////
 
-    function saveState() {
-        if (database.isSupported()) {
-            database.deleteAllDiskImages(function (success) {
-                    if (success) {
-                        var diskImageArray = [];
-                        for (var diskImageName in diskImages) {
-                            if (diskImages.hasOwnProperty(diskImageName)) {
-                                diskImageArray.push(diskImages[diskImageName]);
-                            }
-                        }
-                        saveDiskImages(diskImageArray, 0, function (success) {
-                            if (success) {
-                                log.info("Disk images saved OK.");
-                                var diskDrives = ti994a.getDiskDrives();
-                                saveDiskDrives(diskDrives, 0, function (success) {
-                                    if (success) {
-                                        log.info("Disk drives saved OK.");
-                                    }
-                                    else {
-                                        log.info("Disk drives could not be saved.");
-                                    }
-                                });
-                            }
-                            else {
-                                log.info("Disk images could not be saved.");
-                            }
-                        });
-                    }
-                    else {
-                        log.info("Could not delete old disk images.");
-                    }
-                }
-            );
-        }
-    }
-
     function saveDiskImages(diskImages, index, callback) {
         if (index === diskImages.length) {
             callback(true);
@@ -751,28 +716,6 @@
                 callback(false);
             }
         });
-    }
-
-    function loadState() {
-		database.getDiskImages(function (dskImgs) {
-			if (dskImgs && Object.keys(dskImgs).length >= 3) {
-                diskImages = dskImgs;
-                log.info("Disk images restored OK.");
-                var diskDrives = ti994a.getDiskDrives();
-				loadDiskDrives(diskDrives, dskImgs, 0, function (success) {
-					if (success) {
-                        log.info("Disk drives restored OK.");
-					}
-					else {
-						log.error("Disk drives could not be restored.");
-					}
-                    updateDiskImageList();
-                });
-            }
-			else {
-				log.error("Disk images could not be restored.");
-			}
-		});
     }
 
     function loadDiskDrives(diskDrives, diskImages, index, callback) {
@@ -1026,6 +969,68 @@
     function virtualKeyPress(keyCode) {
         sound.iOSUserTriggeredSound();
         ti994a.keyboard.virtualKeyPress(keyCode);
+    }
+
+    ////////////////////////////
+    // Options pane functions //
+    ////////////////////////////
+
+    function saveState() {
+        if (database.isSupported()) {
+            database.deleteAllDiskImages(function (success) {
+                    if (success) {
+                        var diskImageArray = [];
+                        for (var diskImageName in diskImages) {
+                            if (diskImages.hasOwnProperty(diskImageName)) {
+                                diskImageArray.push(diskImages[diskImageName]);
+                            }
+                        }
+                        saveDiskImages(diskImageArray, 0, function (success) {
+                            if (success) {
+                                log.info("Disk images saved OK.");
+                                var diskDrives = ti994a.getDiskDrives();
+                                saveDiskDrives(diskDrives, 0, function (success) {
+                                    if (success) {
+                                        log.info("Disk drives saved OK.");
+                                    }
+                                    else {
+                                        log.info("Disk drives could not be saved.");
+                                    }
+                                });
+                            }
+                            else {
+                                log.info("Disk images could not be saved.");
+                            }
+                        });
+                    }
+                    else {
+                        log.info("Could not delete old disk images.");
+                    }
+                }
+            );
+        }
+    }
+
+    function loadState() {
+        database.getDiskImages(function (dskImgs) {
+            if (dskImgs && Object.keys(dskImgs).length >= 3) {
+                diskImages = dskImgs;
+                log.info("Disk images restored OK.");
+                var diskDrives = ti994a.getDiskDrives();
+                loadDiskDrives(diskDrives, dskImgs, 0, function (success) {
+                    if (success) {
+                        log.info("Disk drives restored OK.");
+                    }
+                    else {
+                        log.error("Disk drives could not be restored.");
+                    }
+                    updateDiskImageList();
+                });
+            }
+            else {
+                log.error("Disk images could not be restored.");
+            }
+        });
     }
 
 })(document, window, jQuery);
