@@ -44,8 +44,9 @@
 
         log = Log.getLog();
         log.info("Welcome to JS99'er");
-        log.info("Version 5.12, 12 February 2018");
+        log.info("Version 5.12.1, 14 February 2018");
         log.info("  - Cassette tape");
+        log.info("  - Fixed speec problem in 5.12");
         settings = new Settings(true);
         diskImages = {
             FLOPPY1: new DiskImage("FLOPPY1"),

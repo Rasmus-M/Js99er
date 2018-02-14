@@ -1071,7 +1071,7 @@ TMS5220.prototype = {
         switch (cmd & 0x70) {
             case 0x10 : /* read byte */
                 this.log.info("Speech: read byte");
-                if (this.m_talk_status === 0) { /* TALKST must be clear for RDBY */
+                if (!this.m_talk_status) { /* TALKST must be clear for RDBY */
                     if (this.m_schedule_dummy_read) {
                         this.m_schedule_dummy_read = false;
                         this.rom_read(1);

@@ -39,7 +39,7 @@ function Sound(enabled, psgDev, speechDev, tape) {
 			this.speechScale = this.sampleRate / speechSampleRate;
             this.speechSampleBuffer = new Int16Array(Math.floor(this.bufferSize / this.speechScale) + 1);
             this.speechScriptProcessor = Sound.audioContext.createScriptProcessor(this.bufferSize, 0, 1);
-            this.speechScriptProcessor.onaudioprocess = function (event) { that.onSpeechAudioProcess(event) };
+            this.speechScriptProcessor.onaudioprocess = function (event) { that.onSpeechAudioProcess(event); };
             this.speechFilter = Sound.audioContext.createBiquadFilter();
             this.speechFilter.type = "lowpass";
             this.speechFilter.frequency.value = speechSampleRate / 2;
@@ -47,7 +47,7 @@ function Sound(enabled, psgDev, speechDev, tape) {
         if (tape) {
             this.tapeSampleBuffer = new Float32Array(this.bufferSize);
             this.tapeScriptProcessor = Sound.audioContext.createScriptProcessor(this.bufferSize, 0, 1);
-            this.tapeScriptProcessor.onaudioprocess = function (event) { that.onTapeAudioProcess(event); }
+            this.tapeScriptProcessor.onaudioprocess = function (event) { that.onTapeAudioProcess(event); };
             this.tapeFilter = Sound.audioContext.createBiquadFilter();
             this.tapeFilter.type = "lowpass";
             this.tapeFilter.frequency.value = 4000;
