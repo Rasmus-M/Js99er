@@ -45,7 +45,6 @@ function Sound(enabled, psgDev, speechDev, tape) {
             this.speechFilter.frequency.value = speechSampleRate / 2;
         }
         if (tape) {
-            this.tapeSampleBuffer = new Float32Array(this.bufferSize);
             this.tapeScriptProcessor = Sound.audioContext.createScriptProcessor(this.bufferSize, 0, 1);
             this.tapeScriptProcessor.onaudioprocess = function (event) { that.onTapeAudioProcess(event); };
             this.tapeFilter = Sound.audioContext.createBiquadFilter();
@@ -101,10 +100,7 @@ Sound.prototype = {
 
     onTapeAudioProcess: function (event) {
         var out = event.outputBuffer.getChannelData(0);
-        this.tape.updateSoundBuffer(this.tapeSampleBuffer, this.tapeSampleBuffer.length);
-        for (var i = 0; i < this.bufferSize; i++) {
-            out[i] = this.tapeSampleBuffer[i];
-        }
+        this.tape.updateSoundBuffer(out, this.bufferSize);
     },
 
     setSoundEnabled: function (enabled) {
