@@ -161,36 +161,7 @@
         buildMore();
 
         $("#fileInputModule").on("change", function () {
-            var file = this.files[0];
-            if (file == null) {
-                return;
-            }
-            var extension = file.name.split('.').pop();
-            extension = extension ? extension.toLowerCase() : "";
-            if (extension != null && extension !== "rpk" && extension !== "zip" && extension !== "bin") {
-                log.error("File name extension '" + extension + "' not supported.");
-                return;
-            }
-            if (extension === "bin") {
-                software.loadModuleFromBinFile(file,
-                    function (cart) {
-                        ti994a.loadSoftware(cart);
-                    },
-                    function (message) {
-                        log.error(message);
-                    }
-                )
-            }
-            else {
-                software.loadRPKModuleFromFile(file,
-                    function (cart) {
-                        ti994a.loadSoftware(cart);
-                    },
-                    function (message) {
-                        log.error(message);
-                    }
-                )
-            }
+            loadModuleFiles(this.files);
         }).on("click", function () {
 			$(this).val("");
 		});
@@ -600,6 +571,39 @@
         filename = filename.replace(/_/g, " ");
         filename = filename.substr(0, 1).toUpperCase() + filename.substr(1);
         return filename;
+    }
+
+    function loadModuleFiles(files) {
+        var file = files[0];
+        if (file == null) {
+            return;
+        }
+        var extension = file.name.split('.').pop();
+        extension = extension ? extension.toLowerCase() : "";
+        if (extension != null && extension !== "rpk" && extension !== "zip" && extension !== "bin") {
+            log.error("File name extension '" + extension + "' not supported.");
+            return;
+        }
+        if (extension === "bin") {
+            software.loadModuleFromBinFile(file,
+                function (cart) {
+                    ti994a.loadSoftware(cart);
+                },
+                function (message) {
+                    log.error(message);
+                }
+            )
+        }
+        else {
+            software.loadRPKModuleFromFile(file,
+                function (cart) {
+                    ti994a.loadSoftware(cart);
+                },
+                function (message) {
+                    log.error(message);
+                }
+            )
+        }
     }
 
     function loadDiskFiles(files) {

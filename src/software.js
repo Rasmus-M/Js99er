@@ -37,10 +37,10 @@ Software.prototype = {
                 var program = programs[pathParts[i]];
                 if (program != null) {
                     if (program.url != null) {
-                        if (program.url.substr(program.url.length - 3).toLowerCase() == "rpk") {
+                        if (program.url.substr(program.url.length - 3).toLowerCase() === "rpk") {
                             this.loadRPKModuleFromURL(program.url, onReady, function (msg) { log.error(msg); });
                         }
-                        else if (program.url.substr(program.url.length - 3).toLowerCase() == "bin") {
+                        else if (program.url.substr(program.url.length - 3).toLowerCase() === "bin") {
                             this.loadBinModuleFromURL(program.url, onReady, function (msg) { log.error(msg); });
                         }
                         else {
@@ -74,7 +74,7 @@ Software.prototype = {
                 if (program.type == null) {
                     program.type = (data.inverted == "true" ? Software.TYPE_INVERTED_CART : Software.TYPE_CART)
                 }
-                else if (program.type == Software.TYPE_MEMORY_DUMP) {
+                else if (program.type === Software.TYPE_MEMORY_DUMP) {
                     program.startAddress = data.startAddress ? parseInt(data.startAddress) : 0xA000;
                 }
                 if (data.rom != null) {
@@ -135,7 +135,7 @@ Software.prototype = {
                 var layoutEntry = null;
                 entries.forEach(function (entry) {
                     // log.info(entry.filename);
-                    if (entry.filename == "layout.xml") {
+                    if (entry.filename === "layout.xml") {
                         // log.info("Layout file found");
                         layoutEntry = entry;
                     }
@@ -152,7 +152,7 @@ Software.prototype = {
                         };
                         var pcb = xmlDoc.getElementsByTagName("pcb")[0];
                         var pcbType = pcb.getAttribute("type").toLowerCase();
-                        sw.type = pcbType == "paged379i" ? Software.TYPE_INVERTED_CART : Software.TYPE_CART;
+                        sw.type = pcbType === "paged379i" ? Software.TYPE_INVERTED_CART : Software.TYPE_CART;
                         var roms = xmlDoc.getElementsByTagName("rom");
                         var sockets = xmlDoc.getElementsByTagName("socket");
                         var filesToLoad = roms.length;
@@ -172,7 +172,7 @@ Software.prototype = {
 
                         function loadFile(entries, filename, romId, socketId, pcbType) {
                             entries.forEach(function (entry) {
-                                if (entry.filename == filename) {
+                                if (entry.filename === filename) {
                                     var blobWriter = new zip.BlobWriter();
                                     entry.getData(blobWriter, function (blob) {
                                         var reader = new FileReader();
@@ -183,31 +183,73 @@ Software.prototype = {
                                             for (var i = 0; i < typedArray.length; i++) {
                                                 byteArray[i] = typedArray[i];
                                             }
-                                            if (socketId.substr(0, 3).toLowerCase() == "rom") {
+                                            if (socketId.substr(0, 3).toLowerCase() === "rom") {
                                                 log.info("ROM " + romId + " (" + socketId + "): '" + filename + "', " + byteArray.length + " bytes");
-                                                var addr = (socketId == "rom2_socket") ? 0x2000 : 0;
+                                                var addr = (socketId === "rom2_socket") ? 0x2000 : 0;
                                                 if (sw.rom == null) {
                                                     sw.rom = [];
                                                 }
-                                                for (i = 0; i < Math.min(byteArray.length, pcbType == "paged" ? 0x2000 : byteArray.length); i++) {
+                                                for (i = 0; i < Math.min(byteArray.length, pcbType === "paged" ? 0x2000 : byteArray.length); i++) {
                                                     sw.rom[addr + i] = byteArray[i];
                                                 }
                                                 for (i = byteArray.length; i < 0x2000; i++) {
                                                     sw.rom[addr + i] = 0;
                                                 }
                                             }
-                                            else if (socketId.substr(0, 4).toLowerCase() == "grom") {
+                                            else if (socketId.substr(0, 4).toLowerCase() === "grom") {
                                                 log.info("GROM " + romId + " (" + socketId + "): '" + filename + "', " + byteArray.length + " bytes");
                                                 sw.grom = byteArray;
                                             }
                                             filesToLoad--;
-                                            if (filesToLoad == 0) {
+                                            if (filesToLoad === 0) {
                                                 onSuccess(sw);
                                             }
                                         };
                                         reader.readAsArrayBuffer(blob);
                                     });
                                 }
+                            });
+                        }
+                    });
+                }
+                else {
+                    // Plain zip file
+                    var sw = {
+                        ramAt6000: false,
+                        ramAt7000: false
+                    };
+                    var filesToLoad = 0;
+                    entries.forEach(function (entry) {
+                        log.info(entry.filename);
+                        var baseFileName = entry.filename.split('.')[0];
+                        var extension = entry.filename.split('.')[1];
+                        if (extension === "bin") {
+                            filesToLoad++;
+                            var grom = baseFileName && baseFileName.charAt(baseFileName.length - 1) === "g";
+                            var inverted = baseFileName && baseFileName.charAt(baseFileName.length - 1) === "3";
+                            sw.type = inverted ? Software.TYPE_INVERTED_CART : Software.TYPE_CART;
+                            var blobWriter = new zip.BlobWriter();
+                            entry.getData(blobWriter, function (blob) {
+                                var reader = new FileReader();
+                                reader.onload = function () {
+                                    // reader.result contains the contents of blob as a typed array
+                                    var typedArray = new Uint8Array(this.result);
+                                    var byteArray = [];
+                                    for (var i = 0; i < typedArray.length; i++) {
+                                        byteArray[i] = typedArray[i];
+                                    }
+                                    if (grom) {
+                                        sw.grom = byteArray;
+                                    }
+                                    else {
+                                        sw.rom = byteArray;
+                                    }
+                                    filesToLoad--;
+                                    if (filesToLoad <= 0) {
+                                        onSuccess(sw);
+                                    }
+                                };
+                                reader.readAsArrayBuffer(blob);
                             });
                         }
                     });
@@ -221,7 +263,7 @@ Software.prototype = {
     loadBinModuleFromURL: function (url, onSuccess, onError) {
         console.log(url);
         var baseFileName = url.split('.')[0];
-        var inverted = baseFileName && baseFileName.charAt(baseFileName.length - 1) == "3";
+        var inverted = baseFileName && baseFileName.charAt(baseFileName.length - 1) === "3";
         var xhr = new XMLHttpRequest();
         xhr.open('GET', url, true);
         xhr.responseType = 'arraybuffer';
@@ -238,8 +280,8 @@ Software.prototype = {
 
     loadModuleFromBinFile: function (file, onSuccess, onError) {
         var baseFileName = file.name.split('.')[0];
-        var inverted = baseFileName && baseFileName.charAt(baseFileName.length - 1) == "3";
-        var grom = baseFileName && baseFileName.charAt(baseFileName.length - 1) == "g";
+        var inverted = baseFileName && baseFileName.charAt(baseFileName.length - 1) === "3";
+        var grom = baseFileName && baseFileName.charAt(baseFileName.length - 1) === "g";
         var reader = new FileReader();
         reader.onload = function () {
             var byteArray = new Uint8Array(this.result);
@@ -456,7 +498,7 @@ Software.programs = [
                 name: "Break Free (demo)",
                 type: Software.TYPE_CART,
                 url: "software/brkfree.rpk"
-            },
+            }
         ]
     },
     {
