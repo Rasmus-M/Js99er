@@ -7,10 +7,11 @@
  "use strict";
  
 Database.NAME = "js99er";
-Database.VERSION = 2;
+Database.VERSION = 4;
 Database.DISK_DRIVES_STORE = "diskDrives";
 Database.DISK_IMAGES_STORE = "diskImages";
 Database.BINARY_FILE_STORE = "binaryFiles";
+Database.MACHINE_STATE_STORE = "machineStates";
 
 function Database(callback) {
 
@@ -43,10 +44,12 @@ Database.prototype = {
                 if (!db.objectStoreNames.contains(Database.DISK_IMAGES_STORE)) {
                     db.createObjectStore(Database.DISK_IMAGES_STORE, { keyPath: "name" });
                 }
-                if (db.objectStoreNames.contains(Database.BINARY_FILE_STORE)) {
-                    db.deleteObjectStore(Database.BINARY_FILE_STORE);
+                if (!db.objectStoreNames.contains(Database.BINARY_FILE_STORE)) {
+                    db.createObjectStore(Database.BINARY_FILE_STORE, {keyPath: "name"});
                 }
-                db.createObjectStore(Database.BINARY_FILE_STORE, { keyPath: "name" });
+                if (!db.objectStoreNames.contains(Database.MACHINE_STATE_STORE)) {
+                    db.createObjectStore(Database.MACHINE_STATE_STORE, {keyPath: "name"});
+                }
             };
 
             request.onsuccess = function (e) {
@@ -297,6 +300,59 @@ Database.prototype = {
             var store = trans.objectStore(Database.BINARY_FILE_STORE);
 
             var request = store.put({name: name, binaryFile: binaryFile});
+
+            request.onsuccess = function (e) {
+                if (callback) callback(true);
+            };
+
+            request.onerror = function (e) {
+                that.log.error(e.value);
+                if (callback) callback(false);
+            };
+        }
+        else {
+            if (callback) callback(false);
+        }
+    },
+
+    getMachineState: function (name, callback) {
+        if (this.db != null && name != null) {
+            var that = this;
+
+            var trans = this.db.transaction([Database.MACHINE_STATE_STORE], "readonly");
+            var store = trans.objectStore(Database.MACHINE_STATE_STORE);
+
+
+            var request = store.get(name);
+
+            request.onsuccess = function (e) {
+                var obj = e.target.result;
+                if (obj) {
+                    if (callback) callback(obj);
+                }
+                else {
+                    if (callback) callback(false);
+                }
+            };
+
+            request.onerror = function (e) {
+                that.log.error(e.value);
+                if (callback) callback(false);
+            };
+        }
+        else {
+            if (callback) callback(false);
+        }
+    },
+
+    putMachineState: function (name, state, callback) {
+        if (this.db != null) {
+            var that = this;
+
+            var trans = this.db.transaction([Database.MACHINE_STATE_STORE], "readwrite");
+            var store = trans.objectStore(Database.MACHINE_STATE_STORE);
+
+            var request = store.put({name: name, state: state});
 
             request.onsuccess = function (e) {
                 if (callback) callback(true);

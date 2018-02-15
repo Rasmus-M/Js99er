@@ -727,7 +727,7 @@
             if (diskDriveState) {
 				if (diskDriveState.diskImage && diskImages[diskDriveState.diskImage]) {
 					diskDrives[index].setDiskImage(diskImages[diskDriveState.diskImage]);
-                    log.info("Disk images " + diskDrives[index].getDiskImage().getName() + " restored to " + diskDrives[index].getName() + ".");
+                    log.info("Disk image " + diskDrives[index].getDiskImage().getName() + " restored to " + diskDrives[index].getName() + ".");
                 }
 				else {
 					diskDrives[index].setDiskImage(null);
@@ -991,6 +991,15 @@
                             saveDiskDrives(diskDrives, 0, function (success) {
                                 if (success) {
                                     log.info("Disk drives saved OK.");
+                                    var state = ti994a.getState();
+                                    database.putMachineState("ti994a", state, function (success) {
+                                        if (success) {
+                                            log.info("Machine state saved OK.");
+                                        }
+                                        else {
+                                            log.info("Machine state could not be saved.");
+                                        }
+                                    });
                                 }
                                 else {
                                     log.info("Disk drives could not be saved.");
@@ -1018,6 +1027,15 @@
                 loadDiskDrives(diskDrives, dskImgs, 0, function (success) {
                     if (success) {
                         log.info("Disk drives restored OK.");
+                        database.getMachineState("ti994a", function (state) {
+                            if (state) {
+                                ti994a.restoreState(state);
+                                log.info("Machine state restored OK.");
+                            }
+                            else {
+                                log.error("Machine state could not be restored.");
+                            }
+                        });
                     }
                     else {
                         log.error("Disk drives could not be restored.");

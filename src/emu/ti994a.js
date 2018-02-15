@@ -303,5 +303,13 @@ TI994A.prototype = {
                 1000
             );
         }
+    },
+
+    getState: function () {
+        return {};
+    },
+
+    restoreState: function (state) {
+
     }
 };
