@@ -977,36 +977,35 @@
     function saveState() {
         if (database.isSupported()) {
             database.deleteAllDiskImages(function (success) {
-                    if (success) {
-                        var diskImageArray = [];
-                        for (var diskImageName in diskImages) {
-                            if (diskImages.hasOwnProperty(diskImageName)) {
-                                diskImageArray.push(diskImages[diskImageName]);
-                            }
+                if (success) {
+                    var diskImageArray = [];
+                    for (var diskImageName in diskImages) {
+                        if (diskImages.hasOwnProperty(diskImageName)) {
+                            diskImageArray.push(diskImages[diskImageName]);
                         }
-                        saveDiskImages(diskImageArray, 0, function (success) {
-                            if (success) {
-                                log.info("Disk images saved OK.");
-                                var diskDrives = ti994a.getDiskDrives();
-                                saveDiskDrives(diskDrives, 0, function (success) {
-                                    if (success) {
-                                        log.info("Disk drives saved OK.");
-                                    }
-                                    else {
-                                        log.info("Disk drives could not be saved.");
-                                    }
-                                });
-                            }
-                            else {
-                                log.info("Disk images could not be saved.");
-                            }
-                        });
                     }
-                    else {
-                        log.info("Could not delete old disk images.");
-                    }
+                    saveDiskImages(diskImageArray, 0, function (success) {
+                        if (success) {
+                            log.info("Disk images saved OK.");
+                            var diskDrives = ti994a.getDiskDrives();
+                            saveDiskDrives(diskDrives, 0, function (success) {
+                                if (success) {
+                                    log.info("Disk drives saved OK.");
+                                }
+                                else {
+                                    log.info("Disk drives could not be saved.");
+                                }
+                            });
+                        }
+                        else {
+                            log.info("Disk images could not be saved.");
+                        }
+                    });
                 }
-            );
+                else {
+                    log.info("Could not delete old disk images.");
+                }
+            });
         }
     }
 
