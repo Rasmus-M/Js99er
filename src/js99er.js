@@ -44,10 +44,9 @@
 
         log = Log.getLog();
         log.info("Welcome to JS99'er");
-        log.info("Version 5.12.2, 14 February 2018");
+        log.info("Version 5.12.3, 15 February 2018");
         log.info("  - Cassette tape");
-        log.info("  - Fixed speech problem in 5.12");
-        log.info("  - Update disk file list");
+        log.info("  - Support for mp3 and ogg");
         settings = new Settings(true);
         diskImages = {
             FLOPPY1: new DiskImage("FLOPPY1", function (event) {
@@ -921,7 +920,7 @@
         var file = files[0];
         if (file != null) {
             var extension = file.name.split('.').pop();
-            if (extension != null && extension !== "wav") {
+            if (extension != null && extension !== "wav" && extension !== "mp3" && extension !== "ogg") {
                 log.error("File name extension '" + extension + "' not supported.");
                 return;
             }
