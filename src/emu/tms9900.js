@@ -1768,5 +1768,13 @@ TMS9900.prototype = {
             this.profile = new Uint32Array(0x10000);
             this.log.info("--------");
         }
+    },
+
+    getState: function () {
+        return {};
+    },
+
+    restoreState: function () {
+
     }
 };

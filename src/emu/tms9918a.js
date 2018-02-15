@@ -593,5 +593,13 @@ TMS9918A.prototype = {
     setFlicker: function (value) {
         this.flicker = value;
         this.enableflicker = value;
+    },
+
+    getState: function () {
+        return {};
+    },
+
+    restoreState: function () {
+
     }
 };

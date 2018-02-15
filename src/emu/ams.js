@@ -99,6 +99,14 @@ var AMS = (function () {
         return s;
     };
 
+    AMS.prototype.getState = function () {
+        return {};
+    };
+
+    AMS.prototype.restoreState =  function () {
+
+    };
+
     return AMS;
 })();
 

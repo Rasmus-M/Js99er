@@ -307,3 +307,11 @@ Tape.prototype.getRecording = function () {
     audioBuffer.copyToChannel(array, 0);
     return audioBufferToWav(audioBuffer, { float32: true });
 };
+
+Tape.prototype.getState = function () {
+    return {};
+};
+
+Tape.prototype.restoreState = function () {
+
+};

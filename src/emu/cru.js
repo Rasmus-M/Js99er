@@ -196,5 +196,13 @@ CRU.prototype = {
         return "CRU: " + (this.cru[0] ? "1" : "0") + (this.cru[1] ? "1" : "0") + (this.cru[2] ? "1" : "0") + (this.cru[3] ? "1" : "0") + " " +
             "Timer: " + Math.floor(this.decrementer).toHexWord() + " " +
             (this.isTimerInterrupt() ? "Tint " : "    ")  + (this.isVDPInterrupt() ? "Vint" : "   ");
+    },
+
+    getState: function () {
+        return {};
+    },
+
+    restoreState: function () {
+
     }
 };

@@ -621,5 +621,13 @@ Memory.prototype = {
 
     setGRAMEnabled: function (enabled) {
         this.enableGRAM = enabled;
+    },
+
+    getState: function () {
+        return {};
+    },
+
+    restoreState: function () {
+
     }
 };

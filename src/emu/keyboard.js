@@ -856,7 +856,7 @@ Keyboard.prototype = {
 
     simulateKeyPresses: function (keyString, callback) {
         if (keyString.length > 0) {
-            var pause = keyString.charAt(0) == "§";
+            var pause = keyString.charAt(0) == "ï¿½";
             var that = this;
             if (!pause) {
                 var charCode = keyString.charCodeAt(0);
@@ -948,5 +948,13 @@ Keyboard.prototype = {
             this.pasteBuffer = null;
         }
         return charCode;
+    },
+
+    getState: function () {
+        return {};
+    },
+
+    restoreState: function () {
+
     }
 };

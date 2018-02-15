@@ -1731,5 +1731,13 @@ F18A.prototype = {
         this.enableFlicker = value;
         this.maxScanlineSprites = F18A.MAX_SCANLINE_SPRITES_JUMPER && !this.enableFlicker ? 32 : 4;
         this.log.info("Max scanline sprites: " + this.maxScanlineSprites);
+    },
+
+    getState: function () {
+        return {};
+    },
+
+    restoreState: function () {
+
     }
 };

@@ -1415,6 +1415,14 @@ TMS5220.prototype = {
         }
 
         this.m_ROM_bits_count = 8;
+    },
+
+    getState: function () {
+        return {};
+    },
+
+    restoreState: function () {
+
     }
 };
 

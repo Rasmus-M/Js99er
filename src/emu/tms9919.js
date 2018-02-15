@@ -50,6 +50,14 @@ TMS9919.prototype = {
 
     update: function (buffer, length){
         this.sn76489.update(buffer, 0, length);
+    },
+
+    getState: function () {
+        return {};
+    },
+
+    restoreState: function () {
+
     }
 };
 
