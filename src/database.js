@@ -56,8 +56,7 @@ Database.prototype = {
             };
 
             request.onerror = function (e) {
-                this.log.info("Database could not be opened.");
-                that.log.error(e.value);
+                that.log.warn("Database could not be opened.");
                 that.db = null;
                 if (callback) callback(false);
             };
