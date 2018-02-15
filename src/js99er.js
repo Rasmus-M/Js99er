@@ -65,7 +65,7 @@
         database = new Database();
         if (!database.isSupported()) {
             $("#btnSaveState").css("visibility", "hidden");
-            $("#btnRestoreState").css("visibility", "hidden");
+            $("#btnLoadState").css("visibility", "hidden");
         }
         disassembler = new Disassembler(ti994a.memory);
 
