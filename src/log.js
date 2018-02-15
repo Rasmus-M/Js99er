@@ -17,7 +17,7 @@ function Log(id) {
     // Set default log scheme.
     this.print = function (object) { /* Do nothing. */ };
 
-    if (id == undefined) {
+    if (id === undefined) {
         // Try to use native console.
         if (console) {
             this.print = function (object) {
@@ -27,7 +27,7 @@ function Log(id) {
     } else if (id != null) {
         // Try to output under specified DOM object.
         this.framePre = typeof(document) === "object" ? document.getElementById(id) : null;
-        if (this.framePre == null || this.framePre == undefined) {
+        if (this.framePre == null || this.framePre === undefined) {
             if (console) {
                 this.print = function (object) {
                     console.log(object);
@@ -112,7 +112,7 @@ Log.prototype.setMinLevel = function (level) {
  * @param message error message
  */
 Log.prototype.error = function (message) {
-    if (Log.ERROR >= this.minLevel) {
+    if (Log.LEVEL_ERROR >= this.minLevel) {
         alert(message);
     }
 };
@@ -144,7 +144,7 @@ Log.prototype.info = function (message) {
         if (count < 64) {
             this.print(message);
         }
-        else if (count == 64 || (count & 1023) == 0) {
+        else if (count === 64 || (count & 1023) === 0) {
             this.print(message + " (suppressing most messages)");
         }
     }
