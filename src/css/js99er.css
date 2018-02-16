@@ -76,11 +76,11 @@ body {
 #fileTableRow {
     overflow:auto;
     margin-bottom: 12px;
-    height:504px;
+    /* height:504px; */
 }
 
 #tapePanel {
-    height: 554px;
+    /* height: 554px; */
 }
 
 #keyboard, #strip {
@@ -115,5 +115,5 @@ body {
 }
 
 #optionsPanel {
-    height: 554px;
+    /* height: 554px; */
 }
