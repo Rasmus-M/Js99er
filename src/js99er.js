@@ -391,6 +391,7 @@
         enable32KRAM.on('switchChange.bootstrapSwitch', function (event, state) {
             settings.set32KRAMEnabled(state);
             ti994a.memory.set32KRAMEnabled(state);
+            console.log(state);
         });
 
         var enableAMS = $("#enableAMS");
@@ -440,7 +441,7 @@
         });
 
         var enableMapArrowKeysToFctnSDEX = $("#enableMapArrowKeysToFctnSDEX");
-        enableMapArrowKeysToFctnSDEX.bootstrapSwitch("state", settings.isMapArrowKeysToFctnSDEXEnabled);
+        enableMapArrowKeysToFctnSDEX.bootstrapSwitch("state", settings.isMapArrowKeysToFctnSDEXEnabled());
         enableMapArrowKeysToFctnSDEX.on('switchChange.bootstrapSwitch', function (event, state) {
             settings.setMapArrowKeysToFctnSDEXEnabled(state);
             ti994a.keyboard.setMapArrowKeysToFctnSDEXEnabled(state);
@@ -1033,8 +1034,39 @@
                         log.info("Disk drives restored OK.");
                         database.getMachineState("ti994a", function (state) {
                             if (state) {
+
+                                var f18AEnabled = typeof(state.vdp.gpu) === "object";
+                                if (f18AEnabled && !settings.isF18AEnabled()) {
+                                    log.error("Please enable F18A before restoring the state");
+                                    return;
+                                }
+                                else if (!f18AEnabled && settings.isF18AEnabled()) {
+                                    log.error("Please disable F18A before restoring the state");
+                                    return;
+                                }
+
+                                settings.setSpeechEnabled(state.tms5220.enabled);
+                                $("#enableSpeech").bootstrapSwitch("state", settings.isSpeechEnabled(), true);
+
+                                settings.set32KRAMEnabled(state.memory.enable32KRAM);
+                                $("#enable32KRAM").bootstrapSwitch("state", settings.is32KRAMEnabled(), true);
+
+                                settings.setAMSEnabled(state.memory.enableAMS);
+                                $("#enableAMS").bootstrapSwitch("state", settings.isAMSEnabled(), true);
+
+                                settings.setGRAMEnabled(state.memory.enableGRAM);
+                                $("#enableGRAM").bootstrapSwitch("state", settings.isGRAMEnabled(), true);
+
+                                settings.setFlickerEnabled(state.vdp.enableFlicker);
+                                $("#enableFlicker").bootstrapSwitch("state", settings.isFlickerEnabled(), true);
+
+                                settings.setPCKeyboardEnabled(state.keyboard.pcKeyboardEnabled);
+                                $("#enablePCKeyboard").bootstrapSwitch("state", settings.isPCKeyboardEnabled(), true);
+
+                                settings.setMapArrowKeysToFctnSDEXEnabled(state.keyboard.mapArrowKeysToFctnSDEX);
+                                $("#enableMapArrowKeysToFctnSDEX").bootstrapSwitch("state", settings.isMapArrowKeysToFctnSDEXEnabled());
+
                                 ti994a.restoreState(state);
-                                updateDebugger(true);
                                 log.info("Machine state restored OK.");
                             }
                             else {
