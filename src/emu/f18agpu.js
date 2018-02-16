@@ -1900,7 +1900,7 @@ F18AGPU.prototype = {
         this.ST = state.ST;
         this.flagX = state.flagX;
         this.cycles = state.cycles;
-        // this.breakpoint = state.breakpoint;
+        this.breakpoint = state.breakpoint;
         // this.otherBreakpoint = state.otherBreakpoint;
         this.illegalCount = state.illegalCount;
     }

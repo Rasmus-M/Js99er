@@ -1044,6 +1044,8 @@
                                     return;
                                 }
 
+                                ti994a.restoreState(state);
+
                                 settings.setSpeechEnabled(state.tms5220.enabled);
                                 $("#enableSpeech").bootstrapSwitch("state", settings.isSpeechEnabled(), true);
 
@@ -1065,7 +1067,10 @@
                                 settings.setMapArrowKeysToFctnSDEXEnabled(state.keyboard.mapArrowKeysToFctnSDEX);
                                 $("#enableMapArrowKeysToFctnSDEX").bootstrapSwitch("state", settings.isMapArrowKeysToFctnSDEXEnabled(), true);
 
-                                ti994a.restoreState(state);
+                                if (typeof(state.tms9900.breakpoint) === "number") {
+                                    $("#breakpoint").val(state.tms9900.breakpoint.toHexWord());
+                                }
+
                                 log.info("Machine state restored OK.");
                             }
                             else {

@@ -9,7 +9,7 @@
 String.prototype.trimSpace = function () {
     var s = this;
     var n = s.length - 1;
-    while (n >= 0 && s.charCodeAt(n) == 32) {
+    while (n >= 0 && s.charCodeAt(n) === 32) {
         n--;
     }
     return n >= 0 ? s.substr(0, n + 1) : "";
@@ -35,7 +35,7 @@ String.prototype.parseHexWord = function () {
     var val = this;
     if (val != null) {
         val = val.trim();
-        if (val.charAt(0) == ">") {
+        if (val.charAt(0) === ">") {
             val = val.substr(1);
         }
         val = parseInt(val, 16);
@@ -64,7 +64,7 @@ Number.prototype.toHex12Bit = function () {
 
 Number.prototype.toHexByte = function () {
     var s = this.toString(16).toUpperCase();
-    if (s.length == 1) {
+    if (s.length === 1) {
         s = "0" + s;
     }
     return ">" + s;
@@ -72,7 +72,7 @@ Number.prototype.toHexByte = function () {
 
 Number.prototype.toHexByteShort = function () {
     var s = this.toString(16).toUpperCase();
-    if (s.length == 1) {
+    if (s.length === 1) {
         s = "0" + s;
     }
     return s;
