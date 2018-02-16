@@ -1067,6 +1067,10 @@
                                 settings.setMapArrowKeysToFctnSDEXEnabled(state.keyboard.mapArrowKeysToFctnSDEX);
                                 $("#enableMapArrowKeysToFctnSDEX").bootstrapSwitch("state", settings.isMapArrowKeysToFctnSDEXEnabled(), true);
 
+                                $("#btnRecord").prop("disabled", !ti994a.tape.recordPressed);
+                                $("#btnPlay").prop("disabled", !ti994a.tape.playPressed);
+                                $("#btnTapeStop").prop("disabled", ti994a.tape.recordPressed || ti994a.tape.playPressed);
+
                                 if (typeof(state.tms9900.breakpoint) === "number") {
                                     $("#breakpoint").val(state.tms9900.breakpoint.toHexWord());
                                 }

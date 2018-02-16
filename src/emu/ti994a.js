@@ -313,7 +313,8 @@ TI994A.prototype = {
             keyboard: this.keyboard.getState(),
             vdp: this.vdp.getState(),
             tms9919: this.tms9919.getState(),
-            tms5220: this.tms5220.getState()
+            tms5220: this.tms5220.getState(),
+            tape: this.tape.getState()
         };
     },
 
@@ -338,6 +339,9 @@ TI994A.prototype = {
         }
         if (state.tms5220) {
             this.tms5220.restoreState(state.tms5220);
+        }
+        if (state.tape) {
+            this.tape.restoreState(state.tape);
         }
     }
 };

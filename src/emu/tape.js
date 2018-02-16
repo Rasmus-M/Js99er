@@ -309,9 +309,33 @@ Tape.prototype.getRecording = function () {
 };
 
 Tape.prototype.getState = function () {
-    return {};
+    return {
+        recordPressed: this.recordPressed,
+        playPressed: this.playPressed,
+        motorOn: this.motorOn,
+        playing: this.playing,
+        recording: this.recording,
+        playDelay: this.playDelay,
+        paused: this.paused,
+        sampleBuffer: this.sampleBuffer,
+        sampleBufferOffset: this.sampleBufferOffset,
+        sampleBufferAudioOffset: this.sampleBufferAudioOffset,
+        lastWriteValue: this.lastWriteValue,
+        lastWriteTime: this.lastWriteTime
+    };
 };
 
-Tape.prototype.restoreState = function () {
-
+Tape.prototype.restoreState = function (state) {
+    this.recordPressed = state.recordPressed;
+    this.playPressed = state.playPressed;
+    this.motorOn = state.motorOn;
+    this.playing = state.playing;
+    this.recording = state.recording;
+    this.playDelay = state.playDelay;
+    this.paused = state.paused;
+    this.sampleBuffer = state.sampleBuffer;
+    this.sampleBufferOffset = state.sampleBufferOffset;
+    this.sampleBufferAudioOffset = state.sampleBufferAudioOffset;
+    this.lastWriteValue = state.lastWriteValue;
+    this.lastWriteTime = state.lastWriteTime;
 };
