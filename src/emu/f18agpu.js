@@ -1885,19 +1885,23 @@ F18AGPU.prototype = {
         return {
             cpuIdle: this.cpuIdle,
             PC: this.PC,
+            WP: this.WP,
             ST: this.ST,
             flagX: this.flagX,
             cycles: this.cycles,
             cyclesRemaining: this.cyclesRemaining,
             breakpoint: this.breakpoint,
             otherBreakpoint: this.otherBreakpoint,
-            illegalCount: this.illegalCount
+            illegalCount: this.illegalCount,
+            flash: this.flash.getState()
         };
     },
 
     restoreState: function (state) {
+        this.vdpRAM = this.f18a.ram;
         this.cpuIdle = state.cpuIdle;
         this.PC = state.PC;
+        this.WP = state.WP;
         this.ST = state.ST;
         this.flagX = state.flagX;
         this.cycles = state.cycles;
@@ -1905,5 +1909,6 @@ F18AGPU.prototype = {
         this.breakpoint = state.breakpoint;
         // this.otherBreakpoint = state.otherBreakpoint;
         this.illegalCount = state.illegalCount;
+        this.flash.restoreState(state.flash);
     }
 };

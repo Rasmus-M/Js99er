@@ -957,7 +957,10 @@ Keyboard.prototype = {
             columns: this.columns,
             joystickActive: this.joystickActive,
             keyCode: this.keyCode,
-            keyMap: this.keyMap
+            keyMap: this.keyMap,
+            alphaLock: this.alphaLock,
+            pasteBuffer: this.pasteBuffer,
+            pasteIndex: this.pasteIndex
         };
     },
 
@@ -968,5 +971,8 @@ Keyboard.prototype = {
         this.joystickActive = state.joystickActive;
         this.keyCode = state.keyCode;
         this.keyMap = state.keyMap;
+        this.alphaLock = state.alphaLock;
+        this.pasteBuffer = state.pasteBuffer;
+        this.pasteIndex = state.pasteIndex;
     }
 };

@@ -202,6 +202,32 @@ var F18AFlash = (function () {
         }
     };
 
+    F18AFlash.prototype.getState = function () {
+        return {
+            updated: this.updated,
+            writeEnabled: this.writeEnabled,
+            enabled: this.enabled,
+            address: this.address,
+            command: this.command,
+            addressByte: this.addressByte,
+            prefetchByte: this.prefetchByte,
+            writeInProgress: this.writeInProgress,
+            writeBuffer: this.writeBuffer
+        };
+    };
+
+    F18AFlash.prototype.restoreState = function (state) {
+        this.updated = state.updated;
+        this.writeEnabled = state.writeEnabled;
+        this.enabled = state.enabled;
+        this.address = state.address;
+        this.command = state.command;
+        this.addressByte = state.addressByte;
+        this.prefetchByte = state.prefetchByte;
+        this.writeInProgress = state.writeInProgress;
+        this.writeBuffer = state.writeBuffer;
+    };
+
     return F18AFlash;
 })();
 
