@@ -405,3 +405,11 @@ SN76489.prototype.update = function (buffer, offset, samplesToGenerate) {
         }
     } // end for loop
 };
+
+SN76489.prototype.getState = function () {
+    return {};
+};
+
+SN76489.prototype.restoreState = function (state) {
+
+};

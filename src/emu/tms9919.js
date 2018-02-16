@@ -39,7 +39,7 @@ TMS9919.prototype = {
     setGROMClock: function (gromClock) {
         this.log.info("GROM clock set to " + gromClock.toHexByte());
         var divider;
-        if (gromClock == 0xD6) {
+        if (gromClock === 0xD6) {
             divider = 1;
         }
         else {

@@ -185,7 +185,6 @@ function F18A(canvas, cru, tms9919, enableFlicker) {
     this.counterStart = null;
     this.counterSnap = null;
 
-    this.sprites = null;
     this.collision = null;
     this.fifthSprite = null;
     this.fifthSpriteIndex = null;
@@ -206,7 +205,6 @@ function F18A(canvas, cru, tms9919, enableFlicker) {
     this.lastTime = null;
 
     this.gpu = new F18AGPU(this);
-    this.gpuRuns = 0;
 
     this.log = Log.getLog();
     this.log.info("F18A emulation enabled");
@@ -1734,10 +1732,189 @@ F18A.prototype = {
     },
 
     getState: function () {
-        return {};
+        return {
+            enableFlicker: this.enableFlicker,
+            ram: this.ram,
+            registers: this.registers,
+            addressRegister: this.addressRegister,
+            statusRegister: this.statusRegister,
+            palette: this.palette,
+            latch: this.latch,
+            prefetchByte: this.prefetchByte,
+            addressIncrement: this.addressIncrement,
+            unlocked: this.unlocked,
+            statusRegisterNo: this.statusRegisterNo,
+            dataPortMode: this.dataPortMode,
+            autoIncPaletteReg: this.autoIncPaletteReg,
+            paletteRegisterNo: this.paletteRegisterNo,
+            paletteRegisterData: this.paletteRegisterData,
+            gpuAddressLatch: this.gpuAddressLatch,
+            currentScanline: this.currentScanline,
+            fakeScanline: this.fakeScanline,
+            blanking: this.blanking,
+            displayOn: this.displayOn,
+            interruptsOn: this.interruptsOn,
+            screenMode: this.screenMode,
+            colorTable: this.colorTable,
+            nameTable: this.nameTable,
+            charPatternTable: this.charPatternTable,
+            spriteAttributeTable: this.spriteAttributeTable,
+            spritePatternTable: this.spritePatternTable,
+            colorTableMask: this.colorTableMask,
+            patternTableMask: this.patternTableMask,
+            fgColor: this.fgColor,
+            bgColor: this.bgColor,
+            spriteSize: this.spriteSize,
+            spriteMag: this.spriteMag,
+            tileColorMode: this.tileColorMode,
+            tilePaletteSelect: this.tilePaletteSelect,
+            tilePaletteSelect2: this.tilePaletteSelect2,
+            spriteColorMode: this.spriteColorMode,
+            spritePaletteSelect: this.spritePaletteSelect,
+            realSpriteYCoord: this.realSpriteYCoord,
+            colorTable2: this.colorTable2,
+            nameTable2: this.nameTable2,
+            tileLayer1Enabled: this.tileLayer1Enabled,
+            tileLayer2Enabled: this.tileLayer2Enabled,
+            row30Enabled: this.row30Enabled,
+            spriteLinkingEnabled: this.spriteLinkingEnabled,
+            hScroll1: this.hScroll1,
+            vScroll1: this.vScroll1,
+            hScroll2: this.hScroll2,
+            vScroll2: this.vScroll2,
+            hPageSize1: this.hPageSize1,
+            vPageSize1: this.vPageSize1,
+            hPageSize2: this.hPageSize2,
+            vPageSize2: this.vPageSize2,
+            bitmapEnable: this.bitmapEnable,
+            bitmapPriority: this.bitmapPriority,
+            bitmapTransparent: this.bitmapTransparent,
+            bitmapFat: this.bitmapFat,
+            bitmapPaletteSelect: this.bitmapPaletteSelect,
+            bitmapBaseAddr: this.bitmapBaseAddr,
+            bitmapX: this.bitmapX,
+            bitmapY: this.bitmapY,
+            bitmapWidth: this.bitmapWidth,
+            bitmapHeight: this.bitmapHeight,
+            interruptScanline: this.interruptScanline,
+            maxScanlineSprites: this.maxScanlineSprites,
+            maxSprites: this.maxSprites,
+            tileMap2AlwaysOnTop: this.tileMap2AlwaysOnTop,
+            ecmPositionAttributes: this.ecmPositionAttributes,
+            reportMax: this.reportMax,
+            scanLines: this.scanLines,
+            gpuHsyncTrigger: this.gpuHsyncTrigger,
+            gpuVsyncTrigger: this.gpuVsyncTrigger,
+            spritePlaneOffset: this.spritePlaneOffset,
+            tilePlaneOffset: this.tilePlaneOffset,
+            counterElapsed: this.counterElapsed,
+            counterStart: this.counterStart,
+            counterSnap: this.counterSnap,
+            collision: this.collision,
+            fifthSprite: this.fifthSprite,
+            fifthSpriteIndex: this.fifthSpriteIndex,
+            canvasWidth: this.canvasWidth,
+            canvasHeight: this.canvasHeight,
+            drawWidth: this.drawWidth,
+            drawHeight: this.drawHeight,
+            leftBorder: this.leftBorder,
+            topBorder: this.topBorder,
+            frameCounter: this.frameCounter,
+            lastTime: this.lastTime,
+            gpu: this.gpu.getState()
+        };
     },
 
     restoreState: function (state) {
-
+        this.enableFlicker = state.enableFlicker;
+        this.ram = state.ram;
+        this.registers = state.registers;
+        this.addressRegister = state.addressRegister;
+        this.statusRegister = state.statusRegister;
+        this.palette = state.palette;
+        this.latch = state.latch;
+        this.prefetchByte = state.prefetchByte;
+        this.addressIncrement = state.addressIncrement;
+        this.unlocked = state.unlocked;
+        this.statusRegisterNo = state.statusRegisterNo;
+        this.dataPortMode = state.dataPortMode;
+        this.autoIncPaletteReg = state.autoIncPaletteReg;
+        this.paletteRegisterNo = state.paletteRegisterNo;
+        this.paletteRegisterData = state.paletteRegisterData;
+        this.gpuAddressLatch = state.gpuAddressLatch;
+        this.currentScanline = state.currentScanline;
+        this.fakeScanline = state.fakeScanline;
+        this.blanking = state.blanking;
+        this.displayOn = state.displayOn;
+        this.interruptsOn = state.interruptsOn;
+        this.screenMode = state.screenMode;
+        this.colorTable = state.colorTable;
+        this.nameTable = state.nameTable;
+        this.charPatternTable = state.charPatternTable;
+        this.spriteAttributeTable = state.spriteAttributeTable;
+        this.spritePatternTable = state.spritePatternTable;
+        this.colorTableMask = state.colorTableMask;
+        this.patternTableMask = state.patternTableMask;
+        this.fgColor = state.fgColor;
+        this.bgColor = state.bgColor;
+        this.spriteSize = state.spriteSize;
+        this.spriteMag = state.spriteMag;
+        this.tileColorMode = state.tileColorMode;
+        this.tilePaletteSelect = state.tilePaletteSelect;
+        this.tilePaletteSelect2 = state.tilePaletteSelect2;
+        this.spriteColorMode = state.spriteColorMode;
+        this.spritePaletteSelect = state.spritePaletteSelect;
+        this.realSpriteYCoord = state.realSpriteYCoord;
+        this.colorTable2 = state.colorTable2;
+        this.nameTable2 = state.nameTable2;
+        this.tileLayer1Enabled = state.tileLayer1Enabled;
+        this.tileLayer2Enabled = state.tileLayer2Enabled;
+        this.row30Enabled = state.row30Enabled;
+        this.spriteLinkingEnabled = state.spriteLinkingEnabled;
+        this.hScroll1 = state.hScroll1;
+        this.vScroll1 = state.vScroll1;
+        this.hScroll2 = state.hScroll2;
+        this.vScroll2 = state.vScroll2;
+        this.hPageSize1 = state.hPageSize1;
+        this.vPageSize1 = state.vPageSize1;
+        this.hPageSize2 = state.hPageSize2;
+        this.vPageSize2 = state.vPageSize2;
+        this.bitmapEnable = state.bitmapEnable;
+        this.bitmapPriority = state.bitmapPriority;
+        this.bitmapTransparent = state.bitmapTransparent;
+        this.bitmapFat = state.bitmapFat;
+        this.bitmapPaletteSelect = state.bitmapPaletteSelect;
+        this.bitmapBaseAddr = state.bitmapBaseAddr;
+        this.bitmapX = state.bitmapX;
+        this.bitmapY = state.bitmapY;
+        this.bitmapWidth = state.bitmapWidth;
+        this.bitmapHeight = state.bitmapHeight;
+        this.interruptScanline = state.interruptScanline;
+        this.maxScanlineSprites = state.maxScanlineSprites;
+        this.maxSprites = state.maxSprites;
+        this.tileMap2AlwaysOnTop = state.tileMap2AlwaysOnTop;
+        this.ecmPositionAttributes = state.ecmPositionAttributes;
+        this.reportMax = state.reportMax;
+        this.scanLines = state.scanLines;
+        this.gpuHsyncTrigger = state.gpuHsyncTrigger;
+        this.gpuVsyncTrigger = state.gpuVsyncTrigger;
+        this.spritePlaneOffset = state.spritePlaneOffset;
+        this.tilePlaneOffset = state.tilePlaneOffset;
+        this.counterElapsed = state.counterElapsed;
+        this.counterStart = state.counterStart;
+        this.counterSnap = state.counterSnap;
+        this.collision = state.collision;
+        this.fifthSprite = state.fifthSprite;
+        this.fifthSpriteIndex = state.fifthSpriteIndex;
+        this.canvasWidth = state.canvasWidth;
+        this.canvasHeight = state.canvasHeight;
+        this.drawWidth = state.drawWidth;
+        this.drawHeight = state.drawHeight;
+        this.leftBorder = state.leftBorder;
+        this.topBorder = state.topBorder;
+        this.frameCounter = state.frameCounter;
+        this.lastTime = state.lastTime;
+        this.gpu.restoreState(state.gpu);
+        this.redrawRequired = true;
     }
 };
