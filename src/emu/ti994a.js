@@ -313,17 +313,31 @@ TI994A.prototype = {
             keyboard: this.keyboard.getState(),
             vdp: this.vdp.getState(),
             tms9919: this.tms9919.getState(),
-            tmw5220: this.tms5220.getState()
+            tms5220: this.tms5220.getState()
         };
     },
 
     restoreState: function (state) {
-        this.tms9900.restoreState(state.tms9900);
-        this.memory.restoreState(state.memory);
-        this.cru.restoreState(state.cru);
-        this.keyboard.restoreState(state.keyboard);
-        this.vdp.restoreState(state.vpd);
-        this.tms9919.restoreState(state.tmp9919);
-        this.tms5220.restoreState(state.tms5250);
+        if (state.tms9900) {
+            this.tms9900.restoreState(state.tms9900);
+        }
+        if (state.memory) {
+            this.memory.restoreState(state.memory);
+        }
+        if (state.cru) {
+            this.cru.restoreState(state.cru);
+        }
+        if (state.keyboard) {
+            this.keyboard.restoreState(state.keyboard);
+        }
+        if (state.vdp) {
+            this.vdp.restoreState(state.vdp);
+        }
+        if (state.tms9919) {
+            this.tms9919.restoreState(state.tms9919);
+        }
+        if (state.tms5220) {
+            this.tms5220.restoreState(state.tms5220);
+        }
     }
 };

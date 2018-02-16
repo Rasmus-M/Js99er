@@ -596,10 +596,55 @@ TMS9918A.prototype = {
     },
 
     getState: function () {
-        return {};
+        return {
+            ram: this.ram,
+            registers: this.registers,
+            addressRegister: this.addressRegister,
+            statusRegister: this.statusRegister,
+            latch: this.latch,
+            prefetchByte: this.prefetchByte,
+            displayOn: this.displayOn,
+            interruptsOn: this.interruptsOn,
+            screenMode: this.screenMode,
+            bitmapMode: this.bitmapMode,
+            textMode: this.textMode,
+            colorTable: this.colorTable,
+            nameTable: this.nameTable,
+            charPatternTable: this.charPatternTable,
+            spriteAttributeTable: this.spriteAttributeTable,
+            spritePatternTable: this.spritePatternTable,
+            colorTableMask: this.colorTableMask,
+            patternTableMask: this.patternTableMask,
+            ramMask: this.ramMask,
+            fgColor: this.fgColor,
+            bgColor: this.bgColor,
+            flicker: this.flicker
+        }
     },
 
-    restoreState: function () {
-
+    restoreState: function (state) {
+        this.ram = state.ram;
+        this.registers = state.registers;
+        this.addressRegister = state.addressRegister;
+        this.statusRegister = state.statusRegister;
+        this.latch = state.latch;
+        this.prefetchByte = state.prefetchByte;
+        this.displayOn = state.displayOn;
+        this.interruptsOn = state.interruptsOn;
+        this.screenMode = state.screenMode;
+        this.bitmapMode = state.bitmapMode;
+        this.textMode = state.textMode;
+        this.colorTable = state.colorTable;
+        this.nameTable = state.nameTable;
+        this.charPatternTable = state.charPatternTable;
+        this.spriteAttributeTable = state.spriteAttributeTable;
+        this.spritePatternTable = state.spritePatternTable;
+        this.colorTableMask = state.colorTableMask;
+        this.patternTableMask = state.patternTableMask;
+        this.ramMask = state.ramMask;
+        this.fgColor = state.fgColor;
+        this.bgColor = state.bgColor;
+        this.flicker = state.flicker;
+        this.redrawRequired = true;
     }
 };

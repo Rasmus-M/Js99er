@@ -1034,6 +1034,7 @@
                         database.getMachineState("ti994a", function (state) {
                             if (state) {
                                 ti994a.restoreState(state);
+                                updateDebugger(true);
                                 log.info("Machine state restored OK.");
                             }
                             else {

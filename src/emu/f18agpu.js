@@ -1879,5 +1879,13 @@ F18AGPU.prototype = {
             }
         }
         return binArray;
+    },
+
+    getState: function () {
+        return {};
+    },
+
+    restoreState: function (state) {
+
     }
 };

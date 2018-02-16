@@ -199,10 +199,26 @@ CRU.prototype = {
     },
 
     getState: function () {
-        return {};
+        return {
+            cru: this.cru,
+            vdpInterrupt: this.vdpInterrupt,
+            timerMode: this.timerMode,
+            clockRegister: this.clockRegister,
+            readRegister: this.readRegister,
+            decrementer: this.decrementer,
+            timerInterrupt: this.timerInterrupt,
+            timerInterruptCount: this.timerInterruptCount
+        };
     },
 
-    restoreState: function () {
-
+    restoreState: function (state) {
+        this.cru = state.cru;
+        this.vdpInterrupt = state.vdpInterrupt;
+        this.timerMode = state.timerMode;
+        this.clockRegister = state.clockRegister;
+        this.readRegister = state.readRegister;
+        this.decrementer = state.decrementer;
+        this.timerInterrupt = state.timerInterrupt;
+        this.timerInterruptCount = state.timerInterruptCount;
     }
 };

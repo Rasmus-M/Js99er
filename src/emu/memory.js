@@ -624,10 +624,54 @@ Memory.prototype = {
     },
 
     getState: function () {
-        return {};
+        return {
+            enable32KRAM: this.enable32KRAM,
+            enableAMS: this.enableAMS,
+            enableGRAM: this.enableGRAM,
+            ram: this.ram,
+            rom: this.rom,
+            groms: this.groms,
+            ams: this.ams ? this.ams.getState() : null,
+            gromAddress: this.gromAddress,
+            gromAccess: this.gromAccess,
+            gromPrefetch: this.gromPrefetch,
+            multiGROMBases: this.multiGROMBases,
+            cartImage: this.cartImage,
+            cartInverted: this.cartInverted,
+            cartBankCount: this.cartBankCount,
+            currentCartBank: this.currentCartBank,
+            cartAddrOffset: this.cartAddrOffset,
+            cartRAMPaged: this.cartRAMPaged,
+            currentCartRAMBank: this.currentCartRAMBank,
+            cartAddrRAMOffset: this.cartAddrRAMOffset,
+            peripheralROMs: this.peripheralROMs,
+            peripheralROMEnabled: this.peripheralROMEnabled,
+            peripheralROMNumber: this.peripheralROMNumber
+        };
     },
 
-    restoreState: function () {
-
+    restoreState: function (state) {
+        this.enable32KRAM = state.enable32KRAM;
+        this.enableAMS = state.enableAMS;
+        this.enableGRAM = state.enableGRAM;
+        this.ram = state.ram;
+        this.rom = state.rom;
+        this.groms = state.groms;
+        this.ams = state.ams;
+        this.gromAddress = state.gromAddress;
+        this.gromAccess = state.gromAccess;
+        this.gromPrefetch = state.gromPrefetch;
+        this.multiGROMBases = state.multiGROMBases;
+        this.cartImage = state.cartImage;
+        this.cartInverted = state.cartInverted;
+        this.cartBankCount  = state.cartBankCount;
+        this.currentCartBank = state.currentCartBank;
+        this.cartAddrOffset = state.cartAddrOffset;
+        this.cartRAMPaged = state.cartRAMPaged;
+        this.currentCartRAMBank = state.currentCartRAMBank;
+        this.cartAddrRAMOffset = state.cartAddrRAMOffset;
+        this.peripheralROMs = state.peripheralROMs;
+        this.peripheralROMEnabled = state.peripheralROMEnabled;
+        this.peripheralROMNumber = state.peripheralROMNumber;
     }
 };

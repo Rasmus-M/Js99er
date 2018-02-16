@@ -253,7 +253,7 @@ Keyboard.prototype = {
             case 37:  // Left arrow -> J1 Left
                 this.columns[6][4] = down;
                 if (Keyboard.EMULATE_JOYSTICK_2) this.columns[7][4] = down;
-                if (this.mapArrowKeysToFctnSDEX && this.joystickActive == 0) {
+                if (this.mapArrowKeysToFctnSDEX && this.joystickActive === 0) {
                     // Left arrow
                     this.columns[0][7] = down; // Fctn
                     this.columns[1][8] = down; // S
@@ -262,7 +262,7 @@ Keyboard.prototype = {
             case 39:  // Right arrow -> J1 Right
                 this.columns[6][5] = down;
                 if (Keyboard.EMULATE_JOYSTICK_2) this.columns[7][5] = down;
-                if (this.mapArrowKeysToFctnSDEX && this.joystickActive == 0) {
+                if (this.mapArrowKeysToFctnSDEX && this.joystickActive === 0) {
                     // Right arrow
                     this.columns[0][7] = down; // Fctn
                     this.columns[2][8] = down; // D
@@ -271,7 +271,7 @@ Keyboard.prototype = {
             case 40:  // Down arrow -> J1 Down
                 this.columns[6][6] = down;
                 if (Keyboard.EMULATE_JOYSTICK_2) this.columns[7][6] = down;
-                if (this.mapArrowKeysToFctnSDEX && this.joystickActive == 0) {
+                if (this.mapArrowKeysToFctnSDEX && this.joystickActive === 0) {
                     // Down arrow
                     this.columns[0][7] = down; // Fctn
                     this.columns[1][10] = down; // X
@@ -280,7 +280,7 @@ Keyboard.prototype = {
             case 38:  // Up arrow -> J1 Up
                 this.columns[6][7] = down;
                 if (Keyboard.EMULATE_JOYSTICK_2) this.columns[7][7] = down;
-                if (this.mapArrowKeysToFctnSDEX && this.joystickActive == 0) {
+                if (this.mapArrowKeysToFctnSDEX && this.joystickActive === 0) {
                     // Up arrow
                     this.columns[0][7] = down; // Fctn
                     this.columns[2][9] = down; // E
@@ -332,7 +332,7 @@ Keyboard.prototype = {
         var charCode;
         if (evt.which == null) {
             charCode = evt.keyCode; // IE
-        } else if (evt.which != 0 && evt.charCode != 0) {
+        } else if (evt.which !== 0 && evt.charCode !== 0) {
             charCode = evt.which;   // the rest
         } else {
             charCode = 0;
@@ -644,7 +644,7 @@ Keyboard.prototype = {
         this.columns[0][7] = fctn;  // Fctn
         this.columns[0][8] = shift; // Shift
         this.columns[0][9] = false; // Ctrl
-        if (this.keyCode != 0)  {
+        if (this.keyCode !== 0)  {
             this.keyMap[this.keyCode] = {col: col, addr: addr, fctn: fctn, shift: shift};
         }
     },
@@ -676,7 +676,7 @@ Keyboard.prototype = {
             case 37:  // Left arrow -> J1 Left
                 this.columns[6][4] = down;
                 if (Keyboard.EMULATE_JOYSTICK_2) this.columns[7][4] = down;
-                if (this.mapArrowKeysToFctnSDEX && this.joystickActive == 0) {
+                if (this.mapArrowKeysToFctnSDEX && this.joystickActive === 0) {
                     // Left arrow
                     this.columns[0][7] = down; // Fctn
                     this.columns[1][8] = down; // S
@@ -685,7 +685,7 @@ Keyboard.prototype = {
             case 39:  // Right arrow -> J1 Right
                 this.columns[6][5] = down;
                 if (Keyboard.EMULATE_JOYSTICK_2) this.columns[7][5] = down;
-                if (this.mapArrowKeysToFctnSDEX && this.joystickActive == 0) {
+                if (this.mapArrowKeysToFctnSDEX && this.joystickActive === 0) {
                     // Right arrow
                     this.columns[0][7] = down; // Fctn
                     this.columns[2][8] = down; // D
@@ -694,7 +694,7 @@ Keyboard.prototype = {
             case 38:  // Up arrow -> J1 Up
                 this.columns[6][7] = down;
                 if (Keyboard.EMULATE_JOYSTICK_2) this.columns[7][7] = down;
-                if (this.mapArrowKeysToFctnSDEX && this.joystickActive == 0) {
+                if (this.mapArrowKeysToFctnSDEX && this.joystickActive === 0) {
                     // Up arrow
                     this.columns[0][7] = down; // Fctn
                     this.columns[2][9] = down; // E
@@ -703,7 +703,7 @@ Keyboard.prototype = {
             case 40:  // Down arrow -> J1 Down
                 this.columns[6][6] = down;
                 if (Keyboard.EMULATE_JOYSTICK_2) this.columns[7][6] = down;
-                if (this.mapArrowKeysToFctnSDEX && this.joystickActive == 0) {
+                if (this.mapArrowKeysToFctnSDEX && this.joystickActive === 0) {
                     // Down arrow
                     this.columns[0][7] = down; // Fctn
                     this.columns[1][10] = down; // X
@@ -839,7 +839,7 @@ Keyboard.prototype = {
 
     isKeyDown: function (col, addr) {
         // This is necessary in order for the Joystick in Donkey Kong to work
-        if (col == 6 || col == 7) {
+        if (col === 6 || col === 7) {
             this.joystickActive = 250;
         }
         else if (this.joystickActive > 0) {
@@ -856,7 +856,7 @@ Keyboard.prototype = {
 
     simulateKeyPresses: function (keyString, callback) {
         if (keyString.length > 0) {
-            var pause = keyString.charAt(0) == "�";
+            var pause = keyString.charAt(0) === "§";
             var that = this;
             if (!pause) {
                 var charCode = keyString.charCodeAt(0);
@@ -890,7 +890,7 @@ Keyboard.prototype = {
     // Keypress from the virtual keyboard
     virtualKeyPress: function (keyCode) {
         this.virtualKeyDown(keyCode);
-        if (keyCode != 16 && keyCode != 17 && keyCode != 18) {
+        if (keyCode !== 16 && keyCode !== 17 && keyCode !== 18) {
             var that = this;
             window.setTimeout(function () {
                 that.virtualKeyUp(keyCode);
@@ -901,13 +901,13 @@ Keyboard.prototype = {
     virtualKeyDown: function (keyCode) {
         this.simulateKeyDown(keyCode);
         var that = this;
-        if (keyCode != 16) {
+        if (keyCode !== 16) {
             window.setTimeout(function () { that.simulateKeyUp(16); }, Keyboard.KEYPRESS_DURATION);
         }
-        if (keyCode != 17) {
+        if (keyCode !== 17) {
             window.setTimeout(function () { that.simulateKeyUp(17); }, Keyboard.KEYPRESS_DURATION);
         }
-        if (keyCode != 18) {
+        if (keyCode !== 18) {
             window.setTimeout(function () { that.simulateKeyUp(18); }, Keyboard.KEYPRESS_DURATION);
         }
     },
@@ -935,26 +935,38 @@ Keyboard.prototype = {
 
     getPasteCharCode: function () {
         var charCode = -1;
-        while (charCode == -1 && this.pasteBuffer && this.pasteBuffer.length > this.pasteIndex) {
+        while (charCode === -1 && this.pasteBuffer && this.pasteBuffer.length > this.pasteIndex) {
             var tmpCharCode = this.pasteBuffer.charCodeAt(this.pasteIndex++);
             if (tmpCharCode >= 32 && tmpCharCode <= 127) {
                 charCode = tmpCharCode;
             }
-            else if (tmpCharCode == 10) {
+            else if (tmpCharCode === 10) {
                 charCode = 13;
             }
         }
-        if (this.pasteBuffer && this.pasteIndex == this.pasteBuffer.length) {
+        if (this.pasteBuffer && this.pasteIndex === this.pasteBuffer.length) {
             this.pasteBuffer = null;
         }
         return charCode;
     },
 
     getState: function () {
-        return {};
+        return {
+            pcKeyboardEnabled: this.pcKeyboardEnabled,
+            mapArrowKeysToFctnSDEX: this.mapArrowKeysToFctnSDEX,
+            columns: this.columns,
+            joystickActive: this.joystickActive,
+            keyCode: this.keyCode,
+            keyMap: this.keyMap
+        };
     },
 
-    restoreState: function () {
-
+    restoreState: function (state) {
+        this.pcKeyboardEnabled = state.pcKeyboardEnabled;
+        this.mapArrowKeysToFctnSDEX = state.mapArrowKeysToFctnSDEX;
+        this.columns = state.columns;
+        this.joystickActive = state.joystickActive;
+        this.keyCode = state.keyCode;
+        this.keyMap = state.keyMap;
     }
 };

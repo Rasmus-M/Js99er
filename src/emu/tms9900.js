@@ -1771,10 +1771,20 @@ TMS9900.prototype = {
     },
 
     getState: function () {
-        return {};
+        return {
+            PC: this.PC,
+            WP: this.WP,
+            ST: this.ST,
+            flagX: this.flagX,
+            cycles: this.cycles
+        };
     },
 
-    restoreState: function () {
-
+    restoreState: function (state) {
+        this.PC = state.PC;
+        this.WP = state.WP;
+        this.ST = state.ST;
+        this.flagX = state.flagX;
+        this.cycles = state.cycles;
     }
 };

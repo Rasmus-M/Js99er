@@ -100,11 +100,25 @@ var AMS = (function () {
     };
 
     AMS.prototype.getState = function () {
-        return {};
+        return {
+            size: this.size,
+            pages: this.pages,
+            registerAccess: this.registerAccess,
+            ram: this.ram,
+            transparentMap: this.transparentMap,
+            registerMap: this.registerMap,
+            map: this.map
+        };
     };
 
-    AMS.prototype.restoreState =  function () {
-
+    AMS.prototype.restoreState =  function (state) {
+        this.size = state.size;
+        this.pages = state.pages;
+        this.registerAccess = state.registerAccess;
+        this.ram = state.ram;
+        this.transparentMap = state.transparentMap;
+        this.registerMap = state.registerMap;
+        this.map = state.map;
     };
 
     return AMS;

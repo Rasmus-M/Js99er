@@ -1737,7 +1737,7 @@ F18A.prototype = {
         return {};
     },
 
-    restoreState: function () {
+    restoreState: function (state) {
 
     }
 };

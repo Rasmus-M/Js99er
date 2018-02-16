@@ -1421,7 +1421,7 @@ TMS5220.prototype = {
         return {};
     },
 
-    restoreState: function () {
+    restoreState: function (state) {
 
     }
 };

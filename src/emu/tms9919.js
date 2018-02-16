@@ -56,7 +56,7 @@ TMS9919.prototype = {
         return {};
     },
 
-    restoreState: function () {
+    restoreState: function (state) {
 
     }
 };
