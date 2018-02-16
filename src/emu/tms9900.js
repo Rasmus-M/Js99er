@@ -1776,7 +1776,11 @@ TMS9900.prototype = {
             WP: this.WP,
             ST: this.ST,
             flagX: this.flagX,
-            cycles: this.cycles
+            cycles: this.cycles,
+            breakpoint: this.breakpoint,
+            otherBreakpoint: this.otherBreakpoint,
+            illegalCount: this.illegalCount,
+            suspended: this.suspended
         };
     },
 
@@ -1786,5 +1790,9 @@ TMS9900.prototype = {
         this.ST = state.ST;
         this.flagX = state.flagX;
         this.cycles = state.cycles;
+        // this.breakpoint = state.breakpoint;
+        // this.otherBreakpoint = state.otherBreakpoint;
+        this.illegalCount = state.illegalCount;
+        this.suspended = state.suspended;
     }
 };

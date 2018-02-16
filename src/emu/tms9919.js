@@ -53,11 +53,13 @@ TMS9919.prototype = {
     },
 
     getState: function () {
-        return {};
+        return {
+            sn76489: this.sn76489.getState()
+        };
     },
 
     restoreState: function (state) {
-
+        this.sn76489.restoreState(state.sn76489);
     }
 };
 

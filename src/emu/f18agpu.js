@@ -1882,10 +1882,26 @@ F18AGPU.prototype = {
     },
 
     getState: function () {
-        return {};
+        return {
+            cpuIdle: this.cpuIdle,
+            PC: this.PC,
+            ST: this.ST,
+            flagX: this.flagX,
+            cycles: this.cycles,
+            breakpoint: this.breakpoint,
+            otherBreakpoint: this.otherBreakpoint,
+            illegalCount: this.illegalCount
+        };
     },
 
     restoreState: function (state) {
-
+        this.cpuIdle = state.cpuIdle;
+        this.PC = state.PC;
+        this.ST = state.ST;
+        this.flagX = state.flagX;
+        this.cycles = state.cycles;
+        // this.breakpoint = state.breakpoint;
+        // this.otherBreakpoint = state.otherBreakpoint;
+        this.illegalCount = state.illegalCount;
     }
 };

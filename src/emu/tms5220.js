@@ -1418,11 +1418,89 @@ TMS5220.prototype = {
     },
 
     getState: function () {
-        return {};
+        return {
+            enabled: this.enabled,
+            m_speak_external: this.m_speak_external,
+            m_talk_status: this.m_talk_status,
+            m_speaking_now: this.m_speaking_now,
+            m_buffer_low: this.m_buffer_low,
+            m_buffer_empty: this.m_buffer_empty,
+            m_schedule_dummy_read: this.m_schedule_dummy_read,
+            m_fifo_count: this.m_fifo_count,
+            m_fifo_tail: this.m_fifo_tail,
+            m_fifo: this.m_fifo,
+            m_subcycle: this.m_subcycle,
+            m_subc_reload: this.m_subc_reload,
+            m_c_variant_rate: this.m_c_variant_rate,
+            m_PC: this.m_PC,
+            m_IP: this.m_IP,
+            m_new_frame_energy_idx: this.m_new_frame_energy_idx,
+            m_new_frame_pitch_idx: this.m_new_frame_pitch_idx,
+            m_new_frame_k_idx: this.m_new_frame_k_idx,
+            m_RDB_flag: this.m_RDB_flag,
+            m_data_register: this.m_data_register,
+            m_OLDE: this.m_OLDE,
+            m_OLDP: this.m_OLDP,
+            m_inhibit: this.m_inhibit,
+            m_target_energy: this.m_target_energy,
+            m_target_pitch: this.m_target_pitch,
+            m_target_k: this.m_target_k,
+            m_current_k: this.m_current_k,
+            m_RNG: this.m_RNG,
+            m_excitation_data: this.m_excitation_data,
+            m_u: this.m_u,
+            m_x: this.m_x,
+            m_digital_select: this.m_digital_select,
+            m_speechROMaddr: this.m_speechROMaddr,
+            m_load_pointer: this.m_load_pointer,
+            m_ROM_bits_count: this.m_ROM_bits_count,
+            m_irq_pin: this.m_irq_pin,
+            m_io_ready: this.m_io_ready,
+            m_irq_handler: this.m_irq_handler,
+            m_readyq_handler: this.m_readyq_handler
+        };
     },
 
     restoreState: function (state) {
-
+        this.enabled = state.enabled;
+        this.m_speak_external = state.m_speak_external;
+        this.m_talk_status = state.m_talk_status;
+        this.m_speaking_now = state.m_speaking_now;
+        this.m_buffer_low = state.m_buffer_low;
+        this.m_buffer_empty = state.m_buffer_empty;
+        this.m_schedule_dummy_read = state.m_schedule_dummy_read;
+        this.m_fifo_count = state.m_fifo_count;
+        this.m_fifo_tail = state.m_fifo_tail;
+        this.m_fifo = state.m_fifo;
+        this.m_subcycle = state.m_subcycle;
+        this.m_subc_reload = state.m_subc_reload;
+        this.m_c_variant_rate = state.m_c_variant_rate;
+        this.m_PC = state.m_PC;
+        this.m_IP = state.m_IP;
+        this.m_new_frame_energy_idx = state.m_new_frame_energy_idx;
+        this.m_new_frame_pitch_idx = state.m_new_frame_pitch_idx;
+        this.m_new_frame_k_idx = state.m_new_frame_k_idx;
+        this.m_RDB_flag = state.m_RDB_flag;
+        this.m_data_register = state.m_data_register;
+        this.m_OLDE = state.m_OLDE;
+        this.m_OLDP = state.m_OLDP;
+        this.m_inhibit = state.m_inhibit;
+        this.m_target_energy = state.m_target_energy;
+        this.m_target_pitch = state.m_target_pitch;
+        this.m_target_k = state.m_target_k;
+        this.m_current_k = state.m_current_k;
+        this.m_RNG = state.m_RNG;
+        this.m_excitation_data = state.m_excitation_data;
+        this.m_u = state.m_u;
+        this.m_x = state.m_x;
+        this.m_digital_select = state.m_digital_select;
+        this.m_speechROMaddr = state.m_speechROMaddr;
+        this.m_load_pointer = state.m_load_pointer;
+        this.m_ROM_bits_count = state.m_ROM_bits_count;
+        this.m_irq_pin = state.m_irq_pin;
+        this.m_io_ready = state.m_io_ready;
+        this.m_irq_handler = state.m_irq_handler;
+        this.m_readyq_handler = state.m_readyq_handler;
     }
 };
 

@@ -407,9 +407,31 @@ SN76489.prototype.update = function (buffer, offset, samplesToGenerate) {
 };
 
 SN76489.prototype.getState = function () {
-    return {};
+    return {
+        clock : this.clock,
+        clockFrac : this.clockFrac,
+        reg : this.reg,
+        regLatch : this.regLatch,
+        freqCounter : this.freqCounter,
+        freqPolarity : this.freqPolarity,
+        freqPos : this.freqPos,
+        noiseFreq : this.noiseFreq,
+        noiseShiftReg : this.noiseShiftReg,
+        outputChannel : this.outputChannel,
+        buffer : this.buffer
+    };
 };
 
 SN76489.prototype.restoreState = function (state) {
-
+    this.clock = state.clock;
+    this.clockFrac = state.clockFrac;
+    this.reg = state.reg;
+    this.regLatch = state.regLatch;
+    this.freqCounter = state.freqCounter;
+    this.freqPolarity = state.freqPolarity;
+    this.freqPos = state.freqPos;
+    this.noiseFreq = state.noiseFreq;
+    this.noiseShiftReg = state.noiseShiftReg;
+    this.outputChannel = state.outputChannel;
+    this.buffer = state.buffer;
 };
