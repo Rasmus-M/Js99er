@@ -1888,6 +1888,7 @@ F18AGPU.prototype = {
             ST: this.ST,
             flagX: this.flagX,
             cycles: this.cycles,
+            cyclesRemaining: this.cyclesRemaining,
             breakpoint: this.breakpoint,
             otherBreakpoint: this.otherBreakpoint,
             illegalCount: this.illegalCount
@@ -1900,6 +1901,7 @@ F18AGPU.prototype = {
         this.ST = state.ST;
         this.flagX = state.flagX;
         this.cycles = state.cycles;
+        this.cyclesRemaining = state.cyclesRemaining;
         this.breakpoint = state.breakpoint;
         // this.otherBreakpoint = state.otherBreakpoint;
         this.illegalCount = state.illegalCount;

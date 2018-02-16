@@ -1915,6 +1915,7 @@ F18A.prototype = {
         this.frameCounter = state.frameCounter;
         this.lastTime = state.lastTime;
         this.gpu.restoreState(state.gpu);
+        this.setDimensions(true);
         this.redrawRequired = true;
     }
 };
