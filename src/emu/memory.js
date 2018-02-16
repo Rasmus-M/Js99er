@@ -631,7 +631,6 @@ Memory.prototype = {
             ram: this.ram,
             rom: this.rom,
             groms: this.groms,
-            ams: this.ams ? this.ams.getState() : null,
             gromAddress: this.gromAddress,
             gromAccess: this.gromAccess,
             gromPrefetch: this.gromPrefetch,
@@ -646,7 +645,8 @@ Memory.prototype = {
             cartAddrRAMOffset: this.cartAddrRAMOffset,
             peripheralROMs: this.peripheralROMs,
             peripheralROMEnabled: this.peripheralROMEnabled,
-            peripheralROMNumber: this.peripheralROMNumber
+            peripheralROMNumber: this.peripheralROMNumber,
+            ams: this.enableAMS ? this.ams.getState() : null
         };
     },
 
@@ -657,7 +657,6 @@ Memory.prototype = {
         this.ram = state.ram;
         this.rom = state.rom;
         this.groms = state.groms;
-        this.ams = state.ams;
         this.gromAddress = state.gromAddress;
         this.gromAccess = state.gromAccess;
         this.gromPrefetch = state.gromPrefetch;
@@ -673,5 +672,8 @@ Memory.prototype = {
         this.peripheralROMs = state.peripheralROMs;
         this.peripheralROMEnabled = state.peripheralROMEnabled;
         this.peripheralROMNumber = state.peripheralROMNumber;
+        if (this.enableAMS) {
+            this.ams.restoreState(state.ams);
+        }
     }
 };
