@@ -1064,7 +1064,7 @@
                                 $("#enablePCKeyboard").bootstrapSwitch("state", settings.isPCKeyboardEnabled(), true);
 
                                 settings.setMapArrowKeysToFctnSDEXEnabled(state.keyboard.mapArrowKeysToFctnSDEX);
-                                $("#enableMapArrowKeysToFctnSDEX").bootstrapSwitch("state", settings.isMapArrowKeysToFctnSDEXEnabled());
+                                $("#enableMapArrowKeysToFctnSDEX").bootstrapSwitch("state", settings.isMapArrowKeysToFctnSDEXEnabled(), true);
 
                                 ti994a.restoreState(state);
                                 log.info("Machine state restored OK.");
