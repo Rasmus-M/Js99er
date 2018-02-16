@@ -327,7 +327,7 @@ Database.prototype = {
             request.onsuccess = function (e) {
                 var obj = e.target.result;
                 if (obj) {
-                    if (callback) callback(obj);
+                    if (callback) callback(obj.state);
                 }
                 else {
                     if (callback) callback(false);
