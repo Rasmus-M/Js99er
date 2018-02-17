@@ -336,17 +336,11 @@
             var val = this.value.parseHexWord();
             if (typeof(val) === "number") {
                 this.value = val.toHexWord();
-                ti994a.tms9900.setBreakpoint(val);
-                if (ti994a.vdp.gpu) {
-                    ti994a.vdp.gpu.setBreakpoint(val);
-                }
+                setBreakpoint(val);
             }
             else {
                 this.value = "";
-                ti994a.tms9900.setBreakpoint(null);
-                if (ti994a.vdp.gpu) {
-                    ti994a.vdp.gpu.setBreakpoint(null);
-                }
+                setBreakpoint(null);
             }
             ti994a.keyboard.attachListeners();
         });
@@ -958,6 +952,13 @@
         }
     }
 
+    function setBreakpoint(val) {
+        ti994a.tms9900.setBreakpoint(val);
+        if (ti994a.vdp.gpu) {
+            ti994a.vdp.gpu.setBreakpoint(val);
+        }
+    }
+
     function onBreakpoint(cpu) {
         if (cpu.setOtherBreakpoint) {
             cpu.setOtherBreakpoint(null);
@@ -1023,6 +1024,8 @@
     }
 
     function loadState() {
+        var wasRunning = ti994a.isRunning();
+        ti994a.stop();
         database.getDiskImages(function (dskImgs) {
             if (dskImgs && Object.keys(dskImgs).length >= 3) {
                 diskImages = dskImgs;
@@ -1071,8 +1074,24 @@
                                 $("#btnPlay").prop("disabled", state.tape.recordPressed || state.tape.playPressed);
                                 $("#btnTapeStop").prop("disabled", !(state.tape.recordPressed || state.tape.playPressed));
 
+                                var breakpoint = $("#breakpoint");
                                 if (typeof(state.tms9900.breakpoint) === "number") {
-                                    $("#breakpoint").val(state.tms9900.breakpoint.toHexWord());
+                                    breakpoint.val(state.tms9900.breakpoint.toHexWord());
+                                }
+                                else {
+                                    var val = breakpoint.val().parseHexWord();
+                                    if (typeof(val) === "number") {
+                                        breakpoint.val(val.toHexWord());
+                                        setBreakpoint(val);
+                                    }
+                                    else {
+                                        breakpoint.val("");
+                                        setBreakpoint(null);
+                                    }
+                                }
+
+                                if (wasRunning) {
+                                    ti994a.start();
                                 }
 
                                 log.info("Machine state restored OK.");

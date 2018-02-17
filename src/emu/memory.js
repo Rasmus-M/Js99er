@@ -26,6 +26,8 @@ function Memory(vdp, tms9919, tms5220, settings) {
     this.enable32KRAM = settings && settings.is32KRAMEnabled();
     this.enableAMS = settings && settings.isAMSEnabled();
     this.enableGRAM = settings && settings.isGRAMEnabled();
+    this.ramAt6000 = false;
+    this.ramAt7000 = false;
 
     this.ram = new Uint8Array(0x10000);
     this.rom = new Uint8Array(SYSTEM.ROM);
@@ -78,6 +80,7 @@ Memory.prototype = {
         var ramAccessors = [this.readRAM, this.writeRAM];
         var peripheralROMAccessors = [this.readPeripheralROM, this.writePeripheralROM];
         var cartridgeROMAccessors = [this.readCartridgeROM, this.writeCartridgeROM];
+        var cartridgeRAMAccessors = [this.readCartridgeRAM, this.writeCartridgeRAM];
         var padAccessors = [this.readPAD, this.writePAD];
         var soundAccessors = [this.readSound, this.writeSound];
         var vdpReadAccessors = [this.readVDP, this.writeNull];
@@ -96,8 +99,11 @@ Memory.prototype = {
         for (i = 0x4000; i < 0x6000; i++) {
             this.memoryMap[i] = peripheralROMAccessors;
         }
-        for (i = 0x6000; i < 0x8000; i++) {
-            this.memoryMap[i] = cartridgeROMAccessors;
+        for (i = 0x6000; i < 0x7000; i++) {
+            this.memoryMap[i] = this.ramAt6000 ? cartridgeRAMAccessors : cartridgeROMAccessors;
+        }
+        for (i = 0x7000; i < 0x8000; i++) {
+            this.memoryMap[i] = this.ramAt7000 ? cartridgeRAMAccessors : cartridgeROMAccessors;
         }
         for (i = 0x8000; i < 0x8400; i++) {
             this.memoryMap[i] = padAccessors;
@@ -203,16 +209,9 @@ Memory.prototype = {
             this.currentCartRAMBank = 0;
             this.cartAddrRAMOffset = -0x6000;
         }
-        var ramAccessors = [this.readCartridgeRAM, this.writeCartridgeRAM];
-        var romAccessors = [this.readCartridgeROM, this.writeCartridgeROM];
-        this.log.info("RAM at >6000: " + ramAt6000);
-        for (i = 0x6000; i < 0x7000; i++) {
-            this.memoryMap[i] = ramAt6000 ? ramAccessors :  romAccessors;
-        }
-        this.log.info("RAM at >7000: " + ramAt7000);
-        for (i = 0x7000; i < 0x8000; i++) {
-            this.memoryMap[i] = ramAt7000 ? ramAccessors :  romAccessors;
-        }
+        this.ramAt6000 = ramAt6000;
+        this.ramAt7000 = ramAt7000;
+        this.buildMemoryMap();
     },
 
     loadPeripheralROM: function (byteArray, number) {
@@ -628,6 +627,8 @@ Memory.prototype = {
             enable32KRAM: this.enable32KRAM,
             enableAMS: this.enableAMS,
             enableGRAM: this.enableGRAM,
+            ramAt6000: this.ramAt6000,
+            ramAt7000: this.ramAt7000,
             ram: this.ram,
             rom: this.rom,
             groms: this.groms,
@@ -654,6 +655,8 @@ Memory.prototype = {
         this.enable32KRAM = state.enable32KRAM;
         this.enableAMS = state.enableAMS;
         this.enableGRAM = state.enableGRAM;
+        this.ramAt6000 = state.ramAt6000;
+        this.ramAt7000 = state.ramAt7000;
         this.ram = state.ram;
         this.rom = state.rom;
         this.groms = state.groms;
@@ -675,5 +678,6 @@ Memory.prototype = {
         if (this.enableAMS) {
             this.ams.restoreState(state.ams);
         }
+        this.buildMemoryMap();
     }
 };
