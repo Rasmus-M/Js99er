@@ -414,21 +414,6 @@ Software.programs = [
                 type: Software.TYPE_CART,
                 url: "software/qbert.json"
             },
-            //{
-            //    name: "Donkey Kong",
-            //    type: Software.TYPE_CART,
-            //    url: "software/donkeykong.json"
-            //},
-            //{
-            //    name: "Ms Pac-Man",
-            //    type: Software.TYPE_CART,
-            //    url: "software/mspacman.json"
-            //},
-            //{
-            //    name: "Robotron: 2084",
-            //    type: Software.TYPE_CART,
-            //    url: "software/robotron-2084.json"
-            //},
             {
                 name: "Atarisoft compilation",
                 type: Software.TYPE_CART,
@@ -483,6 +468,16 @@ Software.programs = [
                 name: "Bouncy",
                 type: Software.TYPE_INVERTED_CART,
                 url: "software/bouncy.rpk"
+            },
+            {
+                name: "Knight Lore",
+                type: Software.TYPE_CART,
+                url: "software/knightlore8.bin"
+            },
+            {
+                name: "Skyway",
+                type: Software.TYPE_CART,
+                url: "software/skyway8.bin"
             },
             {
                 name: "JetPac",
