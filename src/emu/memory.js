@@ -210,7 +210,13 @@ Memory.prototype = {
             this.cartAddrRAMOffset = -0x6000;
         }
         this.ramAt6000 = ramAt6000;
+        if (this.ramAt6000) {
+            this.log.info("RAM at >6000");
+        }
         this.ramAt7000 = ramAt7000;
+        if (this.ramAt7000) {
+            this.log.info("RAM at >7000");
+        }
         this.buildMemoryMap();
     },
 

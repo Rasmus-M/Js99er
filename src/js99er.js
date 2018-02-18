@@ -44,8 +44,9 @@
 
         log = Log.getLog();
         log.info("Welcome to JS99'er");
-        log.info("Version 6.0, 16 February 2018");
+        log.info("Version 6.0.1, 18 February 2018");
         log.info("  - Save and restore full state");
+        log.info("  - Fixed alignment issue in disassembler");
         settings = new Settings(true);
         diskImages = {
             FLOPPY1: new DiskImage("FLOPPY1", function (event) {
