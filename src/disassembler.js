@@ -37,7 +37,6 @@ var Disassembler = (function () {
     };
 
     Disassembler.prototype.disassembleRange = function (start, length, maxInstructions, anchorAddr) {
-        console.log("start=" + start.toHexWord());
         this.addr = start;
         var end = start + length;
         var decoderTable = new Decoder().getDecoderTable();
