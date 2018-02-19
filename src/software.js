@@ -261,7 +261,6 @@ Software.prototype = {
     },
 
     loadBinModuleFromURL: function (url, onSuccess, onError) {
-        console.log(url);
         var baseFileName = url.split('.')[0];
         var inverted = baseFileName && baseFileName.charAt(baseFileName.length - 1) === "3";
         var xhr = new XMLHttpRequest();

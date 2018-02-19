@@ -385,7 +385,6 @@
         enable32KRAM.on('switchChange.bootstrapSwitch', function (event, state) {
             settings.set32KRAMEnabled(state);
             ti994a.memory.set32KRAMEnabled(state);
-            console.log(state);
         });
 
         var enableAMS = $("#enableAMS");

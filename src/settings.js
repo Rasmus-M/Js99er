@@ -22,37 +22,37 @@ function Settings(persistent) {
     if (persistent && window.localStorage) {
         this.storage = window.localStorage;
         if (this.storage.getItem("enableSound") != null) {
-            this.enableSound = this.storage.getItem("enableSound") == "true";
+            this.enableSound = this.storage.getItem("enableSound") === "true";
         }
         if (this.storage.getItem("enableSpeech") != null) {
-            this.enableSpeech = this.storage.getItem("enableSpeech") == "true";
+            this.enableSpeech = this.storage.getItem("enableSpeech") === "true";
         }
         if (this.storage.getItem("enable32KRAM") != null) {
-            this.enable32KRAM = this.storage.getItem("enable32KRAM") == "true";
+            this.enable32KRAM = this.storage.getItem("enable32KRAM") === "true";
         }
         if (this.storage.getItem("enableF18A") != null) {
-            this.enableF18A = this.storage.getItem("enableF18A") == "true";
+            this.enableF18A = this.storage.getItem("enableF18A") === "true";
         }
         if (this.storage.getItem("enableFlicker") != null) {
-            this.enableFlicker = this.storage.getItem("enableFlicker") == "true";
+            this.enableFlicker = this.storage.getItem("enableFlicker") === "true";
         }
         if (this.storage.getItem("enablePCKeyboard") != null) {
-            this.enablePCKeyboard = this.storage.getItem("enablePCKeyboard") == "true";
+            this.enablePCKeyboard = this.storage.getItem("enablePCKeyboard") === "true";
         }
         if (this.storage.getItem("enableMapArrowKeysToFctnSDEX") != null) {
-            this.enableMapArrowKeysToFctnSDEX = this.storage.getItem("enableMapArrowKeysToFctnSDEX") == "true";
+            this.enableMapArrowKeysToFctnSDEX = this.storage.getItem("enableMapArrowKeysToFctnSDEX") === "true";
         }
         if (this.storage.getItem("enableGoogleDrive") != null) {
-            this.enableGoogleDrive = this.storage.getItem("enableGoogleDrive") == "true";
+            this.enableGoogleDrive = this.storage.getItem("enableGoogleDrive") === "true";
         }
         if (this.storage.getItem("enableAMS") != null) {
-            this.enableAMS = this.storage.getItem("enableAMS") == "true";
+            this.enableAMS = this.storage.getItem("enableAMS") === "true";
         }
         if (this.storage.getItem("enableGRAM") != null) {
-            this.enableGRAM = this.storage.getItem("enableGRAM") == "true";
+            this.enableGRAM = this.storage.getItem("enableGRAM") === "true";
         }
         if (this.storage.getItem("enablePixelated") != null) {
-            this.enablePixelated = this.storage.getItem("enablePixelated") == "true";
+            this.enablePixelated = this.storage.getItem("enablePixelated") === "true";
         }
     }
 }

@@ -26,14 +26,14 @@ var ObjLoader = (function () {
         var line = "";
         if (this.pos < this.file.length) {
             var char = this.file.charAt(this.pos);
-            while (char != '\n'&& char != '\r' && this.pos < this.file.length && line.length < 80) {
+            while (char !== '\n'&& char !== '\r' && this.pos < this.file.length && line.length < 80) {
                 line += char;
                 this.pos++;
                 if (this.pos < this.file.length) {
                     char = this.file.charAt(this.pos);
                 }
             }
-            while ((char == '\n'|| char == '\r') && this.pos < this.file.length) {
+            while ((char === '\n'|| char === '\r') && this.pos < this.file.length) {
                 this.pos++;
                 if (this.pos < this.file.length) {
                     char = this.file.charAt(this.pos);
@@ -110,7 +110,7 @@ var ObjLoader = (function () {
             var tagNumber = 1;
             var address, offset;
             var label;
-            while (tag != '' && !eol && !eof) {
+            while (tag !== '' && !eol && !eof) {
                 switch (tag) {
                     // Start of PSEG
                     case '0':
@@ -171,7 +171,7 @@ var ObjLoader = (function () {
                     // Set load address in AORG
                     case '9':
                         loadAddress = lineReader.readWord();
-                        if (loadAddress != -1) {
+                        if (loadAddress !== -1) {
                             if (action === Action.CARTRIDGE) {
                                 if (loadAddress >= 0xA000 && loadAddress < 0xC000) {
                                     loadAddress -= 0x3F00;
@@ -190,7 +190,7 @@ var ObjLoader = (function () {
                     case 'A':
                         offset = lineReader.readWord();
                         loadAddress = psegOffset + offset;
-                        if (loadAddress != -1) {
+                        if (loadAddress !== -1) {
                             console.log("Load address set to offset " + offset.toHexWord() + ": " + loadAddress.toHexWord());
                         }
                         else {
@@ -200,7 +200,7 @@ var ObjLoader = (function () {
                     // Load word into memory
                     case 'B':
                         var word = lineReader.readWord();
-                        if (word != -1) {
+                        if (word !== -1) {
                             if (loadAddress >= 0x2000 && loadAddress < 0x4000 || loadAddress >= 0x6000 && loadAddress < 0x8000 || loadAddress >= 0xA000 && loadAddress < 0x10000) {
                                 if (loadAddress >= 0x2000 && loadAddress < 0x4000) {
                                     // Low RAM
@@ -250,7 +250,7 @@ var ObjLoader = (function () {
                     // Add PSEG offset to word and load it in memory
                     case 'C':
                         word = lineReader.readWord();
-                        if (word != -1) {
+                        if (word !== -1) {
                             console.log("PSEG word offset " + word.toHexWord()  + ": " + (psegOffset + word).toHexWord());
                             word = (psegOffset + word) & 0xFFFF;
                             ram[loadAddress] = (word & 0xFF00) >> 8;
@@ -323,7 +323,7 @@ var ObjLoader = (function () {
 
     ObjLoader.prototype.getSoftware = function () {
         var sw = {};
-        if (this.action == Action.EA5) {
+        if (this.action === Action.EA5) {
             sw.memoryBlocks = [];
             sw.startAddress = this.autoStartAddress;
             var highRAMLength = this.highRAMEndAddress - this.highRAMStartAddress + 2;
