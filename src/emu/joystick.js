@@ -4,21 +4,41 @@
  * Created 2014 by Rasmus Moustgaard <rasmus.moustgaard@gmail.com>
 */
 
-function Joystick(column, index) {
+function Joystick(column, number) {
     this.column = column;
-    this.index = index;
-    window.addEventListener("gamepadconnected", this.gamepadConnected);
-    window.addEventListener("gamepaddisconnected", this.gamepadDisconnected);
-    window.setInterval(this.update.bind(this), 17);
+    this.number = number;
+    this.index = null;
     this.log = Log.getLog();
+    window.addEventListener("gamepadconnected", this.gamepadConnected.bind(this));
+    window.addEventListener("gamepaddisconnected", this.gamepadDisconnected.bind(this));
+    window.setInterval(this.update.bind(this), 17);
 }
 
+Joystick.prototype.registerGamepad = function (number, index) {
+    if (!Joystick.gamepadIndices) {
+        Joystick.gamepadIndices = {
+            0: null,
+            1: null
+        };
+    }
+    if (Joystick.gamepadIndices[0] !== index && Joystick.gamepadIndices[1] !== index) {
+        Joystick.gamepadIndices[number] = index;
+        return true;
+    }
+    else {
+        return false;
+    }
+};
+
 Joystick.prototype.gamepadConnected = function (e) {
+    console.log("gamepadConnected");
     if (this.index === null || !navigator.getGamepads()[this.index]) {
         var gamepad = e.gamepad;
         if (gamepad.id.toLowerCase().indexOf("unknown") === -1) {
-            this.index = gamepad.index;
-            this.log.info("Gamepad connected, index = " + this.index);
+            if (this.registerGamepad(this.number, gamepad.index)) {
+                this.index = gamepad.index;
+                this.log.info("Joystick " + this.number + " connected to gamepad " + this.index);
+            }
         }
     }
 };
@@ -26,7 +46,8 @@ Joystick.prototype.gamepadConnected = function (e) {
 Joystick.prototype.gamepadDisconnected = function (e) {
     var gamepad = e.gamepad;
     if (gamepad.index === this.index) {
-        this.log.info("Gamepad disconnected, index = " + this.index);
+        this.log.info("Joystick " + this.number + " disconnected from gamepad " + this.index);
+        Joystick.gamepadIndices[this.number] = null;
         this.index = null;
     }
 };

@@ -13,8 +13,8 @@ function Keyboard(pcKeyboardEnabled, mapArrowKeysToFctnSDEX) {
     for (var col = 0; col < 8; col++) {
         this.columns[col] = [];
     }
-    this.joystick1 = new Joystick(this.columns[6], 1);
-    this.joystick2 = new Joystick(this.columns[7], 2);
+    this.joystick1 = new Joystick(this.columns[6], 0);
+    this.joystick2 = new Joystick(this.columns[7], 1);
     this.joystickActive = 250;
     this.keyCode = 0;
     this.keyMap = {};
