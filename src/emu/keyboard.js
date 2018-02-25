@@ -4,10 +4,17 @@
  * Created 2014 by Rasmus Moustgaard <rasmus.moustgaard@gmail.com>
 */
 
+"use strict";
+
 function Keyboard(pcKeyboardEnabled, mapArrowKeysToFctnSDEX) {
     this.pcKeyboardEnabled = pcKeyboardEnabled;
     this.mapArrowKeysToFctnSDEX = mapArrowKeysToFctnSDEX;
     this.columns = new Array(9);
+    for (var col = 0; col < 8; col++) {
+        this.columns[col] = [];
+    }
+    this.joystick1 = new Joystick(this.columns[6], 1);
+    this.joystick2 = new Joystick(this.columns[7], 2);
     this.joystickActive = 250;
     this.keyCode = 0;
     this.keyMap = {};
@@ -23,7 +30,6 @@ Keyboard.prototype = {
     reset: function () {
 
         for (var col = 0; col < 8; col++) {
-            this.columns[col] = [];
             for (var addr = 3; addr <= 10; addr++) {
                 this.columns[col][addr] = false;
             }
@@ -960,7 +966,9 @@ Keyboard.prototype = {
             keyMap: this.keyMap,
             alphaLock: this.alphaLock,
             pasteBuffer: this.pasteBuffer,
-            pasteIndex: this.pasteIndex
+            pasteIndex: this.pasteIndex,
+            joystick1: this.joystick1.getState(),
+            joystick2: this.joystick2.getState()
         };
     },
 
@@ -974,5 +982,7 @@ Keyboard.prototype = {
         this.alphaLock = state.alphaLock;
         this.pasteBuffer = state.pasteBuffer;
         this.pasteIndex = state.pasteIndex;
+        this.joystick1.setState(state.joystick1);
+        this.joystick2.setState(state.joystick2);
     }
 };
