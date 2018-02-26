@@ -58,11 +58,11 @@ Joystick.prototype.update = function () {
         if (gamepad && gamepad.connected) {
             this.column[3] = gamepad.buttons[0].pressed;
             var axis0 = gamepad.axes[0];
-            this.column[4] = axis0 < -0.1;      // Left
-            this.column[5] = axis0 > 0.1;       // Right
+            this.column[4] = axis0 < -0.1 || gamepad.buttons[14] && gamepad.buttons[14].pressed; // Left
+            this.column[5] = axis0 > 0.1  || gamepad.buttons[15] && gamepad.buttons[15].pressed; // Right
             var axis1 = gamepad.axes[1];
-            this.column[6] = axis1 > 0.1;       // Down
-            this.column[7] = axis1 < -0.1;      // Up
+            this.column[6] = axis1 > 0.1  || gamepad.buttons[13] && gamepad.buttons[13].pressed; // Down
+            this.column[7] = axis1 < -0.1 || gamepad.buttons[12] && gamepad.buttons[12].pressed; // Up
         }
     }
 };
