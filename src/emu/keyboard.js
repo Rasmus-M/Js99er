@@ -47,6 +47,16 @@ Keyboard.prototype = {
         this.pasteIndex = 0;
     },
 
+    start: function () {
+        this.joystick1.stop();
+        this.joystick2.stop();
+    },
+
+    stop: function () {
+        this.joystick1.start();
+        this.joystick2.start();
+    },
+
     attachListeners : function () {
         var self = this;
         if (!this.pcKeyboardEnabled) {

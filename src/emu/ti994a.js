@@ -106,6 +106,7 @@ TI994A.prototype = {
             this.log.info("Start");
             this.tms9900.setSuspended(false);
             this.tape.setPaused(false);
+            this.keyboard.start();
             var self = this;
             this.frameInterval = setInterval(
                 function () {
@@ -201,6 +202,7 @@ TI994A.prototype = {
         clearInterval(this.fpsInterval);
         this.tms9919.mute();
         this.tape.setPaused(true);
+        this.keyboard.stop();
         this.vdp.updateCanvas();
         this.running = false;
         this.tms9900.dumpProfile();

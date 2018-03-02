@@ -13,6 +13,7 @@
     var diskImages;
     var ti994a;
     var sound;
+    var soundEnabled;
     var software;
     var database;
     var disassembler;
@@ -47,6 +48,7 @@
         log.info("Version 6.1, 25 February 2018");
         log.info("  - Gamepad support");
         settings = new Settings(true);
+        soundEnabled = settings.isSoundEnabled();
         diskImages = {
             FLOPPY1: new DiskImage("FLOPPY1", function (event) {
                 updateDiskImageList("FLOPPY1");
@@ -59,7 +61,7 @@
             })
         };
         ti994a = new TI994A(document.getElementById("canvas"), diskImages, settings, onBreakpoint);
-        sound = new Sound(settings.isSoundEnabled(), ti994a.tms9919, ti994a.tms5220, ti994a.tape);
+        sound = new Sound(soundEnabled, ti994a.tms9919, ti994a.tms5220, ti994a.tape);
         software = new Software();
         database = new Database();
         if (!database.isSupported()) {
@@ -100,6 +102,7 @@
             $("#btnFrame").prop("disabled", true);
             $("#btnStep").prop("disabled", true);
             $("#btnStop").prop("disabled", false);
+            sound.setSoundEnabled(soundEnabled);
             ti994a.start(false);
             debugTimerId = window.setInterval(updateDebugger, 100);
         });
@@ -109,6 +112,7 @@
             $("#btnFrame").prop("disabled", true);
             $("#btnStep").prop("disabled", true);
             $("#btnStop").prop("disabled", false);
+            sound.setSoundEnabled(soundEnabled);
             ti994a.start(true);
             debugTimerId = window.setInterval(updateDebugger, 100);
         });
@@ -132,6 +136,7 @@
             $("#btnStep").prop("disabled", false);
             $("#btnStop").prop("disabled", true);
             ti994a.stop();
+            soundEnabled = sound.setSoundEnabled(false);
             window.clearInterval(debugTimerId);
             updateDebugger(false);
         });

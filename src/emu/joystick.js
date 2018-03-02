@@ -11,8 +11,18 @@ function Joystick(column, number) {
     this.log = Log.getLog();
     window.addEventListener("gamepadconnected", this.gamepadConnected.bind(this));
     window.addEventListener("gamepaddisconnected", this.gamepadDisconnected.bind(this));
-    window.setInterval(this.update.bind(this), 17);
+    this.start();
 }
+
+Joystick.prototype.start = function () {
+    this.interval = window.setInterval(this.update.bind(this), 17);
+};
+
+Joystick.prototype.stop = function () {
+    if (this.interval) {
+        clearInterval(this.interval);
+    }
+};
 
 Joystick.prototype.registerGamepad = function (number, index) {
     if (!Joystick.gamepadIndices) {

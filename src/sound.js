@@ -104,8 +104,9 @@ Sound.prototype = {
     },
 
     setSoundEnabled: function (enabled) {
+        var oldEnabled = this.enabled;
         if (Sound.audioContext) {
-            if (enabled) {
+            if (enabled && !this.enabled) {
                 if (this.vdpScriptProcessor) {
                     this.vdpScriptProcessor.connect(Sound.audioContext.destination);
                 }
@@ -118,7 +119,7 @@ Sound.prototype = {
                     this.tapeFilter.connect(Sound.audioContext.destination);
                 }
             }
-            else {
+            else if (!enabled && this.enabled) {
                 if (this.vdpScriptProcessor) {
                     this.vdpScriptProcessor.disconnect();
                 }
@@ -131,6 +132,8 @@ Sound.prototype = {
                 }
             }
         }
+        this.enabled = enabled;
+        return oldEnabled;
     },
 
     iOSLoadInitSound: function() {
