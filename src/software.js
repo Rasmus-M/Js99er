@@ -561,6 +561,11 @@ Software.programs = [
                 name: "Animated hat demo",
                 type: Software.TYPE_CART,
                 url: "software/hat.rpk"
+            },
+            {
+                name: "Monkey Island demo",
+                type: Software.TYPE_CART,
+                url: "software/monkey8.rpk"
             }
         ]
     },
@@ -620,6 +625,11 @@ Software.programs = [
                 name: "TI-99 Mario Bros",
                 type: Software.TYPE_INVERTED_CART,
                 url: "software/Mario3.bin"
+            },
+            {
+                name: "Monkey Island Demo",
+                type: Software.TYPE_CART,
+                url: "software/f18a-monkey8.bin"
             }
         ]
     },
