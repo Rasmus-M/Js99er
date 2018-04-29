@@ -492,6 +492,11 @@ Software.programs = [
                 name: "Break Free (demo)",
                 type: Software.TYPE_CART,
                 url: "software/brkfree.rpk"
+            },
+            {
+                name: "Flying Shark",
+                type: Software.TYPE_CART,
+                url: "software/flying-shark-v1.2.rpk"
             }
         ]
     },

@@ -45,8 +45,8 @@
 
         log = Log.getLog();
         log.info("Welcome to JS99'er");
-        log.info("Version 6.1, 25 February 2018");
-        log.info("  - Gamepad support");
+        log.info("Version 6.1.1, 29 April 2018");
+        log.info("  - Added Flying Shark to Software menu");
         settings = new Settings(true);
         soundEnabled = settings.isSoundEnabled();
         diskImages = {
