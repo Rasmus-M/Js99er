@@ -489,7 +489,7 @@ Software.programs = [
                 url: "software/pitfall.json"
             },
             {
-                name: "Break Free (demo)",
+                name: "Break Free",
                 type: Software.TYPE_CART,
                 url: "software/brkfree.rpk"
             },
