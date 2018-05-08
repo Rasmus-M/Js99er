@@ -45,8 +45,8 @@
 
         log = Log.getLog();
         log.info("Welcome to JS99'er");
-        log.info("Version 6.1.1, 29 April 2018");
-        log.info("  - Added Flying Shark to Software menu");
+        log.info("Version 6.2, 8 May 2018");
+        log.info("  - Enable sound on user interaction");
         settings = new Settings(true);
         soundEnabled = settings.isSoundEnabled();
         diskImages = {
@@ -79,12 +79,17 @@
             $("#canvas").toggleClass("pixelated", true);
         }
 
+        // Enable sound on click
+        $("#body").one("click keydown", function () {
+            sound.resumeSound();
+        });
+
         ///////////////
         // Main pane //
         ///////////////
 
         $("#canvas").on("click touchstart", function (evt) {
-            sound.iOSUserTriggeredSound();
+            // sound.iOSUserTriggeredSound();
             var rect = this.getBoundingClientRect();
             var scale = this.clientHeight / 240;
             var tiX = Math.floor((evt.clientX - rect.left) / scale);
@@ -975,7 +980,7 @@
     /////////////////////////////
 
     function virtualKeyPress(keyCode) {
-        sound.iOSUserTriggeredSound();
+        // sound.iOSUserTriggeredSound();
         ti994a.keyboard.virtualKeyPress(keyCode);
     }
 

@@ -52,7 +52,7 @@ function Sound(enabled, psgDev, speechDev, tape) {
             this.tapeFilter.frequency.value = 4000;
         }
         this.setSoundEnabled(enabled);
-        this.iOSLoadInitSound();
+        // this.iOSLoadInitSound();
     }
     else {
         this.log.warn("Web Audio API not supported by this browser.");
@@ -104,6 +104,7 @@ Sound.prototype = {
     },
 
     setSoundEnabled: function (enabled) {
+        this.resumeSound();
         var oldEnabled = this.enabled;
         if (Sound.audioContext) {
             if (enabled && !this.enabled) {
@@ -134,6 +135,12 @@ Sound.prototype = {
         }
         this.enabled = enabled;
         return oldEnabled;
+    },
+
+    resumeSound: function () {
+        if (Sound.audioContext && Sound.audioContext.state !== "running") {
+            Sound.audioContext.resume();
+        }
     },
 
     iOSLoadInitSound: function() {
