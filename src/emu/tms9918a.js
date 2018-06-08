@@ -24,7 +24,7 @@ function TMS9918A(canvas, cru, enableFlicker) {
 
     this.canvas = canvas;
     this.cru = cru;
-    this.enableflicker = enableFlicker;
+    this.enableFlicker = enableFlicker;
 
     this.ram = new Uint8Array(16384); // VDP RAM
     this.registers = new Uint8Array(8);
@@ -74,6 +74,8 @@ function TMS9918A(canvas, cru, enableFlicker) {
 
     this.canvasContext = this.canvas.getContext("2d");
     this.imageData = null;
+    this.width = null;
+    this.height = null;
 
     this.log = Log.getLog();
 
@@ -113,7 +115,7 @@ TMS9918A.prototype = {
         this.fgColor = 0;
         this.bgColor = 0;
 
-        this.flicker = this.enableflicker;
+        this.flicker = this.enableFlicker;
         this.redrawRequired = true;
 
         this.canvas.width = 304;
@@ -592,7 +594,7 @@ TMS9918A.prototype = {
 
     setFlicker: function (value) {
         this.flicker = value;
-        this.enableflicker = value;
+        this.enableFlicker = value;
     },
 
     getState: function () {
@@ -619,7 +621,7 @@ TMS9918A.prototype = {
             fgColor: this.fgColor,
             bgColor: this.bgColor,
             flicker: this.flicker
-        }
+        };
     },
 
     restoreState: function (state) {
