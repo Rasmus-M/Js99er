@@ -77,7 +77,7 @@ Tape.prototype.loadTapeFile = function (fileBuffer, callback) {
                 callback();
             },
             function (e) {
-                this.log.error("Error decoding audio data" + e.err);
+                tape.log.error("Error decoding audio data" + e.err);
             }
         );
     }
