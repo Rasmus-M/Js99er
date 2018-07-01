@@ -45,8 +45,8 @@
 
         log = Log.getLog();
         log.info("Welcome to JS99'er");
-        log.info("Version 6.2, 8 May 2018");
-        log.info("  - Enable sound on user interaction");
+        log.info("Version 6.2.1, 1 July 2018");
+        log.info("  - Fix regarding timing");
         settings = new Settings(true);
         soundEnabled = settings.isSoundEnabled();
         diskImages = {

@@ -451,6 +451,7 @@ TMS9900.prototype = {
                 cycles += this.B === 1 ? 6 : 8;
                 break;
         }
+        return cycles;
     },
 
     postIncrement: function (nWhich) {
@@ -1257,14 +1258,14 @@ TMS9900.prototype = {
         var x1 = this.readMemoryWord(this.S);
         this.postIncrement(this.SRC);
 
-        this.fixD();
+        var cycles = this.fixD();
         var x2 = this.readMemoryWord(this.D);
 
         var x3 = x1 & x2;
 
         if (x3 === x1) this.setEQ(); else this.resetEQ();
 
-        return 14;
+        return cycles + 14;
     },
 
     // Compare Zeros Corresponding: CZC src, dst
@@ -1274,14 +1275,14 @@ TMS9900.prototype = {
         var x1 = this.readMemoryWord(this.S);
         this.postIncrement(this.SRC);
 
-        this.fixD();
+        var cycles = this.fixD();
         var x2 = this.readMemoryWord(this.D);
 
         var x3 = x1 & x2;
 
         if (x3 === 0) this.setEQ(); else this.resetEQ();
 
-        return 14;
+        return cycles + 14;
     },
 
     // eXclusive OR: XOR src, dst
@@ -1289,7 +1290,7 @@ TMS9900.prototype = {
         var x1 = this.readMemoryWord(this.S);
         this.postIncrement(this.SRC);
 
-        this.fixD();
+        var cycles = this.fixD();
         var x2 = this.readMemoryWord(this.D);
 
         var x3 = (x1 ^ x2) & 0xFFFF;
@@ -1298,7 +1299,7 @@ TMS9900.prototype = {
         this.resetLGT_AGT_EQ();
         this.ST |= this.wStatusLookup[x3] & this.maskLGT_AGT_EQ;
 
-        return 14;
+        return cycles + 14;
     },
 
     // eXtended OPeration: XOP src ???
@@ -1446,7 +1447,7 @@ TMS9900.prototype = {
         var x1 = this.readMemoryWord(this.S);
         this.postIncrement(this.SRC);
 
-        this.fixD();
+        var cycles = this.fixD();
         var x2 = this.readMemoryWord(this.D);
         var x3 = (~x1) & x2;
         this.writeMemoryWord(this.D, x3);
@@ -1455,7 +1456,7 @@ TMS9900.prototype = {
         this.resetLGT_AGT_EQ();
         this.ST |= this.wStatusLookup[x3] & this.maskLGT_AGT_EQ;
 
-        return 14;
+        return cycles + 14;
     },
 
     // Set Zeros Corresponding, Byte: SZCB src, dst
@@ -1463,7 +1464,7 @@ TMS9900.prototype = {
         var x1 = this.readMemoryByte(this.S);
         this.postIncrement(this.SRC);
 
-        this.fixD();
+        var cycles = this.fixD();
         var x2 = this.readMemoryByte(this.D);
         var x3 = (~x1) & x2;
         this.writeMemoryByte(this.D, x3);
@@ -1472,7 +1473,7 @@ TMS9900.prototype = {
         this.resetLGT_AGT_EQ_OP();
         this.ST |= this.bStatusLookup[x3] & this.maskLGT_AGT_EQ_OP;
 
-        return 14;
+        return cycles + 14;
     },
 
     // Subtract: S src, dst
@@ -1480,7 +1481,7 @@ TMS9900.prototype = {
         var x1 = this.readMemoryWord(this.S);
         this.postIncrement(this.SRC);
 
-        this.fixD();
+        var cycles = this.fixD();
         var x2 = this.readMemoryWord(this.D);
         var x3 = (x2 - x1) & 0xFFFF;
         this.writeMemoryWord(this.D, x3);
@@ -1494,7 +1495,7 @@ TMS9900.prototype = {
         if ((x3 < x2) || (x1 === 0)) this.setC();
         if (((x1 & 0x8000) !== (x2 & 0x8000)) && ((x3 & 0x8000) !== (x2 & 0x8000))) this.setOV();
 
-        return 14;
+        return cycles + 14;
     },
 
     // Subtract Byte: SB src, dst
@@ -1502,7 +1503,7 @@ TMS9900.prototype = {
         var x1 = this.readMemoryByte(this.S);
         this.postIncrement(this.SRC);
 
-        this.fixD();
+        var cycles = this.fixD();
         var x2 = this.readMemoryByte(this.D);
         var x3 = (x2 - x1) & 0xFF;
         this.writeMemoryByte(this.D, x3);
@@ -1516,7 +1517,7 @@ TMS9900.prototype = {
         if ((x3 < x2) || (x1 === 0)) this.setC();
         if (((x1 & 0x80) !== (x2 & 0x80)) && ((x3 & 0x80) !== (x2 & 0x80))) this.setOV();
 
-        return 14;
+        return cycles + 14;
     },
 
     // Compare words: C src, dst
@@ -1524,7 +1525,7 @@ TMS9900.prototype = {
         var x3 = this.readMemoryWord(this.S);
         this.postIncrement(this.SRC);
 
-        this.fixD();
+        var cycles = this.fixD();
         var x4 = this.readMemoryWord(this.D);
         this.postIncrement(this.DST);
 
@@ -1537,7 +1538,7 @@ TMS9900.prototype = {
         else {
             if ((x4 & 0x8000) !== 0) this.setAGT();
         }
-        return 14;
+        return cycles + 14;
     },
 
     // CompareBytes: CB src, dst
@@ -1545,7 +1546,7 @@ TMS9900.prototype = {
         var x3 = this.readMemoryByte(this.S);
         this.postIncrement(this.SRC);
 
-        this.fixD();
+        var cycles = this.fixD();
         var x4 = this.readMemoryByte(this.D);
         this.postIncrement(this.DST);
 
@@ -1559,7 +1560,7 @@ TMS9900.prototype = {
         }
         this.ST |= this.bStatusLookup[x3] & this.BIT_OP;
 
-        return 14;
+        return cycles + 14;
     },
 
     // Add words: A src, dst
@@ -1567,7 +1568,7 @@ TMS9900.prototype = {
         var x1 = this.readMemoryWord(this.S);
         this.postIncrement(this.SRC);
 
-        this.fixD();
+        var cycles = this.fixD();
         var x2 = this.readMemoryWord(this.D);
         var x3 = (x2 + x1) & 0xFFFF;
         this.writeMemoryWord(this.D, x3);
@@ -1579,7 +1580,7 @@ TMS9900.prototype = {
         if (x3 < x2) this.setC();	// if it wrapped around, set carry
         if (((x1 & 0x8000) === (x2 & 0x8000)) && ((x3 & 0x8000) !== (x2 & 0x8000))) this.setOV(); // if it overflowed or underflowed (signed math), set overflow
 
-        return 14;
+        return cycles + 14;
     },
 
     // Add bytes: A src, dst
@@ -1587,7 +1588,7 @@ TMS9900.prototype = {
         var x1 = this.readMemoryByte(this.S);
         this.postIncrement(this.SRC);
 
-        this.fixD();
+        var cycles = this.fixD();
         var x2 = this.readMemoryByte(this.D);
         var x3 = (x2 + x1) & 0xFF;
         this.writeMemoryByte(this.D, x3);
@@ -1599,14 +1600,14 @@ TMS9900.prototype = {
         if (x3 < x2) this.setC();	// if it wrapped around, set carry
         if (((x1 & 0x80) === (x2 & 0x80)) && ((x3 & 0x80) !== (x2 & 0x80))) this.setOV();  // if it overflowed or underflowed (signed math), set overflow
 
-        return 14;
+        return cycles + 14;
     },
 
     // MOVe words: MOV src, dst
     mov: function () {
         var x1 = this.readMemoryWord(this.S);
         this.postIncrement(this.SRC);
-        this.fixD();
+        var cycles = this.fixD();
 
         this.writeMemoryWord(this.D, x1);
         this.postIncrement(this.DST);
@@ -1614,7 +1615,7 @@ TMS9900.prototype = {
         this.resetLGT_AGT_EQ();
         this.ST |= this.wStatusLookup[x1] & this.maskLGT_AGT_EQ;
 
-        return 14;
+        return cycles + 14;
     },
 
     // MOVe Bytes: MOVB src, dst
@@ -1622,14 +1623,14 @@ TMS9900.prototype = {
         var x1 = this.readMemoryByte(this.S);
         this.postIncrement(this.SRC);
 
-        this.fixD();
+        var cycles = this.fixD();
         this.writeMemoryByte(this.D, x1);
         this.postIncrement(this.DST);
 
         this.resetLGT_AGT_EQ_OP();
         this.ST |= this.bStatusLookup[x1] & this.maskLGT_AGT_EQ_OP;
 
-        return 14;
+        return cycles + 14;
     },
 
     // Set Ones Corresponding: SOC src, dst
@@ -1639,7 +1640,7 @@ TMS9900.prototype = {
         var x1 = this.readMemoryWord(this.S);
         this.postIncrement(this.SRC);
 
-        this.fixD();
+        var cycles = this.fixD();
         var x2 = this.readMemoryWord(this.D);
         var x3 = x1 | x2;
         this.writeMemoryWord(this.D, x3);
@@ -1648,14 +1649,14 @@ TMS9900.prototype = {
         this.resetLGT_AGT_EQ();
         this.ST |= this.wStatusLookup[x3] & this.maskLGT_AGT_EQ;
 
-        return 14;
+        return cycles + 14;
     },
 
     socb: function () {
         var x1 = this.readMemoryByte(this.S);
         this.postIncrement(this.SRC);
 
-        this.fixD();
+        var cycles = this.fixD();
         var x2 = this.readMemoryByte(this.D);
         var x3 = x1 | x2;
         this.writeMemoryByte(this.D, x3);
@@ -1664,7 +1665,7 @@ TMS9900.prototype = {
         this.resetLGT_AGT_EQ_OP();
         this.ST |= this.bStatusLookup[x3] & this.maskLGT_AGT_EQ_OP;
 
-        return 14;
+        return cycles + 14;
     },
 
     getLGT:     function () { return (this.ST & this.BIT_LGT) },	// Logical Greater Than
