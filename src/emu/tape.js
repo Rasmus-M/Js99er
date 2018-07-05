@@ -34,6 +34,8 @@ Tape.ONE = [
     -0.47039, -0.24116, -0.03194, -0.00001
 ];
 
+Tape.AUDIO_GATE_BUFFER_LENGTH = 4096;
+
 Tape.prototype.reset = function () {
     if (this.sampleRate !== 0 && this.sampleRate !== 48000) {
         // TODO: Resample ZERO and ONE
@@ -49,9 +51,9 @@ Tape.prototype.reset = function () {
     this.sampleBuffer = [];
     this.playDelay = 0;
     this.paused = false;
-    this.audioGate = 0;
-    this.audioGateBuffer = [];
+    this.audioGateBuffer = new Float32Array(Tape.AUDIO_GATE_BUFFER_LENGTH);
     this.audioGateBufferStart = 0;
+    this.audioGateBufferEnd = 0;
     this.lastAudioGateChange = -1;
     this.resetSampleBuffer();
 };
@@ -141,9 +143,9 @@ Tape.prototype.setAudioGate = function (value, time) {
         var audioGate = value ? 0.75 : -0.75;
         var timePassed = Math.min(((time - this.lastAudioGateChange) >> 6), 8);
         for (var i = 0; i < timePassed; i++) {
-            this.audioGateBuffer.push(audioGate);
+            this.audioGateBuffer[this.audioGateBufferEnd] = audioGate;
+            this.audioGateBufferEnd = (this.audioGateBufferEnd + 1) % Tape.AUDIO_GATE_BUFFER_LENGTH;
         }
-        this.audioGate = audioGate;
     }
     this.lastAudioGateChange = time;
 };
@@ -172,10 +174,9 @@ Tape.prototype.updateSoundBuffer = function (buffer) {
         }
     }
     for (i = 0; i < buffer.length; i++) {
-        if (this.audioGateBufferStart < this.audioGateBuffer.length) {
-            buffer[i] = this.audioGateBuffer[this.audioGateBufferStart++];
-        } else {
-            buffer[i] = 0;
+        buffer[i] = this.audioGateBuffer[this.audioGateBufferStart];
+        if (this.audioGateBufferStart !== this.audioGateBufferEnd) {
+            this.audioGateBufferStart = (this.audioGateBufferStart + 1) % Tape.AUDIO_GATE_BUFFER_LENGTH;
         }
     }
 };
