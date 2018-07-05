@@ -143,6 +143,9 @@ CRU.prototype = {
             if (addr === 22) {
                 this.tape.setMotorOn(value);
             }
+            else if (addr === 24) {
+               this.tape.setAudioGate(value, this.tms9900.getCycles());
+            }
             else if (addr === 25) {
                 this.tape.write(value, this.timerInterruptCount);
             }

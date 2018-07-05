@@ -289,6 +289,10 @@ TMS9900.prototype = {
         return this.ST & 0x000F;
     },
 
+    getCycles: function () {
+        return this.cycles;
+    },
+
     addCycles: function (value) {
         this.cycles += value;
     },

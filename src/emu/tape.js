@@ -49,6 +49,10 @@ Tape.prototype.reset = function () {
     this.sampleBuffer = [];
     this.playDelay = 0;
     this.paused = false;
+    this.audioGate = 0;
+    this.audioGateBuffer = [];
+    this.audioGateBufferStart = 0;
+    this.lastAudioGateChange = -1;
     this.resetSampleBuffer();
 };
 
@@ -132,6 +136,18 @@ Tape.prototype.setMotorOn = function (value) {
     this.playing = this.playPressed;
 };
 
+Tape.prototype.setAudioGate = function (value, time) {
+    if (this.lastAudioGateChange !== -1) {
+        var audioGate = value ? 0.75 : -0.75;
+        var timePassed = Math.min(((time - this.lastAudioGateChange) >> 6), 8);
+        for (var i = 0; i < timePassed; i++) {
+            this.audioGateBuffer.push(audioGate);
+        }
+        this.audioGate = audioGate;
+    }
+    this.lastAudioGateChange = time;
+};
+
 Tape.prototype.updateSoundBuffer = function (buffer) {
     var i;
     if (!this.paused) {
@@ -156,7 +172,11 @@ Tape.prototype.updateSoundBuffer = function (buffer) {
         }
     }
     for (i = 0; i < buffer.length; i++) {
-        buffer[i] = 0;
+        if (this.audioGateBufferStart < this.audioGateBuffer.length) {
+            buffer[i] = this.audioGateBuffer[this.audioGateBufferStart++];
+        } else {
+            buffer[i] = 0;
+        }
     }
 };
 

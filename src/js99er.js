@@ -45,8 +45,8 @@
 
         log = Log.getLog();
         log.info("Welcome to JS99'er");
-        log.info("Version 6.2.1, 1 July 2018");
-        log.info("  - Fix regarding timing");
+        log.info("Version 6.3, 5 July 2018");
+        log.info("  - Sound in Perfect Push");
         settings = new Settings(true);
         soundEnabled = settings.isSoundEnabled();
         diskImages = {
