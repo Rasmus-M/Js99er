@@ -992,7 +992,7 @@ Keyboard.prototype = {
         this.alphaLock = state.alphaLock;
         this.pasteBuffer = state.pasteBuffer;
         this.pasteIndex = state.pasteIndex;
-        this.joystick1.setState(state.joystick1);
-        this.joystick2.setState(state.joystick2);
+        this.joystick1.restoreState(state.joystick1);
+        this.joystick2.restoreState(state.joystick2);
     }
 };
