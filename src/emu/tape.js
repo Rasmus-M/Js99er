@@ -39,6 +39,7 @@ Tape.AUDIO_GATE_BUFFER_LENGTH = 4096;
 Tape.prototype.reset = function () {
     if (this.sampleRate !== 0 && this.sampleRate !== 48000) {
         // TODO: Resample ZERO and ONE
+        this.log.warn("Sample rate is " + this.sampleRate + ", not 48000.");
     }
     if (this.audioSource) {
         this.audioSource.stop();
@@ -83,7 +84,7 @@ Tape.prototype.loadTapeFile = function (fileBuffer, callback) {
                 callback();
             },
             function (e) {
-                tape.log.error("Error decoding audio data" + e.err);
+                tape.log.error("Error decoding audio data: " + e);
             }
         );
     }
@@ -326,7 +327,7 @@ Tape.prototype.getRecording = function () {
     }
     var audioBuffer = this.audioContext.createBuffer(1, array.length, this.sampleRate);
     audioBuffer.copyToChannel(array, 0);
-    return audioBufferToWav(audioBuffer, { float32: true });
+    return audioBufferToWav(audioBuffer, { float32: false });
 };
 
 Tape.prototype.getState = function () {
