@@ -45,8 +45,8 @@
 
         log = Log.getLog();
         log.info("Welcome to JS99'er");
-        log.info("Version 6.3.1, 23 July 2018");
-        log.info("  - 16-bit tape wav output");
+        log.info("Version 6.3.1, 16 July 2018");
+        log.info("  - Bug fix in restore state");
         settings = new Settings(true);
         soundEnabled = settings.isSoundEnabled();
         diskImages = {

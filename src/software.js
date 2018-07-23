@@ -702,7 +702,6 @@ Software.carts = [
     ["cache-cache", null],
     ["california_nights_demo", null],
     ["canada_mortgage", null],
-    ["carts.txt", null],
     ["car_wars", null],
     ["cassette_backup_10", null],
     ["cataloging_library", null],
