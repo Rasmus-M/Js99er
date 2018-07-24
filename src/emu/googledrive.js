@@ -71,7 +71,7 @@ GoogleDrive.execute = function (pc, googleDrives, memory, callback) {
     var googleDrive = null;
     switch (pc) {
         case GoogleDrive.DSR_ROM_POWER_UP:
-            GoogleDrive.powerUp(memory);
+            GoogleDrive.powerUp();
             return false;
         case GoogleDrive.DSR_ROM_GDR1:
             googleDrive = googleDrives[0];
@@ -89,7 +89,7 @@ GoogleDrive.execute = function (pc, googleDrives, memory, callback) {
         var pabAddr = memory.getPADWord(0x8356) - 14;
         var opCode = googleDrive.ram[pabAddr];
         GoogleDrive.authorize(
-            opCode != TI_FILE.OP_CODE_READ && opCode != TI_FILE.OP_CODE_WRITE,
+            opCode !== TI_FILE.OP_CODE_READ && opCode !== TI_FILE.OP_CODE_WRITE,
             function () {
                 googleDrive.dsrRoutine(pabAddr, function (status, errorCode) {
                     googleDrive.log.info("Returned error code: " + errorCode + "\n");
@@ -113,52 +113,39 @@ GoogleDrive.execute = function (pc, googleDrives, memory, callback) {
 GoogleDrive.AUTHORIZED = false;
 
 GoogleDrive.authorize = function (refresh, success, failure) {
-
-    var CLIENT_ID = "101694421528-72cnh0nor5rvoj245fispof8hdaq47i4.apps.googleusercontent.com";
-    var SCOPES = 'https://www.googleapis.com/auth/drive';
-
-    if (refresh || !GoogleDrive.AUTHORIZED) {
-        if (gapi.auth) {
-            gapi.auth.authorize(
-                {'client_id': CLIENT_ID, 'scope': SCOPES, 'immediate': true},
-                function (authResult) {
-                    if (authResult && !authResult.error) {
-                        // Access token has been successfully retrieved, requests can be sent to the API.
-                        Log.getLog().info("Google Drive authorization OK");
-                        GoogleDrive.AUTHORIZED = true;
-                        success();
-                    } else {
-                        // No access token could be retrieved, show the button to start the authorization flow.
-                        gapi.auth.authorize(
-                            {'client_id': CLIENT_ID, 'scope': SCOPES, 'immediate': false},
-                            function (authResult) {
-                                if (authResult && !authResult.error) {
-                                    // Access token has been successfully retrieved, requests can be sent to the API.
-                                    Log.getLog().info("Google Drive authorization OK");
-                                    GoogleDrive.AUTHORIZED = true;
-                                    success();
-                                } else {
-                                    Log.getLog().warn("Google Drive authorization failed");
-                                    failure();
-                                }
-                            }
-                        );
-                    }
-                }
-            );
-        }
-        else {
-            Log.getLog().error("Google Drive access failed");
-            setTimeout(failure, 0);
-        }
-    }
-    else {
-        setTimeout(success, 0);
+    if (GoogleDrive.AUTHORIZED) {
+        setTimeout(success);
+    } else {
+        Log.getLog().warn("Not signed in to Google");
+        setTimeout(failure);
     }
 };
 
-GoogleDrive.powerUp = function (memory) {
-    Log.getLog().info("Executing Google Drive DSR power-up routine.");
+GoogleDrive.powerUp = function () {
+    var CLIENT_ID = "101694421528-72cnh0nor5rvoj245fispof8hdaq47i4.apps.googleusercontent.com";
+    var SCOPES = 'https://www.googleapis.com/auth/drive';
+    var log = Log.getLog();
+    log.info("Executing Google Drive DSR power-up routine.");
+    gapi.load("client:auth2", function() {
+        log.info("Google library loaded");
+        gapi.client.init({
+            clientId: CLIENT_ID,
+            scope: SCOPES
+        }).then(function () {
+            log.info("Google client init OK");
+            var authInstance = gapi.auth2.getAuthInstance();
+            if (authInstance.isSignedIn.get()) {
+                log.info("Already signed in.");
+                GoogleDrive.AUTHORIZED = true;
+            } else {
+                authInstance.signIn();
+                authInstance.isSignedIn.listen(function (isSignedIn) {
+                    log.info("Signed in: " + isSignedIn);
+                    GoogleDrive.AUTHORIZED = isSignedIn;
+                });
+            }
+        });
+    });
 };
 
 GoogleDrive.prototype = {
