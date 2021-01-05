@@ -526,7 +526,7 @@ TMS5220.prototype = {
         /* BL is set if neither byte 9 nor 8 of the fifo are in use; this
          translates to having fifo_count (which ranges from 0 bytes in use to 16
          bytes used) being less than or equal to 8. Victory/Victorba depends on this. */
-        if (this.m_fifo_count <= TMS5220.FIFO_SIZE / 2) {
+        if (this.m_fifo_count <= 8) { // RM: Using TMS5220.FIFO_SIZE / 2 doesn't work with XB CALL SAY(,A$)
             // generate an interrupt if necessary; if /BL was inactive and is now active, set int.
             if (!this.m_buffer_low) {
                 this.set_interrupt_state(1);
@@ -562,10 +562,6 @@ TMS5220.prototype = {
         }
         /* Note that TS being unset will also generate an interrupt when a STOP
          frame is encountered; this is handled in the sample generator code and not here */
-
-        if (this.m_speak_external && this.tms9900) {
-            this.tms9900.setSuspended(this.m_fifo_count === TMS5220.FIFO_SIZE);
-        }
     },
 
     /**********************************************************************************************
@@ -1285,6 +1281,9 @@ TMS5220.prototype = {
             this.m_readyq_handler(!state);
         }
         this.m_ready_pin = state;
+        if (this.tms9900) {
+            this.tms9900.setSuspended(!this.m_ready_pin);
+        }
     },
 
     //-------------------------------------------------
@@ -1336,6 +1335,8 @@ TMS5220.prototype = {
         // falsely shifted.
         this.rom_read(1);
         this.m_schedule_dummy_read = false;
+
+        this.m_io_ready = true;
     },
 
     /**********************************************************************************************
